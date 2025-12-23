@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
-import { HiCamera, HiSwitchHorizontal, HiX, HiCheck, HiExclamation, HiRefresh } from 'react-icons/hi';
+import { useState, useRef, useEffect } from 'react';
+import { HiSwitchHorizontal, HiX, HiCheck, HiExclamation, HiRefresh } from 'react-icons/hi';
 import { detectFaces, generateFaceSignature, compareFaceSignatures } from '../ai/FaceDetection';
 import { processImage, generateImageHash, compareImageHashes } from '../ai/FaceBlur';
 import toast from 'react-hot-toast';
@@ -7,7 +7,7 @@ import toast from 'react-hot-toast';
 const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
-    const [stream, setStream] = useState(null);
+    const streamRef = useRef(null);
     const [facingMode, setFacingMode] = useState('environment');
     const [capturing, setCapturing] = useState(false);
     const [processing, setProcessing] = useState(false);
@@ -17,6 +17,7 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
     const [duplicateWarning, setDuplicateWarning] = useState(null);
     const [location, setLocation] = useState(null);
     const [cameraError, setCameraError] = useState(null);
+    const [cameraReady, setCameraReady] = useState(false);
 
     // Get GPS location on mount
     useEffect(() => {
@@ -37,66 +38,87 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
         }
     }, []);
 
-    const startCamera = useCallback(async (mode) => {
+    // Stop camera stream completely
+    const stopCamera = () => {
+        if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => {
+                track.stop();
+            });
+            streamRef.current = null;
+        }
+        if (videoRef.current) {
+            videoRef.current.srcObject = null;
+        }
+        setCameraReady(false);
+    };
+
+    // Start camera with specified mode
+    const startCamera = async (mode) => {
         try {
             setCameraError(null);
+            setCameraReady(false);
 
-            // Stop existing stream first
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                setStream(null);
-            }
+            // Always stop existing stream first
+            stopCamera();
+
+            // Small delay to ensure previous stream is fully released
+            await new Promise(r => setTimeout(r, 100));
 
             const constraints = {
                 video: {
-                    facingMode: mode || facingMode,
-                    width: { ideal: 1920, min: 640 },
-                    height: { ideal: 1080, min: 480 },
+                    facingMode: { ideal: mode },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
                 },
                 audio: false,
             };
 
             const newStream = await navigator.mediaDevices.getUserMedia(constraints);
-            setStream(newStream);
+            streamRef.current = newStream;
 
             if (videoRef.current) {
                 videoRef.current.srcObject = newStream;
-                await videoRef.current.play();
+
+                // Wait for video to be ready
+                await new Promise((resolve, reject) => {
+                    videoRef.current.onloadedmetadata = () => {
+                        videoRef.current.play()
+                            .then(resolve)
+                            .catch(reject);
+                    };
+                    setTimeout(reject, 5000); // Timeout after 5s
+                });
+
+                setCameraReady(true);
             }
         } catch (error) {
             console.error('Camera error:', error);
             setCameraError(error.message || 'Failed to access camera');
             toast.error('Camera access failed. Please check permissions.');
         }
-    }, [stream, facingMode]);
+    };
 
+    // Initialize camera on mount
     useEffect(() => {
         startCamera('environment');
 
         return () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-            }
+            stopCamera();
         };
     }, []);
 
+    // Switch between front and back camera
     const switchCamera = async () => {
         const newMode = facingMode === 'environment' ? 'user' : 'environment';
         setFacingMode(newMode);
-
-        // Stop current stream
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-            setStream(null);
-        }
-
-        // Small delay then restart with new mode
-        await new Promise(r => setTimeout(r, 200));
+        stopCamera();
+        await new Promise(r => setTimeout(r, 300));
         await startCamera(newMode);
     };
 
+    // Capture photo from video
     const capturePhoto = async () => {
-        if (!videoRef.current || !canvasRef.current) return;
+        if (!videoRef.current || !canvasRef.current || !cameraReady) return;
 
         setCapturing(true);
         const video = videoRef.current;
@@ -107,16 +129,15 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
 
         const ctx = canvas.getContext('2d');
 
-        if (facingMode === 'user') {
-            ctx.translate(canvas.width, 0);
-            ctx.scale(-1, 1);
-        }
-
+        // No mirroring - save as captured
         ctx.drawImage(video, 0, 0);
 
-        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
         setPreview(imageDataUrl);
         setCapturing(false);
+
+        // Stop camera while processing to free resources
+        stopCamera();
 
         await processWithAI(imageDataUrl);
     };
@@ -130,13 +151,15 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
             const result = await processImage(imageDataUrl, detectFaces);
 
             if (result.facesDetected === 0) {
-                toast.error('No faces detected. Please ensure face is visible.');
+                toast.error('No faces detected. Please retake.');
                 setPreview(null);
                 setProcessing(false);
+                // Restart camera for retake
+                await startCamera(facingMode);
                 return;
             }
 
-            setProcessingStep('Analyzing for duplicates...');
+            setProcessingStep('Checking for duplicates...');
             const imageHash = await generateImageHash(imageDataUrl);
 
             const faceSignature = generateFaceSignature(result.faces, {
@@ -144,22 +167,26 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                 height: canvasRef.current.height,
             });
 
+            // INCREASED THRESHOLDS to reduce false positives
+            // Only flag as duplicate if VERY similar (95%+ image, 92%+ face)
             let isDuplicate = false;
             let duplicateSimilarity = 0;
 
             for (const photo of existingPhotos) {
+                // Check image hash - needs to be 95%+ similar
                 if (photo.imageHash) {
                     const hashSimilarity = compareImageHashes(imageHash, photo.imageHash);
-                    if (hashSimilarity > 85) {
+                    if (hashSimilarity > 95) {
                         isDuplicate = true;
                         duplicateSimilarity = hashSimilarity;
                         break;
                     }
                 }
 
+                // Check face signature - needs to be 92%+ similar
                 if (photo.aiMetadata?.faceSignature) {
                     const sigSimilarity = compareFaceSignatures(faceSignature, photo.aiMetadata.faceSignature);
-                    if (sigSimilarity > 80) {
+                    if (sigSimilarity > 92) {
                         isDuplicate = true;
                         duplicateSimilarity = sigSimilarity;
                         break;
@@ -168,7 +195,7 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
             }
 
             setProcessingStep('Blurring faces...');
-            await new Promise(r => setTimeout(r, 300));
+            await new Promise(r => setTimeout(r, 200));
 
             setProcessedData({
                 ...result,
@@ -183,14 +210,16 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                     similarity: duplicateSimilarity,
                     message: `⚠️ ${duplicateSimilarity}% similar to existing photo!`,
                 });
-                toast.error(`Duplicate detected! ${duplicateSimilarity}% similar.`);
+                toast.error(`Possible duplicate (${duplicateSimilarity}% similar)`);
             } else {
                 toast.success(`${result.facesDetected} face(s) detected & blurred!`);
             }
         } catch (error) {
             console.error('Processing error:', error);
-            toast.error('Failed to process. Please try again.');
+            toast.error('Processing failed. Please retry.');
             setPreview(null);
+            // Restart camera on error
+            await startCamera(facingMode);
         }
         setProcessing(false);
         setProcessingStep('');
@@ -218,22 +247,22 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
         }
     };
 
-    const retakePhoto = () => {
+    const retakePhoto = async () => {
         setPreview(null);
         setProcessedData(null);
         setDuplicateWarning(null);
+        // Restart camera for retake
+        await startCamera(facingMode);
     };
 
     const handleClose = () => {
-        if (stream) {
-            stream.getTracks().forEach(track => track.stop());
-        }
+        stopCamera();
         onClose();
     };
 
     return (
         <div className="camera-fullscreen">
-            {/* Header - Fixed at top */}
+            {/* Header */}
             <div className="camera-top-bar">
                 <button className="camera-close-btn" onClick={handleClose}>
                     <HiX size={24} />
@@ -242,7 +271,7 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                 <div style={{ width: 44 }} />
             </div>
 
-            {/* Camera View - Full height minus top/bottom bars */}
+            {/* Camera View */}
             <div className="camera-viewport">
                 {!preview ? (
                     <>
@@ -261,7 +290,7 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                                 autoPlay
                                 playsInline
                                 muted
-                                className="camera-video-full"
+                                className={`camera-video-full ${facingMode === 'user' ? 'mirror' : ''}`}
                             />
                         )}
                         <div className="camera-overlay-guide">
@@ -290,21 +319,21 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                 )}
             </div>
 
-            {/* Bottom Controls - Fixed at bottom */}
+            {/* Bottom Controls */}
             <div className="camera-bottom-bar">
                 {!preview ? (
                     <div className="capture-controls">
                         <button
                             className="switch-cam-btn"
                             onClick={switchCamera}
-                            disabled={cameraError}
+                            disabled={cameraError || !cameraReady}
                         >
                             <HiSwitchHorizontal size={22} />
                         </button>
                         <button
                             className="shutter-btn"
                             onClick={capturePhoto}
-                            disabled={capturing || cameraError}
+                            disabled={capturing || cameraError || !cameraReady}
                         >
                             <div className="shutter-inner" />
                         </button>
@@ -401,6 +430,10 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                     object-fit: cover;
                 }
 
+                .camera-video-full.mirror {
+                    transform: scaleX(-1);
+                }
+
                 .camera-error {
                     display: flex;
                     flex-direction: column;
@@ -433,8 +466,8 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                 }
 
                 .guide-corners {
-                    width: 80%;
-                    max-width: 320px;
+                    width: 70%;
+                    max-width: 280px;
                     aspect-ratio: 3/4;
                     position: relative;
                 }
@@ -443,7 +476,7 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                     position: absolute;
                     width: 24px;
                     height: 24px;
-                    border: 3px solid rgba(255,255,255,0.6);
+                    border: 3px solid rgba(255,255,255,0.5);
                 }
 
                 .corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
@@ -479,7 +512,7 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                     width: 48px;
                     height: 48px;
                     border: 4px solid rgba(255,255,255,0.2);
-                    border-top-color: var(--brand-primary, #0d9488);
+                    border-top-color: #0d9488;
                     border-radius: 50%;
                     animation: spin 1s linear infinite;
                 }
@@ -496,8 +529,8 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
 
                 .camera-bottom-bar {
                     background: rgba(0,0,0,0.9);
-                    padding: 16px;
-                    padding-bottom: max(16px, env(safe-area-inset-bottom));
+                    padding: 20px 16px;
+                    padding-bottom: max(20px, env(safe-area-inset-bottom));
                     position: relative;
                     z-index: 10;
                 }
@@ -506,7 +539,7 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    gap: 32px;
+                    gap: 36px;
                 }
 
                 .switch-cam-btn {
@@ -533,8 +566,8 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                 }
 
                 .shutter-btn {
-                    width: 72px;
-                    height: 72px;
+                    width: 76px;
+                    height: 76px;
                     border-radius: 50%;
                     border: 4px solid #fff;
                     background: transparent;
@@ -563,14 +596,14 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                     align-items: center;
                     justify-content: center;
                     gap: 12px;
-                    padding: 8px 0;
+                    padding: 12px 0;
                     color: #fff;
                 }
 
                 .ai-pulse {
                     width: 12px;
                     height: 12px;
-                    background: var(--brand-primary, #0d9488);
+                    background: #0d9488;
                     border-radius: 50%;
                     animation: pulse 1.5s ease-in-out infinite;
                 }
@@ -619,13 +652,13 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
 
                 .btn-action {
                     flex: 1;
-                    height: 52px;
+                    height: 56px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     gap: 8px;
                     border: none;
-                    border-radius: 12px;
+                    border-radius: 14px;
                     font-size: 16px;
                     font-weight: 600;
                     cursor: pointer;
