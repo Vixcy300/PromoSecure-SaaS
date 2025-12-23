@@ -290,13 +290,11 @@ const LandingPage = () => {
                 <input type="text" className="input" placeholder="Your company name (optional)" />
               </div>
               <div className="input-group">
-                <label>How did you hear about us?</label>
+                <label>How did you hear about us? <span className="label-note">(We know it's not Google 😄)</span></label>
                 <select className="input">
                   <option value="">Select...</option>
-                  <option value="search">Google Search</option>
-                  <option value="social">Social Media</option>
-                  <option value="referral">Friend/Colleague</option>
-                  <option value="other">Other</option>
+                  <option value="referral">Friend / Colleague</option>
+                  <option value="github">GitHub</option>
                 </select>
               </div>
               <button type="submit" className="btn btn-primary btn-lg w-full">
@@ -789,6 +787,12 @@ const LandingPage = () => {
           font-size: 0.85rem;
           color: var(--text-muted);
           margin: 1rem 0 0;
+        }
+
+        .label-note {
+          font-weight: 400;
+          font-size: 0.8rem;
+          color: var(--text-muted);
         }
 
         /* Footer */
