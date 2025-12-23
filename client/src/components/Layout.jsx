@@ -23,6 +23,7 @@ const Layout = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -81,8 +82,34 @@ const Layout = () => {
           <span className="logo-icon">🔒</span>
           <span className="logo-text">PromoSecure</span>
         </div>
-        <div className="mobile-avatar" style={{ background: badge.gradient }}>
-          {user?.name?.[0]?.toUpperCase() || 'U'}
+        <div className="mobile-user-menu">
+          <button
+            className="mobile-avatar-btn"
+            onClick={() => setShowMobileMenu(!showMobileMenu)}
+            style={{ background: badge.gradient }}
+          >
+            {user?.name?.[0]?.toUpperCase() || 'U'}
+          </button>
+          {showMobileMenu && (
+            <>
+              <div className="mobile-menu-overlay" onClick={() => setShowMobileMenu(false)} />
+              <div className="mobile-dropdown">
+                <div className="mobile-dropdown-header">
+                  <span className="dropdown-name">{user?.name}</span>
+                  <span className="dropdown-role">{badge.label}</span>
+                </div>
+                <NavLink to="/about" className="dropdown-item" onClick={() => setShowMobileMenu(false)}>
+                  <HiQuestionMarkCircle /> About Us
+                </NavLink>
+                <NavLink to="/privacy" className="dropdown-item" onClick={() => setShowMobileMenu(false)}>
+                  <HiDocumentText /> Privacy Policy
+                </NavLink>
+                <button className="dropdown-item logout" onClick={handleLogout}>
+                  <HiLogout /> Logout
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </header>
 
@@ -401,6 +428,82 @@ const Layout = () => {
             margin-left: 0;
             padding-top: 60px;
           }
+        }
+
+        /* Mobile User Menu */
+        .mobile-user-menu {
+          position: relative;
+        }
+
+        .mobile-avatar-btn {
+          width: 38px;
+          height: 38px;
+          border-radius: 50%;
+          border: none;
+          color: white;
+          font-weight: 600;
+          font-size: 1rem;
+          cursor: pointer;
+        }
+
+        .mobile-menu-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 998;
+        }
+
+        .mobile-dropdown {
+          position: absolute;
+          top: calc(100% + 8px);
+          right: 0;
+          width: 200px;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-lg);
+          box-shadow: var(--shadow-lg);
+          z-index: 999;
+          overflow: hidden;
+        }
+
+        .mobile-dropdown-header {
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--border-color);
+          display: flex;
+          flex-direction: column;
+        }
+
+        .dropdown-name {
+          font-weight: 600;
+          font-size: 0.95rem;
+        }
+
+        .dropdown-role {
+          font-size: 0.75rem;
+          color: var(--text-muted);
+        }
+
+        .dropdown-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 16px;
+          width: 100%;
+          border: none;
+          background: none;
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+          cursor: pointer;
+          text-decoration: none;
+          transition: background 0.2s;
+        }
+
+        .dropdown-item:hover {
+          background: var(--bg-tertiary);
+        }
+
+        .dropdown-item.logout {
+          color: var(--error);
+          border-top: 1px solid var(--border-color);
         }
       `}</style>
     </div>

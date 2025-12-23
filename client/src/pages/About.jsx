@@ -24,13 +24,28 @@ const About = () => {
                 </div>
 
                 <div className="about-content">
-                    {/* Project Info */}
-                    <section className="about-section">
-                        <h2>🔒 The Project</h2>
+                    {/* The Problem We Solve */}
+                    <section className="about-section problem-section">
+                        <h2>❓ The Problem We Solve</h2>
                         <p>
-                            PromoSecure is a comprehensive SaaS platform designed for field marketing and promotional
-                            verification. It enables companies to verify promotional activities while protecting
-                            public privacy through AI-powered face blurring technology.
+                            <strong>Marketing companies and promoters face a critical challenge:</strong> the public is
+                            hesitant to pose for promotional photos. People are uncomfortable having their photos taken
+                            by strangers with unknown devices—they don't know where those images will end up or how
+                            they will be used.
+                        </p>
+                        <p>
+                            At the same time, companies need legitimate proof of their promotional activities,
+                            but the lack of trust creates friction and reduces engagement.
+                        </p>
+                    </section>
+
+                    {/* Our Solution */}
+                    <section className="about-section solution-section">
+                        <h2>🔒 Our Solution</h2>
+                        <p>
+                            <strong>PromoSecure</strong> bridges this gap with complete transparency. We automatically
+                            blur all faces in promotional photos using advanced AI technology—so promoters get their
+                            proof of work, and the public gets their privacy protected.
                         </p>
                         <div className="feature-list">
                             <div className="feature-item">
@@ -62,6 +77,40 @@ const About = () => {
                                 </div>
                             </div>
                         </div>
+                    </section>
+
+                    {/* Transparency Promise */}
+                    <section className="about-section transparency-section">
+                        <h2>🛡️ Our Transparency Promise</h2>
+                        <div className="promise-card">
+                            <p className="promise-main">
+                                Your photo data is <strong>automatically deleted within 30 days</strong>.
+                            </p>
+                            <p className="promise-sub">
+                                We never share, sell, or misuse your images. Period.
+                            </p>
+                        </div>
+                        <ul className="promise-list">
+                            <li>✓ Faces are blurred before any human sees them</li>
+                            <li>✓ All data deleted after 30 days</li>
+                            <li>✓ No third-party sharing</li>
+                            <li>✓ Full audit trail for accountability</li>
+                        </ul>
+                    </section>
+
+                    {/* Our Vision */}
+                    <section className="about-section vision-section">
+                        <h2>💡 Our Vision</h2>
+                        <blockquote className="vision-quote">
+                            "Privacy First. Perfection Always."
+                        </blockquote>
+                        <p>
+                            We believe that <strong>privacy comes with perfection</strong>. We are building a world
+                            where marketing proof and personal privacy coexist—because both matter. The public
+                            can confidently participate in promotional activities, knowing their identity is
+                            protected, and companies can verifiably prove their marketing reach without
+                            compromising anyone's privacy.
+                        </p>
                     </section>
 
                     {/* Developer Info */}
@@ -379,6 +428,69 @@ const About = () => {
                 .copyright {
                     font-size: 0.85rem;
                     margin-top: 0.5rem;
+                }
+
+                /* New Section Styles */
+                .problem-section {
+                    border-left: 4px solid var(--warning);
+                }
+
+                .solution-section {
+                    background: linear-gradient(135deg, rgba(13, 148, 136, 0.05), rgba(20, 184, 166, 0.05));
+                    border-color: var(--brand-primary);
+                }
+
+                .transparency-section {
+                    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.05));
+                    border-color: var(--success);
+                }
+
+                .vision-section {
+                    background: linear-gradient(135deg, rgba(124, 58, 237, 0.05), rgba(99, 102, 241, 0.05));
+                    border-color: #7c3aed;
+                }
+
+                .promise-card {
+                    background: var(--success-bg);
+                    border: 1px solid var(--success);
+                    border-radius: var(--radius-lg);
+                    padding: 1.25rem;
+                    margin: 1rem 0;
+                    text-align: center;
+                }
+
+                .promise-main {
+                    color: var(--success);
+                    font-size: 1.1rem;
+                    margin-bottom: 0.5rem;
+                }
+
+                .promise-sub {
+                    color: var(--text-secondary);
+                    font-size: 0.9rem;
+                    margin: 0;
+                }
+
+                .promise-list {
+                    list-style: none;
+                    padding: 0;
+                    margin: 1rem 0 0;
+                }
+
+                .promise-list li {
+                    padding: 0.5rem 0;
+                    color: var(--text-secondary);
+                    font-size: 0.95rem;
+                }
+
+                .vision-quote {
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    text-align: center;
+                    color: #7c3aed;
+                    border: none;
+                    padding: 1rem 0;
+                    margin: 0 0 1rem;
                 }
 
                 @media (max-width: 768px) {
