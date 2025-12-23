@@ -1,106 +1,150 @@
 <div align="center">
 
-# 🔒 PromoSecure
+<img src="https://img.icons8.com/fluency/96/privacy-policy.png" alt="PromoSecure Logo" width="80" height="80" />
 
-### Privacy-First Promotional Verification Platform
+# PromoSecure
 
-*AI-powered face blurring • Smart duplicate detection • Field marketing verification*
+### 🔒 Privacy-First Field Marketing Verification Platform
 
-[![Live Demo](https://img.shields.io/badge/🌐_Live_Demo-Visit_App-0d9488?style=for-the-badge)](https://promosecure-saas.vercel.app)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
-[![React](https://img.shields.io/badge/React-18.2-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org)
-[![Node.js](https://img.shields.io/badge/Node.js-18+-339933?style=for-the-badge&logo=node.js&logoColor=white)](https://nodejs.org)
-[![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://mongodb.com)
-[![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://vercel.com)
+<br/>
 
-<br>
+[![Made with React](https://img.shields.io/badge/Made%20with-React%2018-61DAFB?style=for-the-badge&logo=react)](https://reactjs.org)
+[![Powered by Node.js](https://img.shields.io/badge/Powered%20by-Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Database](https://img.shields.io/badge/Database-MongoDB%20Atlas-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://mongodb.com)
+[![AI](https://img.shields.io/badge/AI-TensorFlow.js-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)](https://tensorflow.org)
 
-<img src="https://raw.githubusercontent.com/Vixcy300/PromoSecure-SaaS/main/docs/hero-mockup.png" alt="PromoSecure Dashboard" width="800">
+<br/>
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Vixcy300/PromoSecure-SaaS)
+[![GitHub Stars](https://img.shields.io/github/stars/Vixcy300/PromoSecure-SaaS?style=social)](https://github.com/Vixcy300/PromoSecure-SaaS)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+<br/>
+
+**[🌐 Live Demo](https://promosecure.vercel.app)** · **[📖 Documentation](#-documentation)** · **[🐛 Report Bug](https://github.com/Vixcy300/PromoSecure-SaaS/issues)** · **[✨ Request Feature](https://github.com/Vixcy300/PromoSecure-SaaS/issues)**
+
+<br/>
+
+---
+
+<br/>
 
 </div>
 
----
+## 🎯 The Problem We Solve
 
-## ✨ What is PromoSecure?
+> **Field marketing teams struggle to verify promotional activities while protecting customer privacy.**
 
-**PromoSecure** is a SaaS platform designed for **field marketing teams** to verify promotional activities while maintaining strict **privacy compliance**. 
+Traditional photo verification systems expose customer faces, creating GDPR/privacy compliance risks. PromoSecure is the **first platform** that:
 
-Promoters capture photos of people they've engaged with, and the AI automatically:
-- 🤖 **Blurs faces** in real-time (on-device, no cloud processing)
-- ✅ **Detects duplicates** using perceptual hashing
-- 📍 **Logs GPS locations** with timestamps
+- ✅ **Verifies** promotional interactions with real photos
+- ✅ **Protects** customer identity through AI face blurring
+- ✅ **Detects** fraudulent duplicate submissions automatically
+- ✅ **Maps** all activities with GPS timestamps
 
-Managers can review verified photos without ever seeing the original faces.
-
----
-
-## 🎯 Key Features
-
-<table>
-<tr>
-<td width="50%">
-
-### 📸 On-Device AI Processing
-- TensorFlow.js face detection
-- 4-layer privacy blur
-- No images sent to external servers
-
-</td>
-<td width="50%">
-
-### 🔍 Smart Duplicate Detection
-- Perceptual image hashing
-- Face signature comparison
-- 80%+ similarity flagging
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### 👥 Multi-Role System
-- **Admin**: Manage managers & analytics
-- **Manager**: Review batches & promoters
-- **Promoter**: Capture & submit photos
-
-</td>
-<td width="50%">
-
-### 📊 Analytics Dashboard
-- Photo verification stats
-- Duplicate rate tracking
-- Performance insights
-
-</td>
-</tr>
-<tr>
-<td width="50%">
-
-### 🗺️ GPS Map View
-- Photo location visualization
-- OpenStreetMap integration
-- Timestamp tracking
-
-</td>
-<td width="50%">
-
-### 📄 PDF Reports
-- Downloadable batch reports
-- Email reports to clients
-- Photo previews included
-
-</td>
-</tr>
-</table>
+<br/>
 
 ---
+
+<br/>
+
+## ⚡ Core Features
+
+<div align="center">
+
+|  | Feature | Description |
+|:---:|:---|:---|
+| 🤖 | **On-Device AI Processing** | TensorFlow.js face detection runs entirely in browser. No face data ever leaves the device. |
+| 🔐 | **4-Layer Privacy Blur** | Pixelation → Gaussian blur → Noise injection → Secondary blur for unrecoverable anonymization. |
+| 🔍 | **Smart Duplicate Detection** | Perceptual hashing + face signature comparison identifies 80%+ similar photos instantly. |
+| 📍 | **GPS Geotagging** | Every photo automatically captures latitude, longitude, and timestamp for audit trails. |
+| 👥 | **Multi-Role Hierarchy** | Admin → Manager → Promoter role-based access with granular permissions. |
+| 📊 | **Analytics Dashboard** | Real-time verification rates, duplicate flags, and promoter performance metrics. |
+| 📄 | **PDF Report Generation** | One-click batch reports with blurred photos ready to send to clients. |
+| 🗺️ | **Interactive Map View** | Visualize all photo locations on OpenStreetMap with click-to-focus. |
+
+</div>
+
+<br/>
+
+---
+
+<br/>
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           PROMOSECURE ARCHITECTURE                     │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│   ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                │
+│   │   PROMOTER  │    │   MANAGER   │    │    ADMIN    │                │
+│   │   📱 PWA    │    │   💻 Web    │    │   🖥️ Web    │                │
+│   └──────┬──────┘    └──────┬──────┘    └──────┬──────┘                │
+│          │                  │                  │                        │
+│          ▼                  ▼                  ▼                        │
+│   ┌─────────────────────────────────────────────────────────┐          │
+│   │                    REACT 18 FRONTEND                     │          │
+│   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │          │
+│   │  │ TensorFlow  │  │   Chart.js  │  │  React      │      │          │
+│   │  │ Face Detect │  │  Analytics  │  │  Router 6   │      │          │
+│   │  └─────────────┘  └─────────────┘  └─────────────┘      │          │
+│   └─────────────────────────────────────────────────────────┘          │
+│                              │                                          │
+│                              ▼ HTTPS/REST                               │
+│   ┌─────────────────────────────────────────────────────────┐          │
+│   │                 EXPRESS.JS BACKEND                       │          │
+│   │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐      │          │
+│   │  │ JWT Auth    │  │ Rate Limit  │  │  PDFKit     │      │          │
+│   │  │ bcrypt      │  │ Helmet      │  │  Nodemailer │      │          │
+│   │  └─────────────┘  └─────────────┘  └─────────────┘      │          │
+│   └─────────────────────────────────────────────────────────┘          │
+│                              │                                          │
+│                              ▼                                          │
+│   ┌─────────────────────────────────────────────────────────┐          │
+│   │                   MONGODB ATLAS                          │          │
+│   │           Base64 Images • User Data • Batches            │          │
+│   └─────────────────────────────────────────────────────────┘          │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+<br/>
+
+---
+
+<br/>
+
+## 🔒 Privacy & Security
+
+<div align="center">
+
+| Layer | Protection | Description |
+|:---:|:---|:---|
+| 🧠 | **Client-Side AI** | Face detection happens in browser using TensorFlow.js. Raw faces never touch our servers. |
+| 🔑 | **JWT + bcrypt** | Industry-standard authentication with 12-round salted password hashing. |
+| 🛡️ | **Helmet.js** | 11 middleware protections including CSP, XSS, HSTS, and clickjacking prevention. |
+| ⏱️ | **Rate Limiting** | 100 requests/15min general, 30 uploads/hour to prevent abuse. |
+| 🚿 | **Input Sanitization** | XSS-clean + mongo-sanitize blocks injection attacks. |
+| 📝 | **Audit Logging** | Every API call logged with timestamp, user, IP for compliance. |
+
+</div>
+
+<br/>
+
+---
+
+<br/>
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+
-- MongoDB (Atlas recommended)
-- npm or yarn
+
+```bash
+node --version   # v18.0.0 or higher
+npm --version    # v9.0.0 or higher
+```
 
 ### Installation
 
@@ -109,139 +153,226 @@ Managers can review verified photos without ever seeing the original faces.
 git clone https://github.com/Vixcy300/PromoSecure-SaaS.git
 cd PromoSecure-SaaS
 
-# Install server dependencies
+# Install backend dependencies
 cd server
 npm install
-cp .env.example .env  # Configure your environment
+cp .env.example .env   # Edit with your MongoDB URI
 
-# Install client dependencies
+# Install frontend dependencies
 cd ../client
 npm install
-
-# Run both (in separate terminals)
-cd server && npm run dev
-cd client && npm run dev
 ```
 
-### Environment Variables
+### Run Locally
 
-Create `.env` in the `server` directory:
+```bash
+# Terminal 1: Start backend
+cd server
+npm run dev   # Runs on http://localhost:5000
 
-```env
-MONGODB_URI=mongodb+srv://your-connection-string
-JWT_SECRET=your-secure-secret-key
-JWT_EXPIRE=7d
-CLIENT_URL=http://localhost:5173
+# Terminal 2: Start frontend
+cd client
+npm run dev   # Runs on http://localhost:5173
 ```
+
+<br/>
 
 ---
 
-## 🛠️ Tech Stack
+<br/>
 
-| Layer | Technology |
-|-------|------------|
-| **Frontend** | React 18, Vite, Chart.js, React Router |
-| **Backend** | Node.js, Express, JWT, Mongoose |
-| **Database** | MongoDB Atlas |
-| **AI/ML** | TensorFlow.js, MediaPipe Face Detection |
-| **Deployment** | Vercel (Serverless) |
+## ⚙️ Environment Variables
+
+### Server (`server/.env`)
+
+| Variable | Description | Example |
+|:---|:---|:---|
+| `MONGODB_URI` | MongoDB Atlas connection string | `mongodb+srv://user:pass@cluster.mongodb.net/promosecure` |
+| `JWT_SECRET` | Secret key for JWT signing | `your-super-secret-key-here` |
+| `JWT_EXPIRE` | Token expiration time | `7d` |
+| `CLIENT_URL` | Frontend URL for CORS | `http://localhost:5173` |
+| `SMTP_USER` | Gmail address for emails | `your@gmail.com` |
+| `SMTP_PASS` | Gmail app password | `xxxx-xxxx-xxxx-xxxx` |
+
+<br/>
 
 ---
+
+<br/>
 
 ## 📁 Project Structure
 
 ```
 PromoSecure-SaaS/
-├── client/                 # React frontend (Vite)
-│   ├── src/
-│   │   ├── ai/             # Face detection & blurring
-│   │   ├── components/     # Reusable UI components
-│   │   ├── context/        # Auth context
-│   │   ├── pages/          # Route pages
-│   │   │   ├── admin/
-│   │   │   ├── manager/
-│   │   │   └── promoter/
-│   │   └── services/       # API client
-│   └── package.json
 │
-├── server/                 # Express backend
-│   ├── config/             # Database config
-│   ├── middleware/         # Auth & security
-│   ├── models/             # Mongoose schemas
-│   ├── routes/             # API routes
-│   ├── utils/              # PDF generator
-│   └── server.js
+├── 📂 client/                    # React Frontend (Vite)
+│   ├── 📂 src/
+│   │   ├── 📂 ai/                # TensorFlow.js face detection
+│   │   │   ├── FaceDetection.js  # Detection & blur engine
+│   │   │   └── ImageProcessor.js # Hash generation
+│   │   ├── 📂 components/        # Reusable UI components
+│   │   ├── 📂 context/           # React Context (Auth)
+│   │   ├── 📂 pages/
+│   │   │   ├── 📂 admin/         # Admin dashboard pages
+│   │   │   ├── 📂 manager/       # Manager dashboard pages
+│   │   │   └── 📂 promoter/      # Promoter photo capture
+│   │   └── 📂 services/          # API client (Axios)
+│   └── 📄 package.json
 │
-├── vercel.json             # Vercel deployment config
-└── README.md
+├── 📂 server/                    # Express Backend
+│   ├── 📂 config/                # Database configuration
+│   ├── 📂 middleware/            # Auth, security, rate limiting
+│   ├── 📂 models/                # Mongoose schemas
+│   │   ├── User.js               # Admin/Manager/Promoter
+│   │   ├── Batch.js              # Photo collections
+│   │   ├── Photo.js              # Base64 images + metadata
+│   │   └── Client.js             # Manager's clients
+│   ├── 📂 routes/                # REST API endpoints
+│   ├── 📂 utils/                 # PDF generator, email
+│   ├── 📄 server.js              # Express app entry
+│   └── 📄 vercel.json            # Serverless config
+│
+├── 📄 .gitignore
+├── 📄 README.md
+└── 📄 LICENSE
 ```
 
----
-
-## 🔐 Security Features
-
-| Feature | Description |
-|---------|-------------|
-| **On-Device Processing** | Face detection runs in browser, not on server |
-| **JWT Authentication** | Secure token-based auth |
-| **Password Hashing** | bcrypt with salt rounds |
-| **Rate Limiting** | 100 req/15min, 30 uploads/hour |
-| **Input Sanitization** | XSS & SQL injection protection |
-| **Audit Logging** | All actions recorded |
+<br/>
 
 ---
 
-## 🌐 Deployment
+<br/>
 
-### Deploy to Vercel (Recommended)
+## 📡 API Reference
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Vixcy300/PromoSecure-SaaS)
+### Authentication
 
-After deployment, set these environment variables in Vercel:
-- `MONGODB_URI`
-- `JWT_SECRET`
-- `JWT_EXPIRE`
-- `CLIENT_URL`
+| Method | Endpoint | Description | Auth |
+|:---:|:---|:---|:---:|
+| `POST` | `/api/auth/register` | Register first admin | ❌ |
+| `POST` | `/api/auth/login` | Login any role | ❌ |
+| `GET` | `/api/auth/me` | Get current user | ✅ |
+
+### Users
+
+| Method | Endpoint | Description | Auth |
+|:---:|:---|:---|:---:|
+| `POST` | `/api/users/manager` | Admin creates manager | Admin |
+| `POST` | `/api/users/promoter` | Manager creates promoter | Manager |
+| `GET` | `/api/users` | List users | ✅ |
+| `PUT` | `/api/users/:id/toggle` | Enable/disable user | Admin |
+
+### Batches
+
+| Method | Endpoint | Description | Auth |
+|:---:|:---|:---|:---:|
+| `POST` | `/api/batches` | Create new batch | Promoter |
+| `GET` | `/api/batches` | List batches | ✅ |
+| `GET` | `/api/batches/:id` | Get batch + photos | ✅ |
+| `PUT` | `/api/batches/:id/submit` | Submit for review | Promoter |
+| `PUT` | `/api/batches/:id/review` | Approve/reject | Manager |
+
+### Photos
+
+| Method | Endpoint | Description | Auth |
+|:---:|:---|:---|:---:|
+| `POST` | `/api/photos` | Add blurred photo | Promoter |
+| `GET` | `/api/photos/:batchId` | Get batch photos | ✅ |
+| `DELETE` | `/api/photos/:id` | Delete photo | Promoter |
+
+<br/>
 
 ---
 
-## 📝 API Endpoints
+<br/>
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/login` | User login |
-| GET | `/api/auth/me` | Get current user |
-| POST | `/api/batches` | Create batch |
-| GET | `/api/batches` | List batches |
-| POST | `/api/photos` | Add photo |
-| PUT | `/api/batches/:id/submit` | Submit for review |
-| PUT | `/api/batches/:id/review` | Approve/reject |
+## ☁️ Deploy to Vercel
+
+### Step 1: Deploy Backend
+
+1. Go to [vercel.com/new](https://vercel.com/new)
+2. Import `Vixcy300/PromoSecure-SaaS`
+3. **Root Directory:** `server`
+4. **Environment Variables:**
+   - `MONGODB_URI`
+   - `JWT_SECRET`
+   - `JWT_EXPIRE`
+5. Deploy → Copy URL (e.g., `https://promosecure-api.vercel.app`)
+
+### Step 2: Deploy Frontend
+
+1. Create new Vercel project
+2. Import same repository
+3. **Root Directory:** `client`
+4. **Environment Variables:**
+   - `VITE_API_URL` = `https://promosecure-api.vercel.app/api`
+5. Deploy
+
+<br/>
 
 ---
+
+<br/>
+
+## 🛠️ Tech Stack
+
+<div align="center">
+
+| Frontend | Backend | Database | AI/ML | DevOps |
+|:---:|:---:|:---:|:---:|:---:|
+| React 18 | Node.js 18+ | MongoDB Atlas | TensorFlow.js | Vercel |
+| Vite 5 | Express 4 | Mongoose 8 | MediaPipe | GitHub Actions |
+| Chart.js | JWT | Base64 Storage | Face Detection | ESLint |
+| React Router 6 | bcrypt | Indexing | Perceptual Hash | Prettier |
+| Axios | Helmet | Aggregation | 4-Layer Blur | |
+
+</div>
+
+<br/>
+
+---
+
+<br/>
 
 ## 👨‍💻 Author
 
 <div align="center">
 
-**Vignesh**
+<img src="https://github.com/Vixcy300.png" width="100" height="100" style="border-radius: 50%;" alt="Vignesh"/>
+
+### **Vignesh**
+
+Full-Stack Developer | AI Enthusiast | Privacy Advocate
 
 [![GitHub](https://img.shields.io/badge/GitHub-Vixcy300-181717?style=for-the-badge&logo=github)](https://github.com/Vixcy300)
 [![Email](https://img.shields.io/badge/Email-vigneshigt%40gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:vigneshigt@gmail.com)
 
 </div>
 
+<br/>
+
 ---
+
+<br/>
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+<br/>
 
 ---
 
 <div align="center">
 
-**Made with ❤️ for Privacy-First Field Marketing**
+<br/>
 
-⭐ **Star this repo if you find it helpful!** ⭐
+**If this project helped you, please ⭐ star the repository!**
+
+<br/>
+
+Made with ❤️ for privacy-conscious field marketing
+
+<br/>
 
 </div>
