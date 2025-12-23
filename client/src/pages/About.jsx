@@ -183,7 +183,7 @@ const About = () => {
                     {/* Footer */}
                     <div className="about-footer">
                         <p>Made with <HiHeart className="heart-icon" /> by Vignesh</p>
-                        <p className="copyright">© 2024 PromoSecure. All rights reserved.</p>
+                        <p className="copyright">© 2025 PromoSecure. All rights reserved.</p>
                     </div>
                 </div>
             </div>

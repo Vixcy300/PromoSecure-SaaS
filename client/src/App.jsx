@@ -20,6 +20,7 @@ import PromoterChat from './pages/promoter/PromoterChat';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Help from './pages/Help';
 import About from './pages/About';
+import Terms from './pages/Terms';
 
 function App() {
     return (
@@ -57,6 +58,7 @@ function App() {
                     <Route path="/" element={<LandingPage />} />
                     <Route path="/login" element={<Login />} />
                     <Route path="/about" element={<About />} />
+                    <Route path="/terms" element={<Terms />} />
 
                     {/* Admin Routes */}
                     <Route path="/admin" element={
