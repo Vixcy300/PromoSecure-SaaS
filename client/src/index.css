@@ -1029,15 +1029,23 @@ tbody tr:hover {
 }
 
 /* ============================================
-   Mobile Responsive
+   Mobile Responsive - Enhanced for Promoters
    ============================================ */
+
+/* Safe area support for notched phones */
+html {
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
 @media (max-width: 1024px) {
   .mobile-header {
     display: flex;
+    padding-top: env(safe-area-inset-top);
   }
 
   .sidebar {
     transform: translateX(-100%);
+    padding-top: env(safe-area-inset-top);
   }
 
   .sidebar.open {
@@ -1054,7 +1062,7 @@ tbody tr:hover {
 
   .main-content {
     margin-left: 0;
-    padding-top: 60px;
+    padding-top: calc(60px + env(safe-area-inset-top));
   }
 
   .grid-4 {
@@ -1068,40 +1076,175 @@ tbody tr:hover {
 
 @media (max-width: 768px) {
   h1 {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
 
   h2 {
-    font-size: 1.5rem;
+    font-size: 1.25rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
   }
 
   .page {
     padding: 1rem;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   }
 
   .page-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .page-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .card {
+    padding: 1rem;
+    border-radius: var(--radius-lg);
   }
 
   .grid-2,
   .grid-3,
   .grid-4 {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .photo-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+
+  .stat-icon-wrapper {
+    width: 44px;
+    height: 44px;
+    font-size: 1.25rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  .stat-label {
+    font-size: 0.8rem;
+  }
+
+  /* Touch-friendly buttons */
+  .btn {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+  }
+
+  .btn-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .btn-lg {
+    min-height: 52px;
+    font-size: 1rem;
+    width: 100%;
+  }
+
+  /* Better touch targets for batch header */
+  .batch-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .batch-header .btn {
+    width: 100%;
+  }
+
+  /* Table mobile view */
+  .table-container {
+    margin: 0 -1rem;
+    padding: 0 1rem;
+  }
+
+  th,
+  td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  /* Modal mobile optimization */
+  .modal {
+    max-height: calc(100vh - 2rem);
+    margin: 1rem;
+  }
+
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 1rem;
   }
 }
 
 @media (max-width: 480px) {
-  .photo-grid {
-    grid-template-columns: 1fr;
+  .page {
+    padding: 0.75rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
   }
 
-  .btn-lg {
+  .photo-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .photo-item {
+    border-radius: var(--radius-md);
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  /* Stack buttons on very small screens */
+  .flex.gap-2 {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .flex.gap-2 .btn {
     width: 100%;
+  }
+
+  /* Batch header compact */
+  .batch-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .badge {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+  }
+
+  /* Empty state compact */
+  .empty-state {
+    padding: 2rem 1rem;
+  }
+
+  .empty-state-icon {
+    font-size: 3rem;
   }
 }
 
@@ -1124,4 +1267,11 @@ tbody tr:hover {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--slate-400);
+}
+
+/* Hide scrollbar on mobile for cleaner look */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
 }

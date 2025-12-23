@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { HiCamera, HiSwitchHorizontal, HiX, HiCheck, HiExclamation, HiLocationMarker } from 'react-icons/hi';
+import { HiCamera, HiSwitchHorizontal, HiX, HiCheck, HiExclamation, HiRefresh } from 'react-icons/hi';
 import { detectFaces, generateFaceSignature, compareFaceSignatures } from '../ai/FaceDetection';
 import { processImage, generateImageHash, compareImageHashes } from '../ai/FaceBlur';
 import toast from 'react-hot-toast';
@@ -16,7 +16,7 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
     const [processedData, setProcessedData] = useState(null);
     const [duplicateWarning, setDuplicateWarning] = useState(null);
     const [location, setLocation] = useState(null);
-    const [locationError, setLocationError] = useState(null);
+    const [cameraError, setCameraError] = useState(null);
 
     // Get GPS location on mount
     useEffect(() => {
@@ -31,41 +31,48 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                 },
                 (error) => {
                     console.warn('Geolocation error:', error);
-                    setLocationError('Location unavailable');
                 },
                 { enableHighAccuracy: true, timeout: 10000 }
             );
         }
     }, []);
 
-    const startCamera = useCallback(async () => {
+    const startCamera = useCallback(async (mode) => {
         try {
+            setCameraError(null);
+
+            // Stop existing stream first
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
+                setStream(null);
             }
 
             const constraints = {
                 video: {
-                    facingMode,
-                    width: { ideal: 1920, min: 1280 },
-                    height: { ideal: 1080, min: 720 },
+                    facingMode: mode || facingMode,
+                    width: { ideal: 1920, min: 640 },
+                    height: { ideal: 1080, min: 480 },
                 },
                 audio: false,
             };
 
             const newStream = await navigator.mediaDevices.getUserMedia(constraints);
             setStream(newStream);
+
             if (videoRef.current) {
                 videoRef.current.srcObject = newStream;
+                await videoRef.current.play();
             }
         } catch (error) {
             console.error('Camera error:', error);
-            toast.error('Failed to access camera. Please check permissions.');
+            setCameraError(error.message || 'Failed to access camera');
+            toast.error('Camera access failed. Please check permissions.');
         }
-    }, [facingMode]);
+    }, [stream, facingMode]);
 
     useEffect(() => {
-        startCamera();
+        startCamera('environment');
+
         return () => {
             if (stream) {
                 stream.getTracks().forEach(track => track.stop());
@@ -73,10 +80,19 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
         };
     }, []);
 
-    const switchCamera = () => {
+    const switchCamera = async () => {
         const newMode = facingMode === 'environment' ? 'user' : 'environment';
         setFacingMode(newMode);
-        setTimeout(startCamera, 100);
+
+        // Stop current stream
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+        }
+
+        // Small delay then restart with new mode
+        await new Promise(r => setTimeout(r, 200));
+        await startCamera(newMode);
     };
 
     const capturePhoto = async () => {
@@ -110,7 +126,6 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
         setDuplicateWarning(null);
 
         try {
-            // Step 1: Detect faces
             setProcessingStep('Detecting faces...');
             const result = await processImage(imageDataUrl, detectFaces);
 
@@ -121,49 +136,39 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                 return;
             }
 
-            // Step 2: Generate image hash for duplicate detection
             setProcessingStep('Analyzing for duplicates...');
             const imageHash = await generateImageHash(imageDataUrl);
 
-            // Step 3: Generate face signature
             const faceSignature = generateFaceSignature(result.faces, {
                 width: canvasRef.current.width,
                 height: canvasRef.current.height,
             });
 
-            // Step 4: Check for duplicates against existing photos
             let isDuplicate = false;
             let duplicateSimilarity = 0;
-            let duplicatePhoto = null;
 
             for (const photo of existingPhotos) {
-                // Compare image hashes
                 if (photo.imageHash) {
                     const hashSimilarity = compareImageHashes(imageHash, photo.imageHash);
                     if (hashSimilarity > 85) {
                         isDuplicate = true;
                         duplicateSimilarity = hashSimilarity;
-                        duplicatePhoto = photo;
                         break;
                     }
                 }
 
-                // Compare face signatures
                 if (photo.aiMetadata?.faceSignature) {
                     const sigSimilarity = compareFaceSignatures(faceSignature, photo.aiMetadata.faceSignature);
                     if (sigSimilarity > 80) {
                         isDuplicate = true;
                         duplicateSimilarity = sigSimilarity;
-                        duplicatePhoto = photo;
                         break;
                     }
                 }
             }
 
-            setProcessingStep('Blurring faces for privacy...');
-
-            // Add small delay to show blur step
-            await new Promise(r => setTimeout(r, 500));
+            setProcessingStep('Blurring faces...');
+            await new Promise(r => setTimeout(r, 300));
 
             setProcessedData({
                 ...result,
@@ -176,15 +181,15 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
             if (isDuplicate) {
                 setDuplicateWarning({
                     similarity: duplicateSimilarity,
-                    message: `⚠️ This photo appears ${duplicateSimilarity}% similar to an existing photo!`,
+                    message: `⚠️ ${duplicateSimilarity}% similar to existing photo!`,
                 });
-                toast.error(`Duplicate detected! ${duplicateSimilarity}% similar to existing photo.`);
+                toast.error(`Duplicate detected! ${duplicateSimilarity}% similar.`);
             } else {
-                toast.success(`${result.facesDetected} face(s) detected and heavily blurred!`);
+                toast.success(`${result.facesDetected} face(s) detected & blurred!`);
             }
         } catch (error) {
             console.error('Processing error:', error);
-            toast.error('Failed to process image. Please try again.');
+            toast.error('Failed to process. Please try again.');
             setPreview(null);
         }
         setProcessing(false);
@@ -227,339 +232,424 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
     };
 
     return (
-        <div className="camera-overlay">
-            <div className="camera-modal">
-                <div className="camera-header">
-                    <h3>📸 Capture Photo</h3>
-                    <button className="btn btn-icon btn-ghost" onClick={handleClose}>
-                        <HiX />
-                    </button>
-                </div>
+        <div className="camera-fullscreen">
+            {/* Header - Fixed at top */}
+            <div className="camera-top-bar">
+                <button className="camera-close-btn" onClick={handleClose}>
+                    <HiX size={24} />
+                </button>
+                <span className="camera-title">📸 Capture Photo</span>
+                <div style={{ width: 44 }} />
+            </div>
 
-                <div className="camera-container">
-                    {!preview ? (
-                        <>
+            {/* Camera View - Full height minus top/bottom bars */}
+            <div className="camera-viewport">
+                {!preview ? (
+                    <>
+                        {cameraError ? (
+                            <div className="camera-error">
+                                <HiExclamation size={48} />
+                                <p>Cannot access camera</p>
+                                <span>{cameraError}</span>
+                                <button className="btn btn-primary" onClick={() => startCamera(facingMode)}>
+                                    <HiRefresh /> Retry
+                                </button>
+                            </div>
+                        ) : (
                             <video
                                 ref={videoRef}
                                 autoPlay
                                 playsInline
                                 muted
-                                className="camera-video"
+                                className="camera-video-full"
                             />
-                            <div className="camera-guide">
-                                <div className="guide-frame"></div>
-                                <p>Position person within frame</p>
+                        )}
+                        <div className="camera-overlay-guide">
+                            <div className="guide-corners">
+                                <div className="corner tl" />
+                                <div className="corner tr" />
+                                <div className="corner bl" />
+                                <div className="corner br" />
                             </div>
-                            <div className="camera-controls">
-                                <button
-                                    className="btn btn-icon btn-secondary camera-switch-btn"
-                                    onClick={switchCamera}
-                                    title="Switch Camera"
-                                >
-                                    <HiSwitchHorizontal />
-                                </button>
-                                <button
-                                    className="capture-btn"
-                                    onClick={capturePhoto}
-                                    disabled={capturing}
-                                    aria-label="Capture photo"
-                                />
-                                <div style={{ width: 48 }} />
-                            </div>
-                        </>
-                    ) : (
-                        <div className="preview-container">
-                            <img
-                                src={processedData?.blurredImage || preview}
-                                alt="Preview"
-                                className="preview-image"
-                            />
-                            {processing && (
-                                <div className="processing-overlay">
-                                    <div className="processing-card">
-                                        <div className="ai-dots">
-                                            <div className="dot"></div>
-                                            <div className="dot"></div>
-                                            <div className="dot"></div>
-                                        </div>
-                                        <div className="processing-text">
-                                            <span className="processing-title">🤖 AI Processing</span>
-                                            <span className="processing-step">{processingStep}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
-                    )}
-                </div>
-
-                <canvas ref={canvasRef} style={{ display: 'none' }} />
-
-                {preview && !processing && processedData && (
-                    <div className="camera-actions">
-                        {duplicateWarning && (
-                            <div className="duplicate-warning">
-                                <HiExclamation />
-                                <span>{duplicateWarning.message}</span>
+                    </>
+                ) : (
+                    <div className="preview-full">
+                        <img
+                            src={processedData?.blurredImage || preview}
+                            alt="Preview"
+                            className="preview-img-full"
+                        />
+                        {processing && (
+                            <div className="processing-full">
+                                <div className="processing-spinner" />
+                                <span className="processing-label">🤖 {processingStep}</span>
                             </div>
                         )}
-
-                        <div className="ai-result-card">
-                            <div className="ai-result-icon">
-                                {processedData.isDuplicate ? '⚠️' : '✅'}
-                            </div>
-                            <div className="ai-result-info">
-                                <span className="ai-result-title">
-                                    {processedData.facesDetected} face(s) detected & blurred
-                                </span>
-                                <span className="ai-result-subtitle">
-                                    {processedData.isDuplicate
-                                        ? `Possible duplicate (${processedData.duplicateSimilarity}% similar)`
-                                        : 'Verified as unique person'}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div className="camera-action-buttons">
-                            <button className="btn btn-secondary btn-lg" onClick={retakePhoto}>
-                                Retake
-                            </button>
-                            <button
-                                className={`btn ${processedData.isDuplicate ? 'btn-warning' : 'btn-primary'} btn-lg`}
-                                onClick={confirmPhoto}
-                            >
-                                <HiCheck />
-                                {processedData.isDuplicate ? 'Add Anyway' : 'Add to Batch'}
-                            </button>
-                        </div>
                     </div>
                 )}
             </div>
 
+            {/* Bottom Controls - Fixed at bottom */}
+            <div className="camera-bottom-bar">
+                {!preview ? (
+                    <div className="capture-controls">
+                        <button
+                            className="switch-cam-btn"
+                            onClick={switchCamera}
+                            disabled={cameraError}
+                        >
+                            <HiSwitchHorizontal size={22} />
+                        </button>
+                        <button
+                            className="shutter-btn"
+                            onClick={capturePhoto}
+                            disabled={capturing || cameraError}
+                        >
+                            <div className="shutter-inner" />
+                        </button>
+                        <div style={{ width: 52 }} />
+                    </div>
+                ) : processing ? (
+                    <div className="processing-status">
+                        <div className="ai-pulse" />
+                        <span>Processing photo...</span>
+                    </div>
+                ) : processedData ? (
+                    <div className="confirm-controls">
+                        {duplicateWarning && (
+                            <div className="dup-warning-bar">
+                                <HiExclamation />
+                                <span>{duplicateWarning.message}</span>
+                            </div>
+                        )}
+                        <div className="result-summary">
+                            <span className={processedData.isDuplicate ? 'warn' : 'ok'}>
+                                {processedData.isDuplicate ? '⚠️' : '✅'} {processedData.facesDetected} face(s) detected & blurred
+                            </span>
+                        </div>
+                        <div className="action-btns">
+                            <button className="btn-action secondary" onClick={retakePhoto}>
+                                Retake
+                            </button>
+                            <button
+                                className={`btn-action primary ${processedData.isDuplicate ? 'warning' : ''}`}
+                                onClick={confirmPhoto}
+                            >
+                                <HiCheck size={20} />
+                                {processedData.isDuplicate ? 'Add Anyway' : 'Add Photo'}
+                            </button>
+                        </div>
+                    </div>
+                ) : null}
+            </div>
+
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
+
             <style>{`
-        .camera-overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.95);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 0.5rem;
-        }
+                .camera-fullscreen {
+                    position: fixed;
+                    inset: 0;
+                    background: #000;
+                    display: flex;
+                    flex-direction: column;
+                    z-index: 9999;
+                }
 
-        .camera-modal {
-          background: var(--bg-secondary);
-          border-radius: var(--radius-2xl);
-          width: 100%;
-          max-width: 640px;
-          overflow: hidden;
-          border: 1px solid var(--border-color);
-          box-shadow: var(--shadow-lg);
-        }
+                .camera-top-bar {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 12px 16px;
+                    padding-top: max(12px, env(safe-area-inset-top));
+                    background: rgba(0,0,0,0.8);
+                    position: relative;
+                    z-index: 10;
+                }
 
-        .camera-header {
-          padding: 1rem 1.5rem;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          border-bottom: 1px solid var(--border-color);
-          background: var(--bg-elevated);
-        }
+                .camera-close-btn {
+                    width: 44px;
+                    height: 44px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(255,255,255,0.1);
+                    border: none;
+                    border-radius: 50%;
+                    color: #fff;
+                    cursor: pointer;
+                }
 
-        .camera-header h3 {
-          margin: 0;
-          font-size: 1.1rem;
-        }
+                .camera-title {
+                    color: #fff;
+                    font-weight: 600;
+                    font-size: 16px;
+                }
 
-        .camera-container {
-          position: relative;
-          background: #000;
-          aspect-ratio: 4/3;
-        }
+                .camera-viewport {
+                    flex: 1;
+                    position: relative;
+                    overflow: hidden;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
 
-        .camera-video {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
+                .camera-video-full {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
 
-        .camera-guide {
-          position: absolute;
-          inset: 0;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          pointer-events: none;
-        }
+                .camera-error {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    color: #fff;
+                    text-align: center;
+                    padding: 24px;
+                }
 
-        .guide-frame {
-          width: 70%;
-          height: 70%;
-          border: 2px dashed rgba(124, 58, 237, 0.5);
-          border-radius: var(--radius-xl);
-        }
+                .camera-error p {
+                    font-size: 18px;
+                    font-weight: 600;
+                    margin: 0;
+                }
 
-        .camera-guide p {
-          margin-top: 1rem;
-          color: rgba(255, 255, 255, 0.6);
-          font-size: 0.85rem;
-        }
+                .camera-error span {
+                    font-size: 14px;
+                    opacity: 0.7;
+                }
 
-        .camera-controls {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          padding: 1.5rem;
-          background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 2rem;
-        }
+                .camera-overlay-guide {
+                    position: absolute;
+                    inset: 0;
+                    pointer-events: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
 
-        .camera-switch-btn {
-          width: 48px;
-          height: 48px;
-          font-size: 1.25rem;
-        }
+                .guide-corners {
+                    width: 80%;
+                    max-width: 320px;
+                    aspect-ratio: 3/4;
+                    position: relative;
+                }
 
-        .preview-container {
-          position: relative;
-          width: 100%;
-          height: 100%;
-        }
+                .corner {
+                    position: absolute;
+                    width: 24px;
+                    height: 24px;
+                    border: 3px solid rgba(255,255,255,0.6);
+                }
 
-        .preview-image {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
+                .corner.tl { top: 0; left: 0; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
+                .corner.tr { top: 0; right: 0; border-left: none; border-bottom: none; border-radius: 0 8px 0 0; }
+                .corner.bl { bottom: 0; left: 0; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
+                .corner.br { bottom: 0; right: 0; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
 
-        .processing-overlay {
-          position: absolute;
-          inset: 0;
-          background: rgba(0, 0, 0, 0.85);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
+                .preview-full {
+                    width: 100%;
+                    height: 100%;
+                    position: relative;
+                }
 
-        .processing-card {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1.5rem 2rem;
-          background: var(--bg-elevated);
-          border-radius: var(--radius-xl);
-          border: 1px solid var(--border-color);
-        }
+                .preview-img-full {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: contain;
+                    background: #000;
+                }
 
-        .processing-text {
-          display: flex;
-          flex-direction: column;
-          gap: 0.25rem;
-        }
+                .processing-full {
+                    position: absolute;
+                    inset: 0;
+                    background: rgba(0,0,0,0.7);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 16px;
+                }
 
-        .processing-title {
-          font-weight: 600;
-          color: var(--text-primary);
-        }
+                .processing-spinner {
+                    width: 48px;
+                    height: 48px;
+                    border: 4px solid rgba(255,255,255,0.2);
+                    border-top-color: var(--brand-primary, #0d9488);
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                }
 
-        .processing-step {
-          font-size: 0.85rem;
-          color: var(--text-muted);
-        }
+                .processing-label {
+                    color: #fff;
+                    font-size: 16px;
+                    font-weight: 500;
+                }
 
-        .camera-actions {
-          padding: 1.5rem;
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          border-top: 1px solid var(--border-color);
-          background: var(--bg-elevated);
-        }
+                @keyframes spin {
+                    to { transform: rotate(360deg); }
+                }
 
-        .duplicate-warning {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          padding: 1rem;
-          background: var(--warning-soft);
-          border: 1px solid rgba(245, 158, 11, 0.3);
-          border-radius: var(--radius-lg);
-          color: var(--warning);
-          font-weight: 500;
-        }
+                .camera-bottom-bar {
+                    background: rgba(0,0,0,0.9);
+                    padding: 16px;
+                    padding-bottom: max(16px, env(safe-area-inset-bottom));
+                    position: relative;
+                    z-index: 10;
+                }
 
-        .duplicate-warning svg {
-          font-size: 1.25rem;
-          flex-shrink: 0;
-        }
+                .capture-controls {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 32px;
+                }
 
-        .ai-result-card {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          padding: 1rem;
-          background: var(--bg-tertiary);
-          border-radius: var(--radius-lg);
-        }
+                .switch-cam-btn {
+                    width: 52px;
+                    height: 52px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(255,255,255,0.15);
+                    border: none;
+                    border-radius: 50%;
+                    color: #fff;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
 
-        .ai-result-icon {
-          font-size: 2rem;
-        }
+                .switch-cam-btn:active {
+                    transform: scale(0.95);
+                    background: rgba(255,255,255,0.25);
+                }
 
-        .ai-result-info {
-          display: flex;
-          flex-direction: column;
-        }
+                .switch-cam-btn:disabled {
+                    opacity: 0.3;
+                }
 
-        .ai-result-title {
-          font-weight: 600;
-          color: var(--text-primary);
-        }
+                .shutter-btn {
+                    width: 72px;
+                    height: 72px;
+                    border-radius: 50%;
+                    border: 4px solid #fff;
+                    background: transparent;
+                    padding: 4px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
 
-        .ai-result-subtitle {
-          font-size: 0.85rem;
-          color: var(--text-muted);
-        }
+                .shutter-btn:active {
+                    transform: scale(0.95);
+                }
 
-        .camera-action-buttons {
-          display: flex;
-          gap: 1rem;
-        }
+                .shutter-btn:disabled {
+                    opacity: 0.5;
+                }
 
-        .camera-action-buttons .btn {
-          flex: 1;
-        }
+                .shutter-inner {
+                    width: 100%;
+                    height: 100%;
+                    background: #fff;
+                    border-radius: 50%;
+                }
 
-        .btn-warning {
-          background: linear-gradient(135deg, #f59e0b, #d97706);
-          color: white;
-        }
+                .processing-status {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 12px;
+                    padding: 8px 0;
+                    color: #fff;
+                }
 
-        @media (max-width: 480px) {
-          .camera-modal {
-            max-width: 100%;
-            height: 100%;
-            max-height: 100%;
-            border-radius: 0;
-          }
-          
-          .camera-container {
-            aspect-ratio: auto;
-            flex: 1;
-          }
-          
-          .processing-card {
-            flex-direction: column;
-            text-align: center;
-          }
-        }
-      `}</style>
+                .ai-pulse {
+                    width: 12px;
+                    height: 12px;
+                    background: var(--brand-primary, #0d9488);
+                    border-radius: 50%;
+                    animation: pulse 1.5s ease-in-out infinite;
+                }
+
+                @keyframes pulse {
+                    0%, 100% { opacity: 0.4; transform: scale(0.8); }
+                    50% { opacity: 1; transform: scale(1.2); }
+                }
+
+                .confirm-controls {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+
+                .dup-warning-bar {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 10px 14px;
+                    background: rgba(245, 158, 11, 0.2);
+                    border: 1px solid rgba(245, 158, 11, 0.5);
+                    border-radius: 8px;
+                    color: #f59e0b;
+                    font-size: 14px;
+                    font-weight: 500;
+                }
+
+                .result-summary {
+                    text-align: center;
+                    padding: 8px 0;
+                }
+
+                .result-summary span {
+                    font-size: 15px;
+                    font-weight: 500;
+                }
+
+                .result-summary .ok { color: #10b981; }
+                .result-summary .warn { color: #f59e0b; }
+
+                .action-btns {
+                    display: flex;
+                    gap: 12px;
+                }
+
+                .btn-action {
+                    flex: 1;
+                    height: 52px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 8px;
+                    border: none;
+                    border-radius: 12px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                }
+
+                .btn-action:active {
+                    transform: scale(0.98);
+                }
+
+                .btn-action.secondary {
+                    background: rgba(255,255,255,0.1);
+                    color: #fff;
+                }
+
+                .btn-action.primary {
+                    background: linear-gradient(135deg, #0d9488, #14b8a6);
+                    color: #fff;
+                }
+
+                .btn-action.primary.warning {
+                    background: linear-gradient(135deg, #f59e0b, #d97706);
+                }
+            `}</style>
         </div>
     );
 };
