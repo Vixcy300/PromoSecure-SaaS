@@ -114,8 +114,10 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-    console.log(`
+// Only listen when not in Vercel serverless environment
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`
 ╔══════════════════════════════════════════════════════════╗
 ║                                                          ║
 ║   🔒 PromoSecure Server v2.0                             ║
@@ -131,4 +133,8 @@ app.listen(PORT, () => {
 ║                                                          ║
 ╚══════════════════════════════════════════════════════════╝
   `);
-});
+    });
+}
+
+// Export for Vercel serverless
+module.exports = app;
