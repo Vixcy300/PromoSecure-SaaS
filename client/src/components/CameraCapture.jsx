@@ -64,11 +64,12 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
             // Small delay to ensure previous stream is fully released
             await new Promise(r => setTimeout(r, 100));
 
+            // Reduced resolution for faster processing
             const constraints = {
                 video: {
                     facingMode: { ideal: mode },
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 },
+                    width: { ideal: 800 },
+                    height: { ideal: 600 },
                 },
                 audio: false,
             };
@@ -124,15 +125,17 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
         const video = videoRef.current;
         const canvas = canvasRef.current;
 
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+        // Limit canvas size for faster processing (max 800px)
+        const maxSize = 800;
+        const scale = Math.min(maxSize / video.videoWidth, maxSize / video.videoHeight, 1);
+        canvas.width = video.videoWidth * scale;
+        canvas.height = video.videoHeight * scale;
 
         const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        // No mirroring - save as captured
-        ctx.drawImage(video, 0, 0);
-
-        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        // Lower quality for faster upload (0.6 = good balance)
+        const imageDataUrl = canvas.toDataURL('image/jpeg', 0.6);
         setPreview(imageDataUrl);
         setCapturing(false);
 

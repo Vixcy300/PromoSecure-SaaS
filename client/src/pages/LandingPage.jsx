@@ -251,14 +251,23 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Contact Section */}
+      {/* Get Demo Section */}
       <section id="contact" className="contact-section" ref={el => observerRefs.current[3] = el}>
         <div className="section-container">
           <div className="contact-grid">
             <div className="contact-info">
-              <span className="section-badge">Contact</span>
-              <h2>Get in Touch</h2>
-              <p>Have questions? We'd love to hear from you. Send us a message and we'll respond as soon as possible.</p>
+              <span className="section-badge">Get Demo</span>
+              <h2>Request a Demo</h2>
+              <p>
+                Want to see PromoSecure in action? We're happy to provide a demo account
+                so you can experience our privacy-first platform firsthand.
+              </p>
+              <div className="demo-features">
+                <div className="demo-feature">✅ Full access to all features</div>
+                <div className="demo-feature">✅ Pre-populated sample data</div>
+                <div className="demo-feature">✅ Explore AI face blurring</div>
+                <div className="demo-feature">✅ Test the mobile experience</div>
+              </div>
               <div className="contact-methods">
                 <div className="contact-method">
                   <HiMail />
@@ -266,20 +275,34 @@ const LandingPage = () => {
                 </div>
               </div>
             </div>
-            <form className="contact-form" onSubmit={(e) => { e.preventDefault(); alert('Message sent! We\'ll get back to you soon.'); }}>
+            <form className="contact-form demo-form" onSubmit={(e) => { e.preventDefault(); alert('Thank you! We will send demo credentials to your email within 24 hours.'); }}>
+              <h3>Get Your Demo Access</h3>
               <div className="input-group">
-                <label>Your Name</label>
+                <label>Your Name *</label>
                 <input type="text" className="input" placeholder="Enter your name" required />
               </div>
               <div className="input-group">
-                <label>Email Address</label>
-                <input type="email" className="input" placeholder="Enter your email" required />
+                <label>Email Address *</label>
+                <input type="email" className="input" placeholder="your@email.com" required />
               </div>
               <div className="input-group">
-                <label>Message</label>
-                <textarea className="input" placeholder="Your message..." rows="4" required></textarea>
+                <label>Company / Organization</label>
+                <input type="text" className="input" placeholder="Your company name (optional)" />
               </div>
-              <button type="submit" className="btn btn-primary btn-lg w-full">Send Message</button>
+              <div className="input-group">
+                <label>How did you hear about us?</label>
+                <select className="input">
+                  <option value="">Select...</option>
+                  <option value="search">Google Search</option>
+                  <option value="social">Social Media</option>
+                  <option value="referral">Friend/Colleague</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <button type="submit" className="btn btn-primary btn-lg w-full">
+                🚀 Request Demo Access
+              </button>
+              <p className="form-note">We'll send demo credentials within 24 hours</p>
             </form>
           </div>
         </div>
@@ -306,7 +329,7 @@ const LandingPage = () => {
               <h4>Legal</h4>
               <a href="/privacy">Privacy Policy</a>
               <a href="/about">About Us</a>
-              <a href="#">Terms of Service</a>
+              <a href="/terms">Terms of Service</a>
             </div>
             <div className="footer-col">
               <h4>Support</h4>
@@ -316,7 +339,7 @@ const LandingPage = () => {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© 2025 PromoSecure. All rights reserved.</p>
+          <p>© 2024-2026 PromoSecure. All rights reserved. Built with ❤️ by Vignesh</p>
         </div>
       </footer>
 
@@ -744,6 +767,30 @@ const LandingPage = () => {
           box-shadow: var(--shadow-card);
         }
 
+        .contact-form h3 {
+          margin-bottom: 1.5rem;
+          text-align: center;
+        }
+
+        .demo-features {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          margin-bottom: 1.5rem;
+        }
+
+        .demo-feature {
+          font-size: 0.95rem;
+          color: var(--text-secondary);
+        }
+
+        .form-note {
+          text-align: center;
+          font-size: 0.85rem;
+          color: var(--text-muted);
+          margin: 1rem 0 0;
+        }
+
         /* Footer */
         .landing-footer {
           background: var(--slate-900);
@@ -884,7 +931,7 @@ const LandingPage = () => {
           }
         }
       `}</style>
-    </div>
+    </div >
   );
 };
 
