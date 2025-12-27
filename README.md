@@ -21,7 +21,7 @@
 
 <br/>
 
-**[🌐 Live Demo](https://promosecure.vercel.app)** · **[📖 Documentation](#-documentation)** · **[🐛 Report Bug](https://github.com/Vixcy300/PromoSecure-SaaS/issues)** · **[✨ Request Feature](https://github.com/Vixcy300/PromoSecure-SaaS/issues)**
+**[🌐 Live Demo](https://promosecure-api.vercel.app)** · **[📖 Documentation](https://promosecure-api.vercel.app/about)** · **[🐛 Report Bug](https://github.com/Vixcy300/PromoSecure-SaaS/issues)** · **[✨ Request Feature](https://promosecure-api.vercel.app/help)**
 
 <br/>
 
