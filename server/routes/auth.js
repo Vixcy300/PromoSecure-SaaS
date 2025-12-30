@@ -150,13 +150,30 @@ router.get('/me', require('../middleware/auth').protect, async (req, res) => {
 // @access  Public
 router.post('/send-otp', async (req, res) => {
     try {
-        const { email } = req.body;
+        const { email, type } = req.body;
 
         if (!email) {
             return res.status(400).json({
                 success: false,
                 message: 'Please provide an email address'
             });
+        }
+
+        // For login, check if user exists
+        if (type === 'login') {
+            const user = await User.findOne({ email });
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Email not registered. Please contact your administrator.'
+                });
+            }
+            if (!user.isActive) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Account has been deactivated'
+                });
+            }
         }
 
         // Generate 6-digit OTP

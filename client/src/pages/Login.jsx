@@ -59,7 +59,10 @@ const Login = () => {
     }
     setLoading(true);
     try {
-      await api.post('/auth/send-otp', { email: formData.email });
+      await api.post('/auth/send-otp', {
+        email: formData.email,
+        type: 'login'
+      });
       setOtpSent(true);
       setResendTimer(60);
       toast.success('OTP sent to your email!');
