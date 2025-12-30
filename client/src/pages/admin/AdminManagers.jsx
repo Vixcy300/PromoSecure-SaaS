@@ -13,8 +13,11 @@ const AdminManagers = () => {
         password: '',
         name: '',
         companyName: '',
+        companyName: '',
         promoterLimit: 5,
+        otp: ''
     });
+    const [otpSent, setOtpSent] = useState(false);
 
     useEffect(() => {
         fetchManagers();
@@ -37,10 +40,22 @@ const AdminManagers = () => {
             await api.post('/users/manager', formData);
             toast.success('Manager created successfully');
             setShowModal(false);
-            setFormData({ email: '', password: '', name: '', companyName: '', promoterLimit: 5 });
+            setFormData({ email: '', password: '', name: '', companyName: '', promoterLimit: 5, otp: '' });
+            setOtpSent(false);
             fetchManagers();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to create manager');
+        }
+    };
+
+    const handleSendOTP = async () => {
+        if (!formData.email) return;
+        try {
+            await api.post('/auth/send-otp', { email: formData.email, type: 'register' });
+            setOtpSent(true);
+            toast.success('OTP sent to email');
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to send OTP');
         }
     };
 
@@ -213,14 +228,41 @@ const AdminManagers = () => {
                                 </div>
                                 <div className="input-group">
                                     <label>Email *</label>
-                                    <input
-                                        type="email"
-                                        className="input"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                                        required
-                                    />
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="email"
+                                            className="input"
+                                            value={formData.email}
+                                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                            required
+                                            disabled={otpSent}
+                                        />
+                                        {!otpSent && (
+                                            <button
+                                                type="button"
+                                                className="btn btn-secondary"
+                                                onClick={handleSendOTP}
+                                                disabled={!formData.email}
+                                            >
+                                                Verify
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
+                                {otpSent && (
+                                    <div className="input-group">
+                                        <label>Enter OTP *</label>
+                                        <input
+                                            type="text"
+                                            className="input"
+                                            value={formData.otp}
+                                            onChange={(e) => setFormData({ ...formData, otp: e.target.value })}
+                                            required
+                                            maxLength={6}
+                                            placeholder="6-digit code"
+                                        />
+                                    </div>
+                                )}
                                 <div className="input-group">
                                     <label>Password *</label>
                                     <input
@@ -256,7 +298,7 @@ const AdminManagers = () => {
                                 <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn btn-primary">
+                                <button type="submit" className="btn btn-primary" disabled={!otpSent || !formData.otp}>
                                     Create Manager
                                 </button>
                             </div>

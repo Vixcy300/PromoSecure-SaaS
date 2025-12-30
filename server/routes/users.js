@@ -1,6 +1,7 @@
 const express = require('express');
 const User = require('../models/User');
 const Batch = require('../models/Batch');
+const OTP = require('../models/OTP');
 const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
@@ -13,7 +14,17 @@ router.use(protect);
 // @access  Admin only
 router.post('/manager', authorize('admin'), async (req, res) => {
     try {
-        const { email, password, name, companyName, promoterLimit } = req.body;
+        const { email, password, name, companyName, promoterLimit, otp } = req.body;
+
+        // Verify OTP
+        const otpRecord = await OTP.findOne({ email, otp });
+        if (!otpRecord) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired OTP'
+            });
+        }
+        await otpRecord.deleteOne();
 
         const user = await User.create({
             email,
@@ -48,7 +59,17 @@ router.post('/manager', authorize('admin'), async (req, res) => {
 // @access  Manager only
 router.post('/promoter', authorize('manager'), async (req, res) => {
     try {
-        const { email, password, name } = req.body;
+        const { email, password, name, otp } = req.body;
+
+        // Verify OTP
+        const otpRecord = await OTP.findOne({ email, otp });
+        if (!otpRecord) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired OTP'
+            });
+        }
+        await otpRecord.deleteOne();
 
         // Check promoter limit
         if (req.user.promotersCreated >= req.user.promoterLimit) {
