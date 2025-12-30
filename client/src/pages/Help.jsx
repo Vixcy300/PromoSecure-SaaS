@@ -516,6 +516,8 @@ const Help = () => {
 
         .roadmap-item.skipped .roadmap-content h4 {
           text-decoration: line-through;
+          text-decoration-color: var(--error);
+          text-decoration-thickness: 2px;
         }
 
         .roadmap-status.skipped {
