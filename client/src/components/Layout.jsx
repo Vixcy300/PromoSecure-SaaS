@@ -50,6 +50,7 @@ const Layout = () => {
         return [
           { to: '/admin', icon: HiHome, label: 'Dashboard', end: true },
           { to: '/admin/managers', icon: HiOfficeBuilding, label: 'Managers' },
+          { to: '/admin/promoters', icon: HiUsers, label: 'Promoters' },
         ];
       case 'manager':
         return [

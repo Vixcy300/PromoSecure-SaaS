@@ -30,7 +30,7 @@ exports.protect = async (req, res, next) => {
         if (!req.user.isActive) {
             return res.status(401).json({
                 success: false,
-                message: 'Account has been deactivated'
+                message: 'Action Denied by Admin, Contact Admin'
             });
         }
 

@@ -103,7 +103,7 @@ router.post('/login', async (req, res) => {
         if (!user.isActive) {
             return res.status(401).json({
                 success: false,
-                message: 'Account has been deactivated'
+                message: 'Action Denied by Admin, Contact Admin'
             });
         }
 
@@ -171,7 +171,7 @@ router.post('/send-otp', async (req, res) => {
             if (!user.isActive) {
                 return res.status(401).json({
                     success: false,
-                    message: 'Account has been deactivated'
+                    message: 'Action Denied by Admin, Contact Admin'
                 });
             }
         }

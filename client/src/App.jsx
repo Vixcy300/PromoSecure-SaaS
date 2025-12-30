@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import LandingPage from './pages/LandingPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminManagers from './pages/admin/AdminManagers';
+import AdminPromoters from './pages/admin/AdminPromoters';
 import ManagerDashboard from './pages/manager/ManagerDashboard';
 import ManagerPromoters from './pages/manager/ManagerPromoters';
 import ManagerBatches from './pages/manager/ManagerBatches';
@@ -68,6 +69,7 @@ function App() {
                     }>
                         <Route index element={<AdminDashboard />} />
                         <Route path="managers" element={<AdminManagers />} />
+                        <Route path="promoters" element={<AdminPromoters />} />
                     </Route>
 
                     {/* Manager Routes */}
