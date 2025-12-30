@@ -1275,3 +1275,51 @@ html {
     width: 4px;
   }
 }
+
+/* ============================================
+   Dark Mode Variables & Overrides
+   ============================================ */
+[data-theme="dark"] {
+  /* Semantic Colors - Dark */
+  --bg-primary: #0f172a;
+  /* Slate 900 */
+  --bg-secondary: #1e293b;
+  /* Slate 800 */
+  --bg-tertiary: #334155;
+  /* Slate 700 */
+  --bg-card: #1e293b;
+  /* Slate 800 */
+  --bg-elevated: #334155;
+  /* Slate 700 */
+
+  --text-primary: #f8fafc;
+  /* Slate 50 */
+  --text-secondary: #cbd5e1;
+  /* Slate 300 */
+  --text-muted: #94a3b8;
+  /* Slate 400 */
+  --text-light: #64748b;
+  /* Slate 500 */
+
+  --border-color: #334155;
+  /* Slate 700 */
+  --border-hover: #475569;
+  /* Slate 600 */
+
+  --brand-gradient-subtle: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(20, 184, 166, 0.05) 100%);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 40px rgba(13, 148, 136, 0.1);
+}
+
+/* Dark Mode Transitions */
+body,
+.card,
+.input,
+.btn,
+.sidebar,
+.header {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}

@@ -169,8 +169,8 @@ const PrivacyPolicy = () => {
               <p>Address: Chennai, India</p>
             </div>
             <p className="response-note">
-              We will respond to your inquiry within 1-2
-               business days.
+              We will respond to your inquiry within 5-7
+              business days.
             </p>
           </section>
         </div>

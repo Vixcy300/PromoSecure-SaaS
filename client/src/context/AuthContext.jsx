@@ -17,34 +17,54 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         checkAuth();
+
+        // Idle Timeout Logic (5 minutes)
+        let timeout;
+        const resetTimer = () => {
+            if (timeout) clearTimeout(timeout);
+            if (sessionStorage.getItem('token')) {
+                timeout = setTimeout(logout, 5 * 60 * 1000); // 5 minutes
+            }
+        };
+
+        const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+        events.forEach(event => document.addEventListener(event, resetTimer));
+
+        resetTimer(); // Initialize
+
+        return () => {
+            if (timeout) clearTimeout(timeout);
+            events.forEach(event => document.removeEventListener(event, resetTimer));
+        };
     }, []);
 
     const checkAuth = async () => {
-        const token = localStorage.getItem('token');
+        const token = sessionStorage.getItem('token');
         if (token) {
             try {
                 const res = await api.get('/auth/me');
                 setUser(res.data.user);
             } catch (error) {
-                localStorage.removeItem('token');
+                sessionStorage.removeItem('token');
             }
         }
         setLoading(false);
     };
 
     const login = (token, userData) => {
-        localStorage.setItem('token', token);
+        sessionStorage.setItem('token', token);
         setUser(userData);
     };
 
     const register = (token, userData) => {
-        localStorage.setItem('token', token);
+        sessionStorage.setItem('token', token);
         setUser(userData);
     };
 
     const logout = () => {
-        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         setUser(null);
+        window.location.href = '/login'; // Force redirect
     };
 
     const value = {

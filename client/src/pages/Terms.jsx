@@ -20,7 +20,7 @@ const Terms = () => {
                 <div className="terms-header">
                     <HiDocumentText className="terms-icon" />
                     <h1>Terms of Service</h1>
-                    <p className="last-updated">Last Updated: December 23, 2024</p>
+                    <p className="last-updated">Last Updated: November 23, 2025</p>
                 </div>
 
                 <div className="terms-content">

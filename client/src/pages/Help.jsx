@@ -86,14 +86,14 @@ const upcomingFeatures = [
   {
     title: 'Multi-Language Support',
     description: 'Support for Hindi, Tamil, Telugu, and 10+ regional languages',
-    date: 'January 2026',
-    status: 'in-progress'
+    date: 'Skipped',
+    status: 'skipped'
   },
   {
     title: 'Offline Mode',
     description: 'Capture photos offline and sync when connected',
-    date: 'February 2026',
-    status: 'planned'
+    date: 'January 2026',
+    status: 'in-progress'
   },
   {
     title: 'Video Verification',
@@ -507,6 +507,20 @@ const Help = () => {
         .roadmap-status.in-progress {
           color: var(--brand-primary);
           font-weight: 600;
+        }
+
+        .roadmap-item.skipped {
+          opacity: 0.6;
+          background: var(--bg-secondary);
+        }
+
+        .roadmap-item.skipped .roadmap-content h4 {
+          text-decoration: line-through;
+        }
+
+        .roadmap-status.skipped {
+          color: var(--text-muted);
+          font-style: italic;
         }
 
         /* Developer Section */

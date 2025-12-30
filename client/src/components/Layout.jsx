@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -16,7 +16,9 @@ import {
   HiBriefcase,
   HiMap,
   HiChartBar,
-  HiChat
+  HiChat,
+  HiSun,
+  HiMoon
 } from 'react-icons/hi';
 
 const Layout = () => {
@@ -24,6 +26,18 @@ const Layout = () => {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+
+  // Theme Toggle Effect
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    const newTheme = theme === 'light' ? 'dark' : 'light';
+    setTheme(newTheme);
+  };
 
   const handleLogout = () => {
     logout();
@@ -104,6 +118,10 @@ const Layout = () => {
                 <NavLink to="/privacy" className="dropdown-item" onClick={() => setShowMobileMenu(false)}>
                   <HiDocumentText /> Privacy Policy
                 </NavLink>
+                <button className="dropdown-item" onClick={() => { toggleTheme(); setShowMobileMenu(false); }}>
+                  {theme === 'dark' ? <HiSun /> : <HiMoon />}
+                  {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+                </button>
                 <button className="dropdown-item logout" onClick={handleLogout}>
                   <HiLogout /> Logout
                 </button>
@@ -174,6 +192,9 @@ const Layout = () => {
                 {badge.label}
               </span>
             </div>
+            <button className="btn btn-icon btn-ghost" onClick={toggleTheme} title="Toggle Theme" style={{ marginRight: '0.5rem' }}>
+              {theme === 'dark' ? <HiSun /> : <HiMoon />}
+            </button>
             <button className="btn btn-icon btn-ghost logout-btn" onClick={handleLogout} title="Logout">
               <HiLogout />
             </button>
