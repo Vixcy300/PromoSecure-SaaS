@@ -1,6 +1,8 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const OTP = require('../models/OTP');
+const sendEmail = require('../utils/sendEmail');
 
 const router = express.Router();
 
@@ -141,6 +143,168 @@ router.get('/me', require('../middleware/auth').protect, async (req, res) => {
         success: true,
         user: req.user.getPublicProfile()
     });
+});
+
+// @route   POST /api/auth/send-otp
+// @desc    Send OTP to email for login or verification
+// @access  Public
+router.post('/send-otp', async (req, res) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide an email address'
+            });
+        }
+
+        // Generate 6-digit OTP
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Save to DB (upsert or create new)
+        await OTP.findOneAndUpdate(
+            { email },
+            { email, otp, createdAt: Date.now() },
+            { upsert: true, new: true }
+        );
+
+        // Send Email
+        const message = `Your OTP for PromoSecure is: ${otp}\n\nThis code expires in 5 minutes.`;
+
+        try {
+            await sendEmail({
+                email,
+                subject: 'PromoSecure OTP Verification',
+                message,
+                html: `
+                    <div style="font-family: Arial, sans-serif; padding: 20px;">
+                        <h1>Your One-Time Password</h1>
+                        <p style="font-size: 16px;">Use the code below to complete your verification or login:</p>
+                        <h2 style="background: #f4f4f4; padding: 10px 20px; display: inline-block; letter-spacing: 5px;">${otp}</h2>
+                        <p style="color: #666; font-size: 14px;">This code expires in 5 minutes.</p>
+                    </div>
+                `
+            });
+
+            res.json({
+                success: true,
+                message: 'OTP sent successfully'
+            });
+        } catch (emailError) {
+            console.error('Email send failed:', emailError);
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to send OTP email'
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// @route   POST /api/auth/verify-otp
+// @desc    Verify OTP (Generic)
+// @access  Public
+router.post('/verify-otp', async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide email and OTP'
+            });
+        }
+
+        const validOtp = await OTP.findOne({ email, otp });
+
+        if (!validOtp) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired OTP'
+            });
+        }
+
+        // Delete used OTP
+        await OTP.deleteOne({ _id: validOtp._id });
+
+        res.json({
+            success: true,
+            message: 'OTP verified successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// @route   POST /api/auth/login-otp
+// @desc    Login using OTP
+// @access  Public
+router.post('/login-otp', async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+
+        if (!email || !otp) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide email and OTP'
+            });
+        }
+
+        // Verify OTP first
+        const validOtp = await OTP.findOne({ email, otp });
+
+        if (!validOtp) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired OTP'
+            });
+        }
+
+        // Find user
+        const user = await User.findOne({ email });
+
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not found. Please contact your manager.'
+            });
+        }
+
+        if (!user.isActive) {
+            return res.status(401).json({
+                success: false,
+                message: 'Account has been deactivated'
+            });
+        }
+
+        // Delete used OTP
+        await OTP.deleteOne({ _id: validOtp._id });
+
+        // Update last login
+        user.lastLogin = new Date();
+        await user.save({ validateBeforeSave: false });
+
+        const token = generateToken(user._id);
+
+        res.json({
+            success: true,
+            token,
+            user: user.getPublicProfile()
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
 });
 
 module.exports = router;

@@ -16,14 +16,27 @@ const Login = () => {
     password: '',
     name: '',
     confirmPassword: '',
+    otp: ''
   });
+  const [loginMethod, setLoginMethod] = useState('otp'); // 'otp' or 'password'
+  const [otpSent, setOtpSent] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
 
   useEffect(() => {
     checkAdminExists();
     if (user) {
       redirectToDashboard(user.role);
     }
-  }, [user]);
+
+    // Timer countdown
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [user, resendTimer]);
 
   const checkAdminExists = async () => {
     try {
@@ -37,6 +50,23 @@ const Login = () => {
   const redirectToDashboard = (role) => {
     const routes = { admin: '/admin', manager: '/manager', promoter: '/promoter' };
     navigate(routes[role] || '/login');
+  };
+
+  const handleSendOTP = async () => {
+    if (!formData.email) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    setLoading(true);
+    try {
+      await api.post('/auth/send-otp', { email: formData.email });
+      setOtpSent(true);
+      setResendTimer(60);
+      toast.success('OTP sent to your email!');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to send OTP');
+    }
+    setLoading(false);
   };
 
   const handleSubmit = async (e) => {
@@ -59,13 +89,23 @@ const Login = () => {
         toast.success('Admin account created successfully!');
         redirectToDashboard(res.data.user.role);
       } else {
-        const res = await api.post('/auth/login', {
-          email: formData.email,
-          password: formData.password,
-        });
-        login(res.data.token, res.data.user);
-        toast.success(`Welcome back, ${res.data.user.name}!`);
-        redirectToDashboard(res.data.user.role);
+        // Login Logic
+        if (loginMethod === 'otp') {
+          const res = await api.post('/auth/login-otp', {
+            email: formData.email,
+            otp: formData.otp,
+          });
+          login(res.data.token, res.data.user);
+        } else {
+          const res = await api.post('/auth/login', {
+            email: formData.email,
+            password: formData.password,
+          });
+          login(res.data.token, res.data.user);
+        }
+        toast.success(`Welcome back!`);
+        // User role redirection is handled by useEffect or explicit navigation if needed
+        // But login context updates user which triggers useEffect
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Authentication failed');
@@ -182,50 +222,120 @@ const Login = () => {
                 />
               </div>
 
-              <div className="input-group">
-                <label>
-                  <HiLockClosed className="label-icon" />
-                  Password
-                </label>
-                <input
-                  type="password"
-                  className="input"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                  minLength={8}
-                />
-              </div>
-
-              {isAdminRegister && (
+              {!isAdminRegister && loginMethod === 'password' && (
                 <div className="input-group">
                   <label>
                     <HiLockClosed className="label-icon" />
-                    Confirm Password
+                    Password
                   </label>
                   <input
                     type="password"
                     className="input"
                     placeholder="••••••••"
-                    value={formData.confirmPassword}
-                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required
                     minLength={8}
                   />
                 </div>
               )}
 
-              <button type="submit" className="btn btn-primary btn-lg w-full" disabled={loading}>
-                {loading ? (
-                  <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }}></div>
-                ) : (
-                  <>
-                    {isAdminRegister ? 'Create Platform' : 'Sign In'}
-                    <HiArrowRight />
-                  </>
-                )}
-              </button>
+              {/* Admin Register Password Fields */}
+              {isAdminRegister && (
+                <>
+                  <div className="input-group">
+                    <label>
+                      <HiLockClosed className="label-icon" />
+                      Password
+                    </label>
+                    <input
+                      type="password"
+                      className="input"
+                      placeholder="••••••••"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required={isAdminRegister}
+                      minLength={8}
+                    />
+                  </div>
+                  <div className="input-group">
+                    <label>
+                      <HiLockClosed className="label-icon" />
+                      Confirm Password
+                    </label>
+                    <input
+                      type="password"
+                      className="input"
+                      placeholder="••••••••"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      required={isAdminRegister}
+                      minLength={8}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* OTP Input */}
+              {!isAdminRegister && loginMethod === 'otp' && otpSent && (
+                <div className="input-group">
+                  <label>
+                    <HiShieldCheck className="label-icon" />
+                    Enter OTP
+                  </label>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="123456"
+                    value={formData.otp}
+                    onChange={(e) => setFormData({ ...formData, otp: e.target.value })}
+                    required
+                    maxLength={6}
+                    style={{ letterSpacing: '0.5em', textAlign: 'center', fontSize: '1.2em' }}
+                  />
+                  <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
+                    {resendTimer > 0 ? (
+                      <span className="text-xs text-muted">Resend in {resendTimer}s</span>
+                    ) : (
+                      <button type="button" onClick={handleSendOTP} className="text-xs text-brand btn-ghost">
+                        Resend OTP
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {!isAdminRegister && loginMethod === 'otp' && !otpSent ? (
+                <button type="button" onClick={handleSendOTP} className="btn btn-primary btn-lg w-full" disabled={loading}>
+                  {loading ? 'Sending...' : 'Get OTP Code'}
+                </button>
+              ) : (
+                <button type="submit" className="btn btn-primary btn-lg w-full" disabled={loading}>
+                  {loading ? (
+                    <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }}></div>
+                  ) : (
+                    <>
+                      {isAdminRegister ? 'Create Platform' : 'Sign In'}
+                      <HiArrowRight />
+                    </>
+                  )}
+                </button>
+              )}
+
+              {!isAdminRegister && (
+                <div className="form-switch" style={{ borderTop: 'none', marginTop: '0.5rem', paddingTop: 0 }}>
+                  <button
+                    type="button"
+                    className="btn btn-ghost w-full text-sm"
+                    onClick={() => {
+                      setLoginMethod(loginMethod === 'otp' ? 'password' : 'otp');
+                      setOtpSent(false);
+                    }}
+                  >
+                    {loginMethod === 'otp' ? 'Login with Password' : 'Login with OTP'}
+                  </button>
+                </div>
+              )}
             </form>
 
             {!adminExists && (
