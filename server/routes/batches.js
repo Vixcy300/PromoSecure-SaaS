@@ -453,13 +453,7 @@ router.delete('/:id', async (req, res) => {
             });
         }
 
-        // Managers can only delete empty batches (0 photos)
-        if (isManager && batch.photoCount > 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Managers can only delete empty batches (0 photos)'
-            });
-        }
+        // Note: Managers can now delete batches with photos (per user request)
 
         // Delete all photos in batch (if any)
         await Photo.deleteMany({ batch: batch._id });

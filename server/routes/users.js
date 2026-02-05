@@ -244,6 +244,48 @@ router.get('/stats', authorize('admin'), async (req, res) => {
     }
 });
 
+// @route   GET /api/users/:id
+// @desc    Get a single user by ID (for fetching manager details)
+// @access  Authenticated users (promoters can only view their manager)
+router.get('/:id', async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).select('-password');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Permission check: promoters can only view their own manager
+        if (req.user.role === 'promoter') {
+            if (req.user.createdBy.toString() !== req.params.id) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'You can only view your own manager'
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            user: {
+                _id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                companyName: user.companyName
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
 // @route   PUT /api/users/:id/limit
 // @desc    Update manager's promoter limit
 // @access  Admin only

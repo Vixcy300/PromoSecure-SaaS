@@ -92,7 +92,7 @@ const upcomingFeatures = [
   {
     title: 'Offline Mode',
     description: 'Capture photos offline and sync when connected',
-    date: 'January 2026',
+    date: 'January 2026 (Delayed)',
     status: 'in-progress'
   },
   {
@@ -104,8 +104,8 @@ const upcomingFeatures = [
   {
     title: 'Advanced Analytics Dashboard',
     description: 'Detailed performance insights, heat maps, and trend analysis',
-    date: 'April 2026',
-    status: 'planned'
+    date: 'Completed ✅',
+    status: 'completed'
   },
   {
     title: 'Mobile App (Android & iOS)',
@@ -523,6 +523,16 @@ const Help = () => {
         .roadmap-status.skipped {
           color: var(--text-muted);
           font-style: italic;
+        }
+
+        .roadmap-item.completed {
+          border-color: #22c55e;
+          background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), transparent);
+        }
+
+        .roadmap-status.completed {
+          color: #22c55e;
+          font-weight: 600;
         }
 
         /* Developer Section */

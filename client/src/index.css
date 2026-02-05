@@ -1,37 +1,37 @@
 /* ============================================
    PromoSecure v3.0 - Professional SaaS Theme
-   Industry-Standard Teal/Blue Color Scheme
+   Industry-Standard Blue Color Scheme
    ============================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 /* ============================================
-   CSS Variables - Professional Teal/Blue Theme
+   CSS Variables - Professional Blue Theme
    ============================================ */
 :root {
-  /* Primary Colors - Professional Teal */
-  --primary-50: #f0fdfa;
-  --primary-100: #ccfbf1;
-  --primary-200: #99f6e4;
-  --primary-300: #5eead4;
-  --primary-400: #2dd4bf;
-  --primary-500: #14b8a6;
-  --primary-600: #0d9488;
-  --primary-700: #0f766e;
-  --primary-800: #115e59;
-  --primary-900: #134e4a;
+  /* Primary Colors - Professional Blue */
+  --primary-50: #eff6ff;
+  --primary-100: #dbeafe;
+  --primary-200: #bfdbfe;
+  --primary-300: #93c5fd;
+  --primary-400: #60a5fa;
+  --primary-500: #3b82f6;
+  --primary-600: #2563eb;
+  --primary-700: #1d4ed8;
+  --primary-800: #1e40af;
+  --primary-900: #1e3a8a;
 
-  /* Secondary - Deep Blue */
-  --secondary-500: #3b82f6;
-  --secondary-600: #2563eb;
-  --secondary-700: #1d4ed8;
+  /* Secondary - Deep Indigo */
+  --secondary-500: #6366f1;
+  --secondary-600: #4f46e5;
+  --secondary-700: #4338ca;
 
-  /* Accent - Emerald */
-  --accent-50: #ecfdf5;
-  --accent-100: #d1fae5;
-  --accent-500: #10b981;
-  --accent-600: #059669;
-  --accent-700: #047857;
+  /* Accent - Sky Blue */
+  --accent-50: #f0f9ff;
+  --accent-100: #e0f2fe;
+  --accent-500: #0ea5e9;
+  --accent-600: #0284c7;
+  --accent-700: #0369a1;
 
   /* Neutral - Slate */
   --slate-50: #f8fafc;
@@ -60,11 +60,11 @@
   --border-color: #e2e8f0;
   --border-hover: #cbd5e1;
 
-  --brand-primary: #0d9488;
-  --brand-secondary: #0f766e;
-  --brand-gradient: linear-gradient(135deg, #0d9488 0%, #14b8a6 50%, #2dd4bf 100%);
-  --brand-gradient-subtle: linear-gradient(135deg, #f0fdfa 0%, #ecfdf5 100%);
-  --brand-gradient-dark: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+  --brand-primary: #2563eb;
+  --brand-secondary: #1d4ed8;
+  --brand-gradient: linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100%);
+  --brand-gradient-subtle: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+  --brand-gradient-dark: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
 
   --success: #10b981;
   --success-bg: #ecfdf5;

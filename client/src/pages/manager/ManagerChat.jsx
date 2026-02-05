@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { HiChat, HiPaperAirplane, HiUser, HiArrowLeft, HiRefresh } from 'react-icons/hi';
+import { HiChat, HiPaperAirplane, HiUser, HiArrowLeft, HiRefresh, HiCollection, HiClipboardCheck, HiClock } from 'react-icons/hi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
@@ -10,6 +10,7 @@ const ManagerChat = () => {
     const [newMessage, setNewMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState(false);
+    const [showQuickActions, setShowQuickActions] = useState(false);
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
@@ -96,6 +97,28 @@ const ManagerChat = () => {
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
+
+    const sendQuickMessage = async (quickMessage) => {
+        if (!selectedUser) return;
+        setSending(true);
+        try {
+            const res = await api.post(`/messages/${selectedUser._id}`, {
+                content: quickMessage
+            });
+            setMessages([...messages, res.data.message]);
+            setShowQuickActions(false);
+            fetchConversations();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to send message');
+        }
+        setSending(false);
+    };
+
+    const quickActions = [
+        { icon: HiCollection, label: 'Request Batch Update', message: `Hi ${selectedUser?.name || 'there'}, please provide an update on your current batch progress.` },
+        { icon: HiClipboardCheck, label: 'Provide Feedback', message: `Hi ${selectedUser?.name || 'there'}, I've reviewed your recent submission. Great work! Keep it up.` },
+        { icon: HiClock, label: 'Deadline Reminder', message: `Hi ${selectedUser?.name || 'there'}, just a reminder that the deadline for the current batch is approaching. Please submit soon.` },
+    ];
 
     if (loading) {
         return (
@@ -206,7 +229,38 @@ const ManagerChat = () => {
                                 <div ref={messagesEndRef} />
                             </div>
 
+                            {/* Quick Actions */}
+                            {showQuickActions && (
+                                <div className="quick-actions">
+                                    <div className="quick-actions-header">
+                                        <span>Quick Messages</span>
+                                        <button className="btn btn-ghost btn-sm" onClick={() => setShowQuickActions(false)}>×</button>
+                                    </div>
+                                    <div className="quick-actions-list">
+                                        {quickActions.map((action, i) => (
+                                            <button
+                                                key={i}
+                                                className="quick-action-btn"
+                                                onClick={() => sendQuickMessage(action.message)}
+                                                disabled={sending}
+                                            >
+                                                <action.icon />
+                                                <span>{action.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             <form className="message-input-form" onSubmit={sendMessage}>
+                                <button
+                                    type="button"
+                                    className="btn btn-ghost"
+                                    onClick={() => setShowQuickActions(!showQuickActions)}
+                                    title="Quick Actions"
+                                >
+                                    <HiCollection />
+                                </button>
                                 <input
                                     type="text"
                                     className="input"
@@ -392,6 +446,51 @@ const ManagerChat = () => {
                 }
 
                 .message-input-form .input { flex: 1; }
+
+                .quick-actions {
+                    border-top: 1px solid var(--border-color);
+                    background: var(--bg-secondary);
+                    padding: 0.75rem;
+                }
+
+                .quick-actions-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 0.5rem;
+                    font-weight: 600;
+                    font-size: 0.85rem;
+                }
+
+                .quick-actions-list {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5rem;
+                }
+
+                .quick-action-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.5rem 0.75rem;
+                    background: var(--bg-card);
+                    border: 1px solid var(--border-color);
+                    border-radius: var(--radius-md);
+                    font-size: 0.85rem;
+                    cursor: pointer;
+                    transition: all var(--transition-fast);
+                }
+
+                .quick-action-btn:hover {
+                    background: var(--primary-50);
+                    border-color: var(--brand-primary);
+                    color: var(--brand-primary);
+                }
+
+                .quick-action-btn:disabled {
+                    opacity: 0.5;
+                    cursor: not-allowed;
+                }
 
                 .spinner-sm {
                     width: 16px;

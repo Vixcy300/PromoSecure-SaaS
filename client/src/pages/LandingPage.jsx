@@ -48,37 +48,37 @@ const LandingPage = () => {
       icon: HiCamera,
       title: 'Smart Photo Capture',
       desc: 'In-app camera with real-time face detection and instant processing. Works offline for field promoters.',
-      color: '#0d9488'
+      color: '#2563eb'
     },
     {
       icon: HiEye,
       title: 'AI Face Blurring',
       desc: '4-layer privacy protection automatically blurs all faces. Protects public privacy while verifying work.',
-      color: '#14b8a6'
+      color: '#3b82f6'
     },
     {
       icon: HiCheck,
       title: 'Duplicate Detection',
       desc: 'AI compares photos to detect same person. Prevents fraud with image hashing and face signatures.',
-      color: '#10b981'
+      color: '#0ea5e9'
     },
     {
       icon: HiLocationMarker,
       title: 'GPS Location Tracking',
       desc: 'Automatically captures location and timestamp. Verify where and when photos were taken.',
-      color: '#f59e0b'
+      color: '#6366f1'
     },
     {
       icon: HiChartBar,
       title: 'Analytics Dashboard',
       desc: 'Real-time insights on promoter performance. Track batches, approval rates, and team metrics.',
-      color: '#3b82f6'
+      color: '#8b5cf6'
     },
     {
       icon: HiUserGroup,
       title: 'Team Management',
       desc: 'Hierarchical access control. Admins manage managers, managers manage promoters.',
-      color: '#0891b2'
+      color: '#1d4ed8'
     }
   ];
 
@@ -137,6 +137,8 @@ const LandingPage = () => {
             <a href="#how-it-works">How It Works</a>
             <a href="#faq">FAQ</a>
             <a href="#contact">Contact</a>
+            <a href="/plans" className="discount-link">🔥 50% Off Plan</a>
+            <a href="/blog">Blog</a>
           </div>
           <div className="nav-actions">
             <button className="btn btn-ghost" onClick={() => navigate('/login')}>Sign In</button>
@@ -247,6 +249,75 @@ const LandingPage = () => {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing Section */}
+      <section id="pricing" className="pricing-section" ref={el => observerRefs.current[4] = el}>
+        <div className="section-container">
+          <div className="section-header">
+            <span className="section-badge">Pricing</span>
+            <h2>Simple, Transparent Pricing</h2>
+            <p>Start with a trial, scale as you grow</p>
+          </div>
+          <div className={`pricing-grid ${isVisible['pricing'] ? 'visible' : ''}`}>
+            <div className="pricing-card">
+              <div className="pricing-header">
+                <h3>Trial</h3>
+                <div className="pricing-price">
+                  <span className="price">₹0</span>
+                  <span className="period">/14 days</span>
+                </div>
+              </div>
+              <ul className="pricing-features">
+                <li>✓ Full access to all features</li>
+                <li>✓ Up to 3 Promoters</li>
+                <li>✓ 100 photos included</li>
+                <li>✓ Pre-populated sample data</li>
+                <li>✓ Email support</li>
+              </ul>
+              <button className="btn btn-secondary w-full" onClick={() => document.getElementById('contact').scrollIntoView({ behavior: 'smooth' })}>Request Demo Access</button>
+            </div>
+            <div className="pricing-card featured">
+              <div className="pricing-discount">50% OFF</div>
+              <div className="pricing-badge">Most Popular</div>
+              <div className="pricing-header">
+                <h3>Pro</h3>
+                <div className="pricing-price">
+                  <span className="price-old">₹2,499</span>
+                  <span className="price">₹1,249</span>
+                  <span className="period">/month</span>
+                </div>
+              </div>
+              <ul className="pricing-features">
+                <li>✓ Unlimited Managers</li>
+                <li>✓ Unlimited Promoters</li>
+                <li>✓ Unlimited photos</li>
+                <li>✓ Advanced analytics</li>
+                <li>✓ Priority WhatsApp support</li>
+                <li>✓ API access</li>
+                <li>✓ Custom branding</li>
+              </ul>
+              <button className="btn btn-primary w-full" onClick={() => navigate('/login')}>Start Pro Now</button>
+            </div>
+            <div className="pricing-card">
+              <div className="pricing-header">
+                <h3>Enterprise</h3>
+                <div className="pricing-price">
+                  <span className="price">Custom</span>
+                </div>
+              </div>
+              <ul className="pricing-features">
+                <li>✓ Everything in Pro</li>
+                <li>✓ Custom integrations</li>
+                <li>✓ Dedicated account manager</li>
+                <li>✓ SLA guarantee</li>
+                <li>✓ On-premise deployment</li>
+                <li>✓ Training & onboarding</li>
+              </ul>
+              <button className="btn btn-secondary w-full" onClick={() => document.getElementById('contact').scrollIntoView({ behavior: 'smooth' })}>Contact Sales</button>
+            </div>
           </div>
         </div>
       </section>
@@ -389,6 +460,21 @@ const LandingPage = () => {
           color: var(--text-primary);
         }
 
+        .nav-links .discount-link {
+          color: #ef4444 !important;
+          font-weight: 700;
+          animation: pulse-glow 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+          0%, 100% { 
+            text-shadow: 0 0 5px rgba(239, 68, 68, 0.3);
+          }
+          50% { 
+            text-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
+          }
+        }
+
         .nav-actions {
           display: flex;
           gap: 0.75rem;
@@ -413,7 +499,7 @@ const LandingPage = () => {
           right: -10%;
           width: 60%;
           height: 80%;
-          background: radial-gradient(circle, rgba(13, 148, 136, 0.12) 0%, transparent 60%);
+          background: radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, transparent 60%);
         }
 
         .hero-gradient-2 {
@@ -422,7 +508,7 @@ const LandingPage = () => {
           left: -10%;
           width: 50%;
           height: 60%;
-          background: radial-gradient(circle, rgba(20, 184, 166, 0.1) 0%, transparent 60%);
+          background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 60%);
         }
 
         .hero-container {
@@ -716,6 +802,129 @@ const LandingPage = () => {
           color: var(--text-secondary);
           margin: 0;
           line-height: 1.7;
+        }
+
+        /* Pricing Section */
+        .pricing-section {
+          padding: 6rem 0;
+          background: var(--bg-secondary);
+        }
+
+        .pricing-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 2rem;
+          max-width: 1000px;
+          margin: 0 auto;
+        }
+
+        .pricing-grid.visible .pricing-card {
+          animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .pricing-card {
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-xl);
+          padding: 2rem;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          opacity: 0;
+        }
+
+        .pricing-card.featured {
+          border-color: var(--brand-primary);
+          box-shadow: 0 8px 30px rgba(37, 99, 235, 0.15);
+          transform: scale(1.05);
+        }
+
+        .pricing-badge {
+          position: absolute;
+          top: -12px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: var(--brand-gradient);
+          color: white;
+          padding: 0.35rem 1rem;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 600;
+        }
+
+        .pricing-header {
+          text-align: center;
+          margin-bottom: 1.5rem;
+        }
+
+        .pricing-header h3 {
+          font-size: 1.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .pricing-price {
+          display: flex;
+          align-items: baseline;
+          justify-content: center;
+          gap: 0.25rem;
+        }
+
+        .pricing-price .price {
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: var(--brand-primary);
+        }
+
+        .pricing-price .period {
+          color: var(--text-muted);
+        }
+
+        .pricing-features {
+          list-style: none;
+          padding: 0;
+          margin: 0 0 2rem;
+          flex: 1;
+        }
+
+        .pricing-features li {
+          padding: 0.5rem 0;
+          color: var(--text-secondary);
+          font-size: 0.9rem;
+        }
+
+        .pricing-discount {
+          position: absolute;
+          top: -12px;
+          right: 20px;
+          background: linear-gradient(135deg, #ef4444, #f97316);
+          color: white;
+          padding: 0.35rem 0.75rem;
+          border-radius: 20px;
+          font-size: 0.75rem;
+          font-weight: 700;
+          z-index: 1;
+        }
+
+        .price-old {
+          text-decoration: line-through;
+          color: var(--text-muted);
+          font-size: 1.2rem;
+          font-weight: 400;
+          margin-right: 0.5rem;
+        }
+
+        .plans-link {
+          color: var(--brand-primary) !important;
+          font-weight: 600 !important;
+        }
+
+        @media (max-width: 768px) {
+          .pricing-grid {
+            grid-template-columns: 1fr;
+          }
+          .pricing-card.featured {
+            transform: none;
+          }
         }
 
         /* Contact Section */

@@ -64,15 +64,15 @@ const ManagerBatches = () => {
 
     const handleDeleteBatch = async (batchId, photoCount, e) => {
         e.stopPropagation(); // Prevent navigation
-        if (photoCount > 0) {
-            toast.error('Can only delete empty batches (0 photos)');
-            return;
-        }
-        if (!confirm('Delete this empty batch?')) return;
+        const confirmMessage = photoCount > 0
+            ? `Delete this batch and its ${photoCount} photo(s)? This action cannot be undone.`
+            : 'Delete this empty batch?';
+
+        if (!confirm(confirmMessage)) return;
 
         try {
             await api.delete(`/batches/${batchId}`);
-            toast.success('Batch deleted');
+            toast.success(`Batch deleted${photoCount > 0 ? ` (${photoCount} photos removed)` : ''}`);
             fetchBatches();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to delete batch');
@@ -388,15 +388,13 @@ const ManagerBatches = () => {
                                 >
                                     <HiEye /> View
                                 </button>
-                                {batch.photoCount === 0 && (
-                                    <button
-                                        className="btn btn-danger"
-                                        onClick={(e) => handleDeleteBatch(batch._id, batch.photoCount, e)}
-                                        title="Delete empty batch"
-                                    >
-                                        <HiTrash />
-                                    </button>
-                                )}
+                                <button
+                                    className="btn btn-danger"
+                                    onClick={(e) => handleDeleteBatch(batch._id, batch.photoCount, e)}
+                                    title="Delete batch"
+                                >
+                                    <HiTrash />
+                                </button>
                             </div>
                         </div>
                     ))}

@@ -21,8 +21,10 @@ const Login = () => {
   const [loginMethod, setLoginMethod] = useState('otp'); // 'otp' or 'password'
   const [otpSent, setOtpSent] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [adminCheckDone, setAdminCheckDone] = useState(false);
 
   useEffect(() => {
+    // Non-blocking admin check - form shows immediately
     checkAdminExists();
     if (user) {
       redirectToDashboard(user.role);
@@ -45,6 +47,7 @@ const Login = () => {
     } catch {
       setAdminExists(false);
     }
+    setAdminCheckDone(true);
   };
 
   const redirectToDashboard = (role) => {

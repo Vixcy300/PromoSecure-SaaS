@@ -22,6 +22,8 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import Help from './pages/Help';
 import About from './pages/About';
 import Terms from './pages/Terms';
+import Plans from './pages/Plans';
+import Blog from './pages/Blog';
 
 function App() {
     return (
@@ -102,6 +104,8 @@ function App() {
                     {/* Public Pages (no login required) */}
                     <Route path="/privacy" element={<PrivacyPolicy />} />
                     <Route path="/help" element={<Help />} />
+                    <Route path="/plans" element={<Plans />} />
+                    <Route path="/blog" element={<Blog />} />
 
                     {/* Catch-all redirect */}
                     <Route path="*" element={<Navigate to="/" replace />} />
