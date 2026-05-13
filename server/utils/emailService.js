@@ -35,54 +35,118 @@ const sendBatchReport = async ({ to, clientName, batchTitle, managerName, pdfBuf
 
     const subject = `📊 Verification Report: ${batchTitle}${clientName ? ` - ${clientName}` : ''}`;
 
+    const year = new Date().getFullYear();
+    const dateStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'long', timeStyle: 'short' });
+
     const htmlContent = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="background: linear-gradient(135deg, #0d9488, #0891b2); padding: 30px; text-align: center;">
-                <h1 style="color: white; margin: 0; font-size: 24px;">🔒 PromoSecure</h1>
-                <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0;">Privacy-First Promotional Verification</p>
+        <div style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Roboto,Arial,sans-serif;">
+          <div style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);margin-top:20px;margin-bottom:20px;">
+
+            <!-- Header -->
+            <div style="background:#0066CC;padding:28px 32px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:0.5px;">🔒 PromoSecure</h1>
+              <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:13px;font-weight:400;">Privacy-First Promotional Verification Platform</p>
             </div>
-            
-            <div style="padding: 30px; background: #f8fafc;">
-                <h2 style="color: #1e293b; margin-top: 0;">Verification Report</h2>
-                
-                <p style="color: #475569;">Hello,</p>
-                
-                <p style="color: #475569;">
-                    ${managerName} has shared a verification report with you for <strong>${batchTitle}</strong>.
+
+            <!-- Body -->
+            <div style="padding:32px 32px 24px;">
+              <h2 style="margin:0 0 6px;color:#1e293b;font-size:20px;font-weight:700;">📊 Verification Report</h2>
+              <p style="margin:0 0 20px;color:#64748b;font-size:14px;line-height:1.5;">
+                A promotional verification report has been shared with you.
+              </p>
+
+              <!-- Report Details Box -->
+              <div style="background:#f0f4ff;border:1px solid #bfdbfe;border-radius:8px;padding:16px;margin:0 0 20px;">
+                <table cellpadding="0" cellspacing="0" style="width:100%;">
+                  <tr>
+                    <td style="padding:5px 0;color:#64748b;font-size:13px;width:120px;">📋 Batch Name:</td>
+                    <td style="padding:5px 0;color:#1e293b;font-size:13px;font-weight:700;">${batchTitle}</td>
+                  </tr>
+                  ${clientName ? `<tr>
+                    <td style="padding:5px 0;color:#64748b;font-size:13px;">🏢 Client:</td>
+                    <td style="padding:5px 0;color:#1e293b;font-size:13px;font-weight:600;">${clientName}</td>
+                  </tr>` : ''}
+                  <tr>
+                    <td style="padding:5px 0;color:#64748b;font-size:13px;">👤 Sent by:</td>
+                    <td style="padding:5px 0;color:#1e293b;font-size:13px;font-weight:600;">${managerName}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:5px 0;color:#64748b;font-size:13px;">📅 Date:</td>
+                    <td style="padding:5px 0;color:#1e293b;font-size:13px;font-weight:600;">${dateStr} IST</td>
+                  </tr>
+                </table>
+              </div>
+
+              ${message ? `
+              <!-- Custom Message -->
+              <div style="background:#ffffff;border-left:4px solid #0066CC;padding:14px 16px;margin:0 0 20px;border:1px solid #e2e8f0;border-left:4px solid #0066CC;border-radius:0 8px 8px 0;">
+                <p style="margin:0 0 4px;color:#64748b;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Message from ${managerName}:</p>
+                <p style="margin:0;color:#1e293b;font-size:14px;line-height:1.6;font-style:italic;">"${message}"</p>
+              </div>
+              ` : ''}
+
+              <!-- Report Contents -->
+              <div style="margin:0 0 20px;">
+                <p style="margin:0 0 10px;color:#1e293b;font-size:14px;font-weight:600;">📎 Attached PDF Report Includes:</p>
+                <table cellpadding="0" cellspacing="0" style="width:100%;">
+                  <tr>
+                    <td style="padding:6px 0;font-size:13px;color:#475569;">✅ Verification summary & approval status</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:6px 0;font-size:13px;color:#475569;">✅ AI duplicate detection results & scores</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:6px 0;font-size:13px;color:#475569;">✅ Privacy-protected photos (all faces blurred)</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:6px 0;font-size:13px;color:#475569;">✅ GPS location & timestamp for each photo</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:6px 0;font-size:13px;color:#475569;">✅ Promoter performance metrics</td>
+                  </tr>
+                </table>
+              </div>
+
+              <!-- Privacy Notice -->
+              <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:14px 16px;margin:0 0 20px;">
+                <p style="margin:0;color:#166534;font-size:13px;font-weight:600;">🛡️ Privacy Guaranteed</p>
+                <p style="margin:6px 0 0;color:#15803d;font-size:12px;line-height:1.5;">
+                  All photos in this report have been processed with our 4-layer AI face blurring system. No identifiable faces are present in the attached document.
                 </p>
-                
-                ${message ? `
-                    <div style="background: white; border-left: 4px solid #0d9488; padding: 15px; margin: 20px 0;">
-                        <p style="color: #475569; margin: 0; font-style: italic;">"${message}"</p>
-                    </div>
-                ` : ''}
-                
-                <p style="color: #475569;">
-                    Please find the detailed PDF report attached to this email. The report includes:
+              </div>
+
+              <!-- Didn't expect this? -->
+              <div style="border-top:1px solid #e2e8f0;padding-top:18px;">
+                <p style="margin:0 0 4px;color:#1e293b;font-size:14px;font-weight:600;">Didn't expect this report?</p>
+                <p style="margin:0;color:#64748b;font-size:13px;line-height:1.6;">
+                  If you were not expecting this email, it may have been sent to you by mistake. Please contact us:
                 </p>
-                
-                <ul style="color: #475569;">
-                    <li>Verification summary and statistics</li>
-                    <li>AI duplicate detection results</li>
-                    <li>Privacy-protected photo documentation</li>
-                    <li>Location and timestamp data</li>
-                </ul>
-                
-                <div style="text-align: center; margin: 30px 0;">
-                    <p style="color: #64748b; font-size: 14px;">
-                        📎 PDF Report Attached
-                    </p>
-                </div>
+                <p style="margin:8px 0 0;">
+                  <a href="mailto:vigneshigt@gmail.com" style="display:inline-block;background:#0066CC;color:#ffffff;text-decoration:none;padding:8px 20px;border-radius:6px;font-size:13px;font-weight:600;">📧 Contact Admin</a>
+                </p>
+              </div>
             </div>
-            
-            <div style="background: #1e293b; padding: 20px; text-align: center;">
-                <p style="color: #94a3b8; font-size: 12px; margin: 0;">
-                    This report was generated by PromoSecure
-                </p>
-                <p style="color: #64748b; font-size: 11px; margin: 10px 0 0;">
-                    All photos have been processed with AI face detection and privacy blurring
-                </p>
+
+            <!-- Footer -->
+            <div style="background:#1e293b;padding:20px 32px;text-align:center;">
+              <p style="margin:0 0 8px;color:#94a3b8;font-size:12px;">
+                This report was generated by <strong style="color:#e2e8f0;">PromoSecure</strong>
+              </p>
+              <p style="margin:0 0 8px;color:#64748b;font-size:11px;">
+                Enterprise-grade privacy • AI-powered verification • SOC 2 compliant
+              </p>
+              <div style="margin-top:10px;">
+                <a href="https://promosecure-api.vercel.app" style="color:#60a5fa;font-size:11px;text-decoration:none;margin:0 8px;">Website</a>
+                <span style="color:#475569;">•</span>
+                <a href="https://promosecure-api.vercel.app/help" style="color:#60a5fa;font-size:11px;text-decoration:none;margin:0 8px;">Help Center</a>
+                <span style="color:#475569;">•</span>
+                <a href="https://promosecure-api.vercel.app/privacy" style="color:#60a5fa;font-size:11px;text-decoration:none;margin:0 8px;">Privacy Policy</a>
+              </div>
+              <p style="margin:12px 0 0;color:#475569;font-size:10px;">
+                © ${year} PromoSecure. All rights reserved.
+              </p>
             </div>
+          </div>
         </div>
     `;
 

@@ -738,6 +738,42 @@ For API support, contact api-support@promosecure.com or visit our developer docu
                 </section>
             )}
 
+    const renderContent = (content) => {
+        if (!content) return '';
+        return content.split('\n\n').map((block, i) => {
+            block = block.trim();
+            if (!block) return null;
+            if (block.startsWith('### ')) return `<h3 style="color:var(--text-primary);margin:1.5rem 0 1rem;font-size:1.25rem;">${block.replace('### ', '')}</h3>`;
+            if (block.startsWith('## ')) return `<h2 style="color:var(--text-primary);margin:2rem 0 1.25rem;font-size:1.75rem;border-bottom:1px solid var(--border-color);padding-bottom:0.5rem;">${block.replace('## ', '')}</h2>`;
+            if (block.startsWith('- ') || block.startsWith('* ')) {
+                const items = block.split('\n').map(item => `<li>${item.replace(/^[-*]\s+/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</li>`).join('');
+                return `<ul style="margin-bottom:1.5rem;padding-left:1.5rem;color:var(--text-secondary);">${items}</ul>`;
+            }
+            if (block.startsWith('> ')) return `<blockquote style="border-left:4px solid var(--brand-primary);padding:1rem 1.5rem;background:var(--bg-secondary);margin:1.5rem 0;font-style:italic;color:var(--text-primary);">${block.replace(/> /g, '').replace(/\n/g, '<br/>')}</blockquote>`;
+            if (block.includes('|')) {
+                const rows = block.split('\n').filter(r => r.includes('|') && !r.includes('---'));
+                const tableRows = rows.map((row, idx) => {
+                    const cells = row.split('|').filter(c => c.trim() !== '').map(c => `<td style="padding:12px;border:1px solid var(--border-color);">${c.trim()}</td>`).join('');
+                    return `<tr style="${idx === 0 ? 'background:var(--bg-tertiary);font-weight:bold;' : ''}">${cells}</tr>`;
+                });
+                return `<div style="overflow-x:auto;margin:1.5rem 0;"><table style="width:100%;border-collapse:collapse;font-size:14px;">${tableRows.join('')}</table></div>`;
+            }
+            return `<p style="margin-bottom:1.25rem;text-align:left;line-height:1.7;">${block.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')}</p>`;
+        }).join('');
+    };
+
+    return (
+        <div className="blog-page">
+            <header className="blog-header">
+                <Link to="/" className="back-link">
+                    <HiArrowLeft /> Back to Home
+                </Link>
+                <div className="blog-header-content">
+                    <h1>PromoSecure Blog</h1>
+                    <p>Expert insights on promotional verification and field marketing excellence.</p>
+                </div>
+            </header>
+
             {/* Article View */}
             {selectedArticle && (
                 <section className="article-section">
@@ -764,9 +800,15 @@ For API support, contact api-support@promosecure.com or visit our developer docu
                                 </div>
                             </div>
                             <img src={selectedArticle.image} alt={selectedArticle.title} className="article-cover" />
-                            <div className="article-content" dangerouslySetInnerHTML={{ __html: selectedArticle.content.replace(/\n/g, '<br/>').replace(/## /g, '<h2>').replace(/### /g, '<h3>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\|(.*?)\|/g, '<span class="table-cell">$1</span>') }} />
-                            <div className="article-footer">
-                                <p>Have questions about this article? <a href="mailto:vigneshigt@gmail.com">Contact us</a></p>
+                            <div className="article-content" dangerouslySetInnerHTML={{ __html: renderContent(selectedArticle.content) }} />
+                            <div className="article-footer" style={{ padding: '3rem 2rem', borderTop: '1px solid var(--border-color)' }}>
+                                <div className="contact-card" style={{ background: 'var(--brand-light)', padding: '2rem', borderRadius: '16px', textAlign: 'center', border: '1px solid var(--primary-200)' }}>
+                                    <h3 style={{ color: 'var(--brand-primary)', marginBottom: '0.5rem' }}>Need personalized assistance?</h3>
+                                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Our team is available to help you with campaign setup, promoter training, or technical integration.</p>
+                                    <a href="mailto:vigneshigt@gmail.com" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 2rem', fontWeight: '600' }}>
+                                        Contact Administrator <HiArrowRight />
+                                    </a>
+                                </div>
                             </div>
                         </article>
                     </div>
@@ -864,7 +906,7 @@ For API support, contact api-support@promosecure.com or visit our developer docu
                 }
 
                 .blog-header {
-                    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);
+                    background: var(--brand-primary);
                     padding: 2rem 2rem 4rem;
                     text-align: center;
                     position: relative;
@@ -938,7 +980,7 @@ For API support, contact api-support@promosecure.com or visit our developer docu
                     position: absolute;
                     top: 1rem;
                     left: 1rem;
-                    background: linear-gradient(135deg, #ef4444, #f97316);
+                    background: #d32f2f;
                     color: white;
                     padding: 0.4rem 1rem;
                     border-radius: 20px;
@@ -993,20 +1035,19 @@ For API support, contact api-support@promosecure.com or visit our developer docu
                     display: inline-flex;
                     align-items: center;
                     gap: 0.5rem;
-                    background: var(--brand-gradient);
+                    background: var(--brand-primary);
                     color: white;
                     padding: 0.75rem 1.5rem;
                     border: none;
-                    border-radius: 10px;
+                    border-radius: 6px;
                     font-weight: 600;
                     cursor: pointer;
-                    transition: all 0.3s ease;
+                    transition: background 0.2s ease;
                     width: fit-content;
                 }
 
                 .read-more-btn:hover {
-                    transform: translateY(-2px);
-                    box-shadow: 0 5px 20px rgba(37, 99, 235, 0.3);
+                    background: var(--brand-secondary);
                 }
 
                 /* Article View */
@@ -1073,7 +1114,7 @@ For API support, contact api-support@promosecure.com or visit our developer docu
                     width: 48px;
                     height: 48px;
                     border-radius: 50%;
-                    background: var(--brand-gradient);
+                    background: var(--brand-primary);
                     color: white;
                     display: flex;
                     align-items: center;
@@ -1227,8 +1268,6 @@ For API support, contact api-support@promosecure.com or visit our developer docu
                 }
 
                 .blog-card:hover {
-                    transform: translateY(-5px);
-                    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
                     border-color: var(--brand-primary);
                 }
 
@@ -1270,7 +1309,7 @@ For API support, contact api-support@promosecure.com or visit our developer docu
                 }
 
                 .newsletter-section {
-                    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+                    background: var(--navy-900, #0f172a);
                     padding: 4rem 2rem;
                     text-align: center;
                 }

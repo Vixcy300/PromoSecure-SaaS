@@ -94,7 +94,6 @@ const Layout = () => {
           <HiMenuAlt2 />
         </button>
         <div className="mobile-logo">
-          <span className="logo-icon">🔒</span>
           <span className="logo-text">PromoSecure</span>
         </div>
         <div className="mobile-user-menu">
@@ -141,7 +140,6 @@ const Layout = () => {
       <aside className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="logo">
-            <span className="logo-icon">🔒</span>
             <span className="logo-text">PromoSecure</span>
           </div>
           <button className="close-btn" onClick={closeSidebar}>

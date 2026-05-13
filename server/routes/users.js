@@ -17,11 +17,29 @@ router.post('/manager', authorize('admin'), async (req, res) => {
         const { email, password, name, companyName, promoterLimit, otp } = req.body;
 
         // Verify OTP
-        const otpRecord = await OTP.findOne({ email, otp });
+        const otpRecord = await OTP.findOne({ email });
         if (!otpRecord) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid or expired OTP'
+                message: 'OTP expired or not found'
+            });
+        }
+
+        if (otpRecord.otp !== otp) {
+            otpRecord.attempts += 1;
+            await otpRecord.save();
+
+            if (otpRecord.attempts >= 3) {
+                await OTP.deleteOne({ _id: otpRecord._id });
+                return res.status(400).json({
+                    success: false,
+                    message: 'Too many failed attempts. OTP invalidated.'
+                });
+            }
+
+            return res.status(400).json({
+                success: false,
+                message: `Invalid OTP. ${3 - otpRecord.attempts} attempts remaining.`
             });
         }
         await otpRecord.deleteOne();
@@ -62,11 +80,29 @@ router.post('/promoter', authorize('manager'), async (req, res) => {
         const { email, password, name, otp } = req.body;
 
         // Verify OTP
-        const otpRecord = await OTP.findOne({ email, otp });
+        const otpRecord = await OTP.findOne({ email });
         if (!otpRecord) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid or expired OTP'
+                message: 'OTP expired or not found'
+            });
+        }
+
+        if (otpRecord.otp !== otp) {
+            otpRecord.attempts += 1;
+            await otpRecord.save();
+
+            if (otpRecord.attempts >= 3) {
+                await OTP.deleteOne({ _id: otpRecord._id });
+                return res.status(400).json({
+                    success: false,
+                    message: 'Too many failed attempts. OTP invalidated.'
+                });
+            }
+
+            return res.status(400).json({
+                success: false,
+                message: `Invalid OTP. ${3 - otpRecord.attempts} attempts remaining.`
             });
         }
         await otpRecord.deleteOne();

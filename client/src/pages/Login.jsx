@@ -16,7 +16,8 @@ const Login = () => {
     password: '',
     name: '',
     confirmPassword: '',
-    otp: ''
+    otp: '',
+    setupKey: ''
   });
   const [loginMethod, setLoginMethod] = useState('otp'); // 'otp' or 'password'
   const [otpSent, setOtpSent] = useState(false);
@@ -90,6 +91,7 @@ const Login = () => {
           email: formData.email,
           password: formData.password,
           name: formData.name,
+          setupKey: formData.setupKey
         });
         login(res.data.token, res.data.user);
         toast.success('Admin account created successfully!');
@@ -210,6 +212,26 @@ const Login = () => {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
                   />
+                </div>
+              )}
+
+              {isAdminRegister && (
+                <div className="input-group">
+                  <label>
+                    <HiShieldCheck className="label-icon" />
+                    Initial Setup Key
+                  </label>
+                  <input
+                    type="password"
+                    className="input"
+                    placeholder="Enter setup key from server environment"
+                    value={formData.setupKey}
+                    onChange={(e) => setFormData({ ...formData, setupKey: e.target.value })}
+                    required
+                  />
+                  <p className="text-xs text-muted" style={{ marginTop: '0.25rem' }}>
+                    Only authorized administrators with the server setup key can create the first admin account.
+                  </p>
                 </div>
               )}
 
@@ -405,7 +427,7 @@ const Login = () => {
           right: -50%;
           width: 100%;
           height: 100%;
-          background: radial-gradient(circle, rgba(124, 58, 237, 0.2), transparent 60%);
+          background: radial-gradient(circle, rgba(0, 102, 204, 0.08), transparent 60%);
           pointer-events: none;
         }
 
@@ -419,12 +441,12 @@ const Login = () => {
           align-items: center;
           gap: 0.5rem;
           padding: 0.5rem 1rem;
-          background: var(--brand-glow-soft);
-          border: 1px solid rgba(124, 58, 237, 0.3);
+          background: var(--primary-50);
+          border: 1px solid var(--primary-200);
           border-radius: var(--radius-full);
           font-size: 0.8rem;
           font-weight: 600;
-          color: var(--text-brand);
+          color: var(--brand-primary);
           margin-bottom: 1.5rem;
         }
 
@@ -449,10 +471,7 @@ const Login = () => {
         }
 
         .brand-gradient {
-          background: var(--brand-gradient);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: var(--brand-primary);
         }
 
         .hero-subtitle {
@@ -519,9 +538,7 @@ const Login = () => {
           display: block;
           font-size: 1.5rem;
           font-weight: 800;
-          background: var(--brand-gradient);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          color: var(--brand-primary);
         }
 
         .stat-label {

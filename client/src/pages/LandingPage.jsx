@@ -129,7 +129,6 @@ const LandingPage = () => {
       <nav className="landing-nav">
         <div className="nav-container">
           <div className="nav-logo hover-pop">
-            <span className="logo-icon">🔒</span>
             <span className="logo-text">PromoSecure</span>
           </div>
           <div className="nav-links">
@@ -382,7 +381,6 @@ const LandingPage = () => {
         <div className="footer-container">
           <div className="footer-brand">
             <div className="nav-logo">
-              <span className="logo-icon">🔒</span>
               <span className="logo-text">PromoSecure</span>
             </div>
             <p>Privacy-first promotional verification platform with AI-powered face blurring.</p>
@@ -461,18 +459,8 @@ const LandingPage = () => {
         }
 
         .nav-links .discount-link {
-          color: #ef4444 !important;
-          font-weight: 700;
-          animation: pulse-glow 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse-glow {
-          0%, 100% { 
-            text-shadow: 0 0 5px rgba(239, 68, 68, 0.3);
-          }
-          50% { 
-            text-shadow: 0 0 15px rgba(239, 68, 68, 0.6);
-          }
+          color: #d32f2f !important;
+          font-weight: 600;
         }
 
         .nav-actions {
@@ -499,7 +487,7 @@ const LandingPage = () => {
           right: -10%;
           width: 60%;
           height: 80%;
-          background: radial-gradient(circle, rgba(37, 99, 235, 0.12) 0%, transparent 60%);
+          background: radial-gradient(circle, rgba(0, 102, 204, 0.06) 0%, transparent 60%);
         }
 
         .hero-gradient-2 {
@@ -508,7 +496,7 @@ const LandingPage = () => {
           left: -10%;
           width: 50%;
           height: 60%;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.1) 0%, transparent 60%);
+          background: radial-gradient(circle, rgba(0, 102, 204, 0.04) 0%, transparent 60%);
         }
 
         .hero-container {
@@ -542,30 +530,26 @@ const LandingPage = () => {
         }
 
         .gradient-text {
-          background: var(--brand-gradient);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: var(--brand-primary);
         }
 
-        /* Hover Pop Animation */
+        /* Remove excessive hover animations */
         .hover-pop {
-          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), 
-                      filter 0.3s ease;
-          cursor: pointer;
+          transition: none;
+          cursor: default;
         }
 
         .hover-pop:hover {
-          transform: scale(1.05) translateY(-4px);
-          filter: drop-shadow(0 10px 20px rgba(13, 148, 136, 0.2));
+          transform: none;
+          filter: none;
         }
 
         .nav-logo.hover-pop:hover {
-          transform: scale(1.08);
+          transform: none;
         }
 
         .hero-title.hover-pop:hover {
-          transform: scale(1.03) translateY(-6px);
+          transform: none;
         }
 
         .hero-subtitle {
@@ -600,9 +584,7 @@ const LandingPage = () => {
           font-size: 2rem;
           font-weight: 800;
           font-family: var(--font-display);
-          background: var(--brand-gradient);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+          color: var(--brand-primary);
         }
 
         .hero-stat .stat-label {
@@ -672,8 +654,7 @@ const LandingPage = () => {
         }
 
         .feature-card:hover {
-          transform: translateY(-4px);
-          box-shadow: var(--shadow-lg);
+          border-color: var(--brand-primary);
         }
 
         .feature-icon {
@@ -727,7 +708,7 @@ const LandingPage = () => {
         .step-number {
           width: 48px;
           height: 48px;
-          background: var(--brand-gradient);
+          background: var(--brand-primary);
           color: white;
           font-weight: 800;
           font-size: 1.1rem;
@@ -844,7 +825,7 @@ const LandingPage = () => {
           top: -12px;
           left: 50%;
           transform: translateX(-50%);
-          background: var(--brand-gradient);
+          background: var(--brand-primary);
           color: white;
           padding: 0.35rem 1rem;
           border-radius: 20px;

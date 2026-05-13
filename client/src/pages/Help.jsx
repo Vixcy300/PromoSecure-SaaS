@@ -158,7 +158,7 @@ const Help = () => {
 
       {/* About App Card */}
       <div className="about-app-card card">
-        <div className="app-badge">🔒 Industry's Only Secure Solution</div>
+        <div className="app-badge">Industry's Only Secure Solution</div>
         <h2>Why PromoSecure?</h2>
         <p>
           PromoSecure is the <strong>only privacy-first promotional verification platform</strong> available today.

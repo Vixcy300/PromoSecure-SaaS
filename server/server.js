@@ -9,6 +9,9 @@ const {
     validateInput,
     auditLog,
     errorHandler,
+    mongoSanitize,
+    xss,
+    hpp,
 } = require('./middleware/security');
 
 // Connect to database
@@ -38,6 +41,11 @@ app.use(validateInput);
 // Apply rate limiting
 app.use('/api', apiLimiter);
 app.use('/api/photos', uploadLimiter);
+
+// Additional security middleware
+app.use(mongoSanitize()); // Prevent NoSQL injection
+app.use(xss()); // Prevent XSS attacks
+app.use(hpp()); // Prevent HTTP parameter pollution
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));

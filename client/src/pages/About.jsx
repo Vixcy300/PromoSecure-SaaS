@@ -7,7 +7,6 @@ const About = () => {
             <nav className="about-nav">
                 <div className="nav-container">
                     <Link to="/" className="nav-logo">
-                        <span className="logo-icon">🔒</span>
                         <span className="logo-text">PromoSecure</span>
                     </Link>
                     <Link to="/" className="btn btn-ghost">
@@ -41,7 +40,7 @@ const About = () => {
 
                     {/* Our Solution */}
                     <section className="about-section solution-section">
-                        <h2>🔒 Our Solution</h2>
+                        <h2>Our Solution</h2>
                         <p>
                             <strong>PromoSecure</strong> bridges this gap with complete transparency. We automatically
                             blur all faces in promotional photos using advanced AI technology—so promoters get their
