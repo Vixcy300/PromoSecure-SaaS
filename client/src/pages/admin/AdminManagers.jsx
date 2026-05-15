@@ -13,7 +13,6 @@ const AdminManagers = () => {
         password: '',
         name: '',
         companyName: '',
-        companyName: '',
         promoterLimit: 5,
         otp: ''
     });

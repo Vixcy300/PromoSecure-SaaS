@@ -11,6 +11,30 @@ const Blog = () => {
 
     const categories = ['all', 'Product Updates', 'Industry Insights', 'Best Practices', 'Case Studies'];
 
+    const renderContent = (content) => {
+        if (!content) return '';
+        return content.split('\n\n').map((block, i) => {
+            block = block.trim();
+            if (!block) return null;
+            if (block.startsWith('### ')) return `<h3 style="color:var(--text-primary);margin:1.5rem 0 1rem;font-size:1.25rem;">${block.replace('### ', '')}</h3>`;
+            if (block.startsWith('## ')) return `<h2 style="color:var(--text-primary);margin:2rem 0 1.25rem;font-size:1.75rem;border-bottom:1px solid var(--border-color);padding-bottom:0.5rem;">${block.replace('## ', '')}</h2>`;
+            if (block.startsWith('- ') || block.startsWith('* ')) {
+                const items = block.split('\n').map(item => `<li>${item.replace(/^[-*]\s+/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</li>`).join('');
+                return `<ul style="margin-bottom:1.5rem;padding-left:1.5rem;color:var(--text-secondary);">${items}</ul>`;
+            }
+            if (block.startsWith('> ')) return `<blockquote style="border-left:4px solid var(--brand-primary);padding:1rem 1.5rem;background:var(--bg-secondary);margin:1.5rem 0;font-style:italic;color:var(--text-primary);">${block.replace(/> /g, '').replace(/\n/g, '<br/>')}</blockquote>`;
+            if (block.includes('|')) {
+                const rows = block.split('\n').filter(r => r.includes('|') && !r.includes('---'));
+                const tableRows = rows.map((row, idx) => {
+                    const cells = row.split('|').filter(c => c.trim() !== '').map(c => `<td style="padding:12px;border:1px solid var(--border-color);">${c.trim()}</td>`).join('');
+                    return `<tr style="${idx === 0 ? 'background:var(--bg-tertiary);font-weight:bold;' : ''}">${cells}</tr>`;
+                });
+                return `<div style="overflow-x:auto;margin:1.5rem 0;"><table style="width:100%;border-collapse:collapse;font-size:14px;">${tableRows.join('')}</table></div>`;
+            }
+            return `<p style="margin-bottom:1.25rem;text-align:left;line-height:1.7;">${block.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')}</p>`;
+        }).join('');
+    };
+
     const blogPosts = [
         {
             id: 1,
@@ -701,69 +725,6 @@ For API support, contact api-support@promosecure.com or visit our developer docu
 
     return (
         <div className="blog-page">
-            {/* Header */}
-            <header className="blog-header">
-                <Link to="/" className="back-link">
-                    <HiArrowLeft /> Back to Home
-                </Link>
-                <div className="blog-header-content">
-                    <h1>PromoSecure Blog</h1>
-                    <p>Insights, product updates, and best practices for promotional campaign success</p>
-                </div>
-            </header>
-
-            {/* Featured Post */}
-            {featuredPost && !selectedArticle && (
-                <section className="featured-section">
-                    <div className="featured-container">
-                        <div className="featured-post">
-                            <div className="featured-image">
-                                <img src={featuredPost.image} alt={featuredPost.title} />
-                                <span className="featured-badge">Featured</span>
-                            </div>
-                            <div className="featured-content">
-                                <span className="post-category">{featuredPost.category}</span>
-                                <h2>{featuredPost.title}</h2>
-                                <p>{featuredPost.excerpt}</p>
-                                <div className="post-meta">
-                                    <span><HiUser /> {featuredPost.author}</span>
-                                    <span><HiClock /> {featuredPost.readTime}</span>
-                                </div>
-                                <button className="read-more-btn" onClick={() => setSelectedArticle(featuredPost)}>
-                                    Read Article <HiArrowRight />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-            )}
-
-    const renderContent = (content) => {
-        if (!content) return '';
-        return content.split('\n\n').map((block, i) => {
-            block = block.trim();
-            if (!block) return null;
-            if (block.startsWith('### ')) return `<h3 style="color:var(--text-primary);margin:1.5rem 0 1rem;font-size:1.25rem;">${block.replace('### ', '')}</h3>`;
-            if (block.startsWith('## ')) return `<h2 style="color:var(--text-primary);margin:2rem 0 1.25rem;font-size:1.75rem;border-bottom:1px solid var(--border-color);padding-bottom:0.5rem;">${block.replace('## ', '')}</h2>`;
-            if (block.startsWith('- ') || block.startsWith('* ')) {
-                const items = block.split('\n').map(item => `<li>${item.replace(/^[-*]\s+/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</li>`).join('');
-                return `<ul style="margin-bottom:1.5rem;padding-left:1.5rem;color:var(--text-secondary);">${items}</ul>`;
-            }
-            if (block.startsWith('> ')) return `<blockquote style="border-left:4px solid var(--brand-primary);padding:1rem 1.5rem;background:var(--bg-secondary);margin:1.5rem 0;font-style:italic;color:var(--text-primary);">${block.replace(/> /g, '').replace(/\n/g, '<br/>')}</blockquote>`;
-            if (block.includes('|')) {
-                const rows = block.split('\n').filter(r => r.includes('|') && !r.includes('---'));
-                const tableRows = rows.map((row, idx) => {
-                    const cells = row.split('|').filter(c => c.trim() !== '').map(c => `<td style="padding:12px;border:1px solid var(--border-color);">${c.trim()}</td>`).join('');
-                    return `<tr style="${idx === 0 ? 'background:var(--bg-tertiary);font-weight:bold;' : ''}">${cells}</tr>`;
-                });
-                return `<div style="overflow-x:auto;margin:1.5rem 0;"><table style="width:100%;border-collapse:collapse;font-size:14px;">${tableRows.join('')}</table></div>`;
-            }
-            return `<p style="margin-bottom:1.25rem;text-align:left;line-height:1.7;">${block.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')}</p>`;
-        }).join('');
-    };
-
-    return (
-        <div className="blog-page">
             <header className="blog-header">
                 <Link to="/" className="back-link">
                     <HiArrowLeft /> Back to Home
@@ -774,8 +735,7 @@ For API support, contact api-support@promosecure.com or visit our developer docu
                 </div>
             </header>
 
-            {/* Article View */}
-            {selectedArticle && (
+            {selectedArticle ? (
                 <section className="article-section">
                     <div className="article-container">
                         <button className="back-to-blog" onClick={() => setSelectedArticle(null)}>
@@ -813,11 +773,35 @@ For API support, contact api-support@promosecure.com or visit our developer docu
                         </article>
                     </div>
                 </section>
-            )}
-
-            {/* Search and Filter */}
-            {!selectedArticle && (
+            ) : (
                 <>
+                    {/* Featured Post */}
+                    {featuredPost && (
+                        <section className="featured-section">
+                            <div className="featured-container">
+                                <div className="featured-post">
+                                    <div className="featured-image">
+                                        <img src={featuredPost.image} alt={featuredPost.title} />
+                                        <span className="featured-badge">Featured</span>
+                                    </div>
+                                    <div className="featured-content">
+                                        <span className="post-category">{featuredPost.category}</span>
+                                        <h2>{featuredPost.title}</h2>
+                                        <p>{featuredPost.excerpt}</p>
+                                        <div className="post-meta">
+                                            <span><HiUser /> {featuredPost.author}</span>
+                                            <span><HiClock /> {featuredPost.readTime}</span>
+                                        </div>
+                                        <button className="read-more-btn" onClick={() => setSelectedArticle(featuredPost)}>
+                                            Read Article <HiArrowRight />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    )}
+
+                    {/* Search and Filter */}
                     <section className="blog-filters">
                         <div className="filters-container">
                             <div className="search-box">
