@@ -74,9 +74,9 @@ const Layout = () => {
 
   const getRoleBadge = () => {
     const badges = {
-      admin: { icon: HiShieldCheck, color: '#ef4444', label: 'Admin', gradient: 'linear-gradient(135deg, #ef4444, #dc2626)' },
-      manager: { icon: HiOfficeBuilding, color: '#7c3aed', label: 'Manager', gradient: 'linear-gradient(135deg, #7c3aed, #6366f1)' },
-      promoter: { icon: HiCamera, color: '#22c55e', label: 'Promoter', gradient: 'linear-gradient(135deg, #22c55e, #16a34a)' },
+      admin: { icon: HiShieldCheck, color: '#0066CC', label: 'Admin', solid: '#0066CC' },
+      manager: { icon: HiOfficeBuilding, color: '#1976d2', label: 'Manager', solid: '#1976d2' },
+      promoter: { icon: HiCamera, color: '#15803d', label: 'Promoter', solid: '#15803d' },
     };
     return badges[user?.role] || badges.promoter;
   };
@@ -459,6 +459,7 @@ const Layout = () => {
           width: 38px;
           height: 38px;
           border-radius: 50%;
+          background: var(--brand-primary);
           border: none;
           color: white;
           font-weight: 600;
