@@ -58,12 +58,17 @@ app.use('/api/messages', require('./routes/messages'));
 // Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({
-        status: 'ok',
-        message: 'PromoSecure API is running',
-        version: '2.0.0',
+        status: 'active',
+        service: 'PromoSecure API',
         timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
+        version: '2.0.0',
+        uptime: process.uptime()
     });
+});
+
+// Root endpoint for Vercel deployment check
+app.get('/', (req, res) => {
+    res.send('PromoSecure API is running successfully.');
 });
 
 // API documentation endpoint
