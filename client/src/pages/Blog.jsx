@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { HiArrowLeft, HiClock, HiUser, HiArrowRight, HiSearch, HiTag, HiX, HiCalendar, HiBookOpen } from 'react-icons/hi';
+import { HiArrowLeft, HiClock, HiUser, HiArrowRight, HiSearch, HiTag, HiCalendar, HiBookOpen, HiChatAlt2, HiCheckCircle, HiShare } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 
 const Blog = () => {
@@ -8,30 +8,95 @@ const Blog = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedArticle, setSelectedArticle] = useState(null);
     const [email, setEmail] = useState('');
+    
+    // Anti-Bot Comment System State
+    const [comments, setComments] = useState({
+        1: [
+            { id: 1, name: 'Sarah Jenkins', date: '2026-02-06', text: 'This heat map feature is exactly what our agency has been waiting for. Great update!' },
+            { id: 2, name: 'David Chen', date: '2026-02-08', text: 'Will the week-over-week comparisons be exportable to PDF for client reporting?' }
+        ]
+    });
+    const [newComment, setNewComment] = useState('');
+    const [commentName, setCommentName] = useState('');
+    const [honeypot, setHoneypot] = useState(''); // Bot trap
+    const [mathCaptcha, setMathCaptcha] = useState({ num1: 0, num2: 0, answer: '' });
+
+    useEffect(() => {
+        generateCaptcha();
+        window.scrollTo(0, 0);
+    }, [selectedArticle]);
+
+    const generateCaptcha = () => {
+        setMathCaptcha({
+            num1: Math.floor(Math.random() * 10) + 1,
+            num2: Math.floor(Math.random() * 10) + 1,
+            answer: ''
+        });
+    };
 
     const categories = ['all', 'Product Updates', 'Industry Insights', 'Best Practices', 'Case Studies'];
+
+    const handleCommentSubmit = (e) => {
+        e.preventDefault();
+        
+        // 1. Honeypot check (Bots often fill out all fields indiscriminately)
+        if (honeypot !== '') {
+            toast.error('Bot activity detected. Request blocked.');
+            return;
+        }
+
+        // 2. Math Captcha check (Simple human verification)
+        const correctAnswer = mathCaptcha.num1 + mathCaptcha.num2;
+        if (parseInt(mathCaptcha.answer) !== correctAnswer) {
+            toast.error('Incorrect math answer. Please try again.');
+            generateCaptcha(); // Reset captcha on failure
+            return;
+        }
+
+        if (!commentName.trim() || !newComment.trim()) {
+            toast.error('Please fill out all required fields.');
+            return;
+        }
+
+        const commentObj = {
+            id: Date.now(),
+            name: commentName,
+            date: new Date().toISOString().split('T')[0],
+            text: newComment
+        };
+
+        setComments(prev => ({
+            ...prev,
+            [selectedArticle.id]: [...(prev[selectedArticle.id] || []), commentObj]
+        }));
+
+        toast.success('Comment posted successfully!');
+        setNewComment('');
+        setCommentName('');
+        generateCaptcha();
+    };
 
     const renderContent = (content) => {
         if (!content) return '';
         return content.split('\n\n').map((block, i) => {
             block = block.trim();
             if (!block) return null;
-            if (block.startsWith('### ')) return `<h3 style="color:var(--text-primary);margin:1.5rem 0 1rem;font-size:1.25rem;">${block.replace('### ', '')}</h3>`;
-            if (block.startsWith('## ')) return `<h2 style="color:var(--text-primary);margin:2rem 0 1.25rem;font-size:1.75rem;border-bottom:1px solid var(--border-color);padding-bottom:0.5rem;">${block.replace('## ', '')}</h2>`;
+            if (block.startsWith('### ')) return `<h3 class="article-h3">${block.replace('### ', '')}</h3>`;
+            if (block.startsWith('## ')) return `<h2 class="article-h2">${block.replace('## ', '')}</h2>`;
             if (block.startsWith('- ') || block.startsWith('* ')) {
                 const items = block.split('\n').map(item => `<li>${item.replace(/^[-*]\s+/, '').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')}</li>`).join('');
-                return `<ul style="margin-bottom:1.5rem;padding-left:1.5rem;color:var(--text-secondary);">${items}</ul>`;
+                return `<ul class="article-ul">${items}</ul>`;
             }
-            if (block.startsWith('> ')) return `<blockquote style="border-left:4px solid var(--brand-primary);padding:1rem 1.5rem;background:var(--bg-secondary);margin:1.5rem 0;font-style:italic;color:var(--text-primary);">${block.replace(/> /g, '').replace(/\n/g, '<br/>')}</blockquote>`;
+            if (block.startsWith('> ')) return `<blockquote class="article-quote">${block.replace(/> /g, '').replace(/\n/g, '<br/>')}</blockquote>`;
             if (block.includes('|')) {
                 const rows = block.split('\n').filter(r => r.includes('|') && !r.includes('---'));
                 const tableRows = rows.map((row, idx) => {
-                    const cells = row.split('|').filter(c => c.trim() !== '').map(c => `<td style="padding:12px;border:1px solid var(--border-color);">${c.trim()}</td>`).join('');
-                    return `<tr style="${idx === 0 ? 'background:var(--bg-tertiary);font-weight:bold;' : ''}">${cells}</tr>`;
+                    const cells = row.split('|').filter(c => c.trim() !== '').map(c => `<td>${c.trim()}</td>`).join('');
+                    return `<tr class="${idx === 0 ? 'table-header' : ''}">${cells}</tr>`;
                 });
-                return `<div style="overflow-x:auto;margin:1.5rem 0;"><table style="width:100%;border-collapse:collapse;font-size:14px;">${tableRows.join('')}</table></div>`;
+                return `<div class="table-wrapper"><table>${tableRows.join('')}</table></div>`;
             }
-            return `<p style="margin-bottom:1.25rem;text-align:left;line-height:1.7;">${block.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')}</p>`;
+            return `<p class="article-p">${block.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>')}</p>`;
         }).join('');
     };
 
@@ -415,292 +480,6 @@ Our offline capabilities ensure reliable operation regardless of connectivity:
 
 Offline Mode is currently in development and scheduled for release in early 2026. Join our beta program to get early access.
             `
-        },
-        {
-            id: 6,
-            title: 'The Future of Promotional Marketing: Trends Shaping 2026 and Beyond',
-            excerpt: 'Industry analysis of emerging technologies, changing consumer behaviors, and regulatory shifts impacting promotional campaigns.',
-            category: 'Industry Insights',
-            author: 'Research Team',
-            authorRole: 'Market Research',
-            date: '2026-01-10',
-            readTime: '9 min read',
-            image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=400&fit=crop',
-            featured: false,
-            content: `
-## Executive Summary
-
-The promotional marketing industry is undergoing rapid transformation driven by technology, privacy regulations, and changing consumer expectations. This report examines the key trends shaping the industry in 2026 and beyond.
-
-## Trend 1: Privacy-First Marketing
-
-**The Shift**
-- Stricter data protection laws globally
-- Consumer awareness of privacy rights
-- Brand reputation tied to ethical practices
-
-**Implications**
-- Face blurring becoming standard practice
-- Consent workflows for promotional content
-- Audit trails for compliance documentation
-
-**PromoSecure Position**: Our AI face blurring technology positions users ahead of regulatory requirements.
-
-## Trend 2: Real-Time Campaign Intelligence
-
-**The Shift**
-- Clients demand instant visibility
-- Decisions made in hours, not days
-- Competitive advantage from speed
-
-**Implications**
-- Real-time dashboards replacing weekly reports
-- Automated anomaly detection
-- Predictive analytics for campaign optimization
-
-**PromoSecure Position**: Advanced Analytics Dashboard provides real-time insights with trend analysis.
-
-## Trend 3: Mobile-First Field Operations
-
-**The Shift**
-- 95% of field work on mobile devices
-- Expectations set by consumer apps
-- Resistance to clunky enterprise tools
-
-**Implications**
-- Consumer-grade UX for enterprise tools
-- Offline capabilities essential
-- Camera-centric workflows
-
-**PromoSecure Position**: Mobile-optimized PWA with native camera integration.
-
-## Trend 4: Gig Economy Integration
-
-**The Shift**
-- Flexible workforce models
-- Rapid scaling capabilities
-- Variable cost structures
-
-**Implications**
-- Easy onboarding for temporary promoters
-- Skill-based assignment algorithms
-- Performance-based compensation
-
-**PromoSecure Position**: Streamlined promoter management with quick onboarding.
-
-## Trend 5: Sustainability Documentation
-
-**The Shift**
-- ESG reporting requirements
-- Brand sustainability commitments
-- Consumer preference for ethical brands
-
-**Implications**
-- Campaign carbon footprint tracking
-- Sustainable material documentation
-- Environmental compliance proof
-
-**Looking Ahead**: Future PromoSecure features may include sustainability metrics.
-
-## Recommendations for Agencies
-
-1. **Invest in privacy infrastructure now** – Regulations will only tighten
-2. **Build real-time reporting capabilities** – Client expectations are rising
-3. **Prioritize mobile experience** – Your field team's productivity depends on it
-4. **Develop flexible workforce models** – Agility is competitive advantage
-5. **Prepare for sustainability requirements** – Document environmental practices
-
-## Conclusion
-
-The promotional marketing industry is evolving rapidly. Agencies that embrace technology, prioritize privacy, and build flexible operations will thrive. Those clinging to manual processes and outdated workflows risk obsolescence.
-
-PromoSecure is committed to staying ahead of these trends, ensuring our customers are always positioned for success.
-            `
-        },
-        {
-            id: 7,
-            title: 'Building an Effective Promoter Training Program',
-            excerpt: 'A comprehensive guide to onboarding and training field promoters for maximum campaign success.',
-            category: 'Best Practices',
-            author: 'Customer Success',
-            authorRole: 'Training Specialist',
-            date: '2026-01-05',
-            readTime: '6 min read',
-            image: 'https://images.unsplash.com/photo-1531482615713-2afd69097998?w=800&h=400&fit=crop',
-            featured: false,
-            content: `
-## Why Training Matters
-
-Our data shows that properly trained promoters achieve:
-- **43% higher** first-attempt approval rates
-- **28% more** photos per shift
-- **65% lower** support ticket volume
-
-Yet many agencies skip formal training, expecting promoters to "figure it out."
-
-## The PromoSecure Training Framework
-
-### Week 1: App Fundamentals
-
-**Day 1-2: Account Setup**
-- App installation and login
-- Profile configuration
-- Navigating the interface
-
-**Day 3-4: Photo Capture**
-- Camera settings optimization
-- Batch creation workflow
-- Metadata and tagging
-
-**Day 5: Submission Process**
-- Quality self-check before submit
-- Understanding status indicators
-- Handling rejections constructively
-
-### Week 2: Quality Standards
-
-**Day 1-2: Composition Basics**
-- Rule of thirds
-- Lighting considerations
-- Background cleanup
-
-**Day 3-4: Brand Guidelines**
-- Product positioning
-- Required elements
-- Prohibited content
-
-**Day 5: Practice Session**
-- Supervised store visit
-- Real-time feedback
-- Q&A session
-
-### Week 3: Advanced Features
-
-**Day 1-2: Communication**
-- Using the messaging system
-- Reporting issues
-- Requesting support
-
-**Day 3-4: Troubleshooting**
-- Offline mode procedures
-- App updates
-- Common error resolution
-
-**Day 5: Assessment**
-- Practical evaluation
-- Written knowledge check
-- Certification
-
-## Training Resources
-
-### Documentation
-- Step-by-step guides with screenshots
-- Video tutorials for complex workflows
-- FAQ document for common questions
-
-### Ongoing Support
-- Weekly Q&A sessions for new promoters
-- Peer mentorship program
-- Manager office hours
-
-## Measuring Training Effectiveness
-
-Track these metrics for each promoter cohort:
-- Time to first approved batch
-- First-month approval rate
-- Support ticket volume
-- Retention at 90 days
-
-## Common Training Mistakes
-
-1. **Information overload** – Spread learning over time
-2. **No hands-on practice** – Theory alone doesn't work
-3. **Assuming tech literacy** – Start with basics
-4. **One-and-done approach** – Ongoing reinforcement needed
-5. **Ignoring feedback** – Promoters have valuable input
-
-Invest in training, and your campaigns will benefit for years to come.
-            `
-        },
-        {
-            id: 8,
-            title: 'Integrating PromoSecure with Your Existing Tech Stack',
-            excerpt: 'Technical guide to connecting PromoSecure with CRM, ERP, and reporting systems via our API.',
-            category: 'Product Updates',
-            author: 'Engineering Team',
-            authorRole: 'Developer Relations',
-            date: '2025-12-28',
-            readTime: '5 min read',
-            image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800&h=400&fit=crop',
-            featured: false,
-            content: `
-## API Overview
-
-PromoSecure provides a comprehensive REST API enabling seamless integration with your existing business systems. Whether you need to sync data with Salesforce, generate custom reports in Power BI, or trigger workflows in Zapier, our API makes it possible.
-
-## Authentication
-
-All API requests require authentication via Bearer token:
-
-\`\`\`
-Authorization: Bearer {your_api_token}
-\`\`\`
-
-Generate tokens in Settings → API Access (Pro and Enterprise plans only).
-
-## Core Endpoints
-
-### Batches
-
-\`\`\`
-GET /api/v1/batches
-GET /api/v1/batches/{id}
-GET /api/v1/batches/{id}/photos
-\`\`\`
-
-### Photos
-
-\`\`\`
-GET /api/v1/photos/{id}
-GET /api/v1/photos/{id}/download
-\`\`\`
-
-### Analytics
-
-\`\`\`
-GET /api/v1/analytics/summary
-GET /api/v1/analytics/promoters
-GET /api/v1/analytics/trends
-\`\`\`
-
-## Common Integration Patterns
-
-### CRM Sync (Salesforce, HubSpot)
-- Sync promoter data as contacts
-- Create campaign records from batches
-- Attach photos to opportunity records
-
-### BI Integration (Power BI, Tableau)
-- Pull analytics data for custom dashboards
-- Combine with sales data for ROI analysis
-- Create executive-level visualizations
-
-### Workflow Automation (Zapier, Make)
-- Trigger notifications on batch approval
-- Create tasks for rejected batches
-- Update external systems on completion
-
-## Rate Limits
-
-| Plan | Requests/Hour |
-|------|---------------|
-| Pro | 1,000 |
-| Enterprise | 10,000 |
-
-## Support
-
-For API support, contact api-support@promosecure.com or visit our developer documentation at docs.promosecure.com.
-            `
         }
     ];
 
@@ -719,648 +498,539 @@ For API support, contact api-support@promosecure.com or visit our developer docu
             toast.error('Please enter your email');
             return;
         }
-        toast.success('Successfully subscribed! Check your inbox.');
+        toast.success('Successfully subscribed! Welcome aboard.');
         setEmail('');
     };
 
     return (
         <div className="blog-page">
-            <header className="blog-header">
-                <Link to="/" className="back-link">
-                    <HiArrowLeft /> Back to Home
-                </Link>
+            <header className="blog-header-premium">
+                <div className="blob-bg"></div>
+                <div className="blog-header-nav">
+                    <Link to="/" className="back-link-premium">
+                        <HiArrowLeft /> Back to Home
+                    </Link>
+                </div>
                 <div className="blog-header-content">
-                    <h1>PromoSecure Blog</h1>
-                    <p>Expert insights on promotional verification and field marketing excellence.</p>
+                    <div className="badge-premium">Our Insights</div>
+                    <h1>The Future of <span>Verification.</span></h1>
+                    <p>Expert perspectives, product updates, and case studies to help you scale field operations with zero-knowledge privacy.</p>
                 </div>
             </header>
 
             {selectedArticle ? (
-                <section className="article-section">
+                <section className="article-view-premium">
                     <div className="article-container">
-                        <button className="back-to-blog" onClick={() => setSelectedArticle(null)}>
-                            <HiArrowLeft /> Back to Blog
+                        <button className="back-to-blog-btn" onClick={() => setSelectedArticle(null)}>
+                            <HiArrowLeft /> Back to Articles
                         </button>
-                        <article className="full-article">
-                            <div className="article-header">
-                                <span className="post-category"><HiTag /> {selectedArticle.category}</span>
-                                <h1>{selectedArticle.title}</h1>
-                                <div className="article-meta">
-                                    <div className="author-info">
-                                        <div className="author-avatar">{selectedArticle.author.charAt(0)}</div>
-                                        <div>
-                                            <strong>{selectedArticle.author}</strong>
-                                            <span>{selectedArticle.authorRole}</span>
+                        
+                        <article className="premium-article">
+                            <div className="article-hero">
+                                <div className="article-hero-content">
+                                    <span className="category-pill"><HiTag /> {selectedArticle.category}</span>
+                                    <h1>{selectedArticle.title}</h1>
+                                    <div className="meta-bar">
+                                        <div className="author-block">
+                                            <div className="author-avatar">{selectedArticle.author.charAt(0)}</div>
+                                            <div className="author-details">
+                                                <strong>{selectedArticle.author}</strong>
+                                                <span>{selectedArticle.authorRole}</span>
+                                            </div>
+                                        </div>
+                                        <div className="stats-block">
+                                            <span><HiCalendar /> {new Date(selectedArticle.date).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+                                            <span><HiBookOpen /> {selectedArticle.readTime}</span>
                                         </div>
                                     </div>
-                                    <div className="article-stats">
-                                        <span><HiCalendar /> {new Date(selectedArticle.date).toLocaleDateString('en-IN', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
-                                        <span><HiBookOpen /> {selectedArticle.readTime}</span>
-                                    </div>
+                                </div>
+                                <div className="article-hero-image">
+                                    <img src={selectedArticle.image} alt={selectedArticle.title} />
                                 </div>
                             </div>
-                            <img src={selectedArticle.image} alt={selectedArticle.title} className="article-cover" />
-                            <div className="article-content" dangerouslySetInnerHTML={{ __html: renderContent(selectedArticle.content) }} />
-                            <div className="article-footer" style={{ padding: '3rem 2rem', borderTop: '1px solid var(--border-color)' }}>
-                                <div className="contact-card" style={{ background: 'var(--brand-light)', padding: '2rem', borderRadius: '16px', textAlign: 'center', border: '1px solid var(--primary-200)' }}>
-                                    <h3 style={{ color: 'var(--brand-primary)', marginBottom: '0.5rem' }}>Need personalized assistance?</h3>
-                                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Our team is available to help you with campaign setup, promoter training, or technical integration.</p>
-                                    <a href="mailto:vigneshigt@gmail.com" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem 2rem', fontWeight: '600' }}>
-                                        Contact Administrator <HiArrowRight />
-                                    </a>
+                            
+                            <div className="article-body" dangerouslySetInnerHTML={{ __html: renderContent(selectedArticle.content) }} />
+                            
+                            <div className="article-sharing">
+                                <h3>Share this insight</h3>
+                                <div className="share-buttons">
+                                    <button className="btn-share" onClick={() => toast.success('Link copied to clipboard!')}><HiShare /> Copy Link</button>
                                 </div>
                             </div>
                         </article>
+
+                        {/* Premium Comments Section with Bot Protection */}
+                        <div className="comments-section">
+                            <div className="comments-header">
+                                <h2><HiChatAlt2 /> Discussion ({comments[selectedArticle.id]?.length || 0})</h2>
+                            </div>
+                            
+                            <div className="comments-list">
+                                {comments[selectedArticle.id]?.length > 0 ? (
+                                    comments[selectedArticle.id].map(comment => (
+                                        <div key={comment.id} className="comment-card">
+                                            <div className="comment-avatar">{comment.name.charAt(0)}</div>
+                                            <div className="comment-content">
+                                                <div className="comment-meta">
+                                                    <strong>{comment.name}</strong>
+                                                    <span className="comment-date">{comment.date}</span>
+                                                </div>
+                                                <p>{comment.text}</p>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <p className="no-comments">Be the first to share your thoughts.</p>
+                                )}
+                            </div>
+
+                            <form className="comment-form" onSubmit={handleCommentSubmit}>
+                                <h3>Leave a Reply</h3>
+                                <p className="form-subtitle">Your email address will not be published.</p>
+                                
+                                {/* Honeypot field - Hidden from users via CSS */}
+                                <div className="hidden-field" aria-hidden="true">
+                                    <input type="text" name="url" tabIndex="-1" autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
+                                </div>
+
+                                <div className="input-group">
+                                    <label>Display Name *</label>
+                                    <input type="text" placeholder="John Doe" value={commentName} onChange={(e) => setCommentName(e.target.value)} required />
+                                </div>
+
+                                <div className="input-group">
+                                    <label>Your Comment *</label>
+                                    <textarea placeholder="Join the discussion..." rows="4" value={newComment} onChange={(e) => setNewComment(e.target.value)} required />
+                                </div>
+
+                                <div className="input-group bot-check">
+                                    <label>Are you human? Verify to post: <strong>{mathCaptcha.num1} + {mathCaptcha.num2} = ?</strong> *</label>
+                                    <input type="number" placeholder="Enter sum" value={mathCaptcha.answer} onChange={(e) => setMathCaptcha(prev => ({ ...prev, answer: e.target.value }))} required />
+                                </div>
+
+                                <button type="submit" className="btn-post-comment">Post Comment</button>
+                            </form>
+                        </div>
                     </div>
                 </section>
             ) : (
                 <>
-                    {/* Featured Post */}
-                    {featuredPost && (
-                        <section className="featured-section">
-                            <div className="featured-container">
-                                <div className="featured-post">
-                                    <div className="featured-image">
-                                        <img src={featuredPost.image} alt={featuredPost.title} />
-                                        <span className="featured-badge">Featured</span>
-                                    </div>
-                                    <div className="featured-content">
-                                        <span className="post-category">{featuredPost.category}</span>
-                                        <h2>{featuredPost.title}</h2>
-                                        <p>{featuredPost.excerpt}</p>
-                                        <div className="post-meta">
-                                            <span><HiUser /> {featuredPost.author}</span>
-                                            <span><HiClock /> {featuredPost.readTime}</span>
-                                        </div>
-                                        <button className="read-more-btn" onClick={() => setSelectedArticle(featuredPost)}>
-                                            Read Article <HiArrowRight />
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    )}
-
-                    {/* Search and Filter */}
-                    <section className="blog-filters">
-                        <div className="filters-container">
-                            <div className="search-box">
-                                <HiSearch className="search-icon" />
-                                <input
-                                    type="text"
-                                    placeholder="Search articles..."
+                    <section className="search-filter-section">
+                        <div className="filter-wrapper">
+                            <div className="search-bar-premium">
+                                <HiSearch />
+                                <input 
+                                    type="text" 
+                                    placeholder="Search insights..." 
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                 />
                             </div>
-                            <div className="category-tabs">
+                            <div className="category-pills">
                                 {categories.map(cat => (
                                     <button
                                         key={cat}
-                                        className={`category-tab ${selectedCategory === cat ? 'active' : ''}`}
+                                        className={`pill ${selectedCategory === cat ? 'active' : ''}`}
                                         onClick={() => setSelectedCategory(cat)}
                                     >
-                                        {cat === 'all' ? 'All Posts' : cat}
+                                        {cat === 'all' ? 'View All' : cat}
                                     </button>
                                 ))}
                             </div>
                         </div>
                     </section>
 
-                    {/* Blog Grid */}
-                    <section className="blog-grid-section">
-                        <div className="blog-container">
-                            <div className="blog-grid">
-                                {filteredPosts.filter(p => !p.featured).map((post, index) => (
-                                    <article
-                                        key={post.id}
-                                        className="blog-card"
-                                        style={{ animationDelay: `${index * 0.1}s` }}
-                                        onClick={() => setSelectedArticle(post)}
-                                    >
-                                        <div className="card-image">
-                                            <img src={post.image} alt={post.title} />
-                                        </div>
-                                        <div className="card-content">
-                                            <span className="post-category">
-                                                <HiTag /> {post.category}
-                                            </span>
-                                            <h3>{post.title}</h3>
-                                            <p>{post.excerpt}</p>
-                                            <div className="post-meta">
-                                                <span><HiClock /> {post.readTime}</span>
-                                                <span>{new Date(post.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                            </div>
-                                        </div>
-                                    </article>
-                                ))}
+                    {featuredPost && selectedCategory === 'all' && !searchQuery && (
+                        <section className="featured-premium">
+                            <div className="featured-wrapper" onClick={() => setSelectedArticle(featuredPost)}>
+                                <div className="featured-image-box">
+                                    <img src={featuredPost.image} alt={featuredPost.title} />
+                                    <div className="featured-tag">Featured Insight</div>
+                                </div>
+                                <div className="featured-info">
+                                    <span className="category">{featuredPost.category}</span>
+                                    <h2>{featuredPost.title}</h2>
+                                    <p>{featuredPost.excerpt}</p>
+                                    <div className="meta">
+                                        <span><HiUser /> {featuredPost.author}</span>
+                                        <span><HiClock /> {featuredPost.readTime}</span>
+                                    </div>
+                                    <button className="btn-read-feat">Read Full Story <HiArrowRight /></button>
+                                </div>
                             </div>
+                        </section>
+                    )}
+
+                    <section className="grid-premium">
+                        <div className="grid-wrapper">
+                            {filteredPosts.filter(p => !p.featured || selectedCategory !== 'all' || searchQuery).map((post, index) => (
+                                <article
+                                    key={post.id}
+                                    className="premium-card"
+                                    style={{ animationDelay: `${index * 0.1}s` }}
+                                    onClick={() => setSelectedArticle(post)}
+                                >
+                                    <div className="card-img-wrap">
+                                        <img src={post.image} alt={post.title} />
+                                        <div className="card-category"><HiTag /> {post.category}</div>
+                                    </div>
+                                    <div className="card-text">
+                                        <h3>{post.title}</h3>
+                                        <p>{post.excerpt}</p>
+                                    </div>
+                                    <div className="card-footer">
+                                        <div className="author-mini">
+                                            <div className="av">{post.author.charAt(0)}</div>
+                                            <span>{post.author}</span>
+                                        </div>
+                                        <span className="date">{new Date(post.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                                    </div>
+                                </article>
+                            ))}
                             {filteredPosts.length === 0 && (
-                                <div className="no-posts">
-                                    <p>No articles found matching your criteria.</p>
+                                <div className="no-results-premium">
+                                    <p>No insights found for your search.</p>
                                 </div>
                             )}
                         </div>
                     </section>
 
-                    {/* Newsletter CTA */}
-                    <section className="newsletter-section">
-                        <div className="newsletter-container">
-                            <h2>Stay Updated</h2>
-                            <p>Get the latest product updates, industry insights, and best practices delivered to your inbox.</p>
-                            <form className="newsletter-form" onSubmit={handleSubscribe}>
-                                <input
-                                    type="email"
-                                    placeholder="Enter your email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                />
-                                <button type="submit" className="btn btn-primary">Subscribe</button>
+                    <section className="newsletter-premium">
+                        <div className="newsletter-content">
+                            <h2>Join 10,000+ Field Marketing Leaders</h2>
+                            <p>Subscribe to our newsletter for exclusive reports and advanced verification strategies.</p>
+                            <form onSubmit={handleSubscribe}>
+                                <div className="subscribe-box">
+                                    <input type="email" placeholder="Email address" value={email} onChange={(e) => setEmail(e.target.value)} />
+                                    <button type="submit">Subscribe</button>
+                                </div>
                             </form>
-                            <p className="newsletter-note">No spam. Unsubscribe anytime.</p>
+                            <p className="privacy-note">We care about your data. Unsubscribe anytime.</p>
                         </div>
                     </section>
                 </>
             )}
 
             <style>{`
+                /* Premium Blog Styles */
                 .blog-page {
                     min-height: 100vh;
-                    background: var(--bg-primary);
+                    background: #09090b;
+                    color: #fafafa;
+                    font-family: 'Inter', sans-serif;
                 }
 
-                .blog-header {
-                    background: var(--brand-primary);
-                    padding: 2rem 2rem 4rem;
-                    text-align: center;
+                .blog-header-premium {
                     position: relative;
+                    padding: 4rem 2rem 6rem;
+                    text-align: center;
+                    background: #09090b;
+                    overflow: hidden;
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
                 }
 
-                .back-link {
+                .blob-bg {
                     position: absolute;
-                    top: 1.5rem;
-                    left: 2rem;
-                    color: white;
-                    text-decoration: none;
+                    top: -50%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 800px;
+                    height: 800px;
+                    background: radial-gradient(circle, rgba(59,130,246,0.15) 0%, rgba(0,0,0,0) 70%);
+                    z-index: 0;
+                    pointer-events: none;
+                }
+
+                .blog-header-nav {
+                    max-width: 1200px;
+                    margin: 0 auto;
+                    display: flex;
+                    justify-content: flex-start;
+                    position: relative;
+                    z-index: 1;
+                    margin-bottom: 3rem;
+                }
+
+                .back-link-premium {
                     display: flex;
                     align-items: center;
                     gap: 0.5rem;
-                    opacity: 0.9;
-                    transition: opacity 0.2s;
+                    color: #a1a1aa;
+                    text-decoration: none;
+                    font-size: 0.9rem;
+                    font-weight: 500;
+                    transition: color 0.3s;
                 }
-
-                .back-link:hover {
-                    opacity: 1;
-                }
+                .back-link-premium:hover { color: #fff; }
 
                 .blog-header-content {
-                    max-width: 600px;
-                    margin: 0 auto;
-                    padding-top: 2rem;
-                }
-
-                .blog-header h1 {
-                    color: white;
-                    font-size: 2.5rem;
-                    margin-bottom: 0.5rem;
-                }
-
-                .blog-header p {
-                    color: rgba(255, 255, 255, 0.85);
-                    font-size: 1.1rem;
-                }
-
-                .featured-section {
-                    padding: 3rem 2rem;
-                    margin-top: -2rem;
-                }
-
-                .featured-container {
-                    max-width: 1000px;
-                    margin: 0 auto;
-                }
-
-                .featured-post {
-                    display: grid;
-                    grid-template-columns: 1.2fr 1fr;
-                    gap: 2rem;
-                    background: var(--bg-card);
-                    border-radius: 20px;
-                    overflow: hidden;
-                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-                }
-
-                .featured-image {
                     position: relative;
+                    z-index: 1;
+                    max-width: 700px;
+                    margin: 0 auto;
                 }
 
-                .featured-image img {
-                    width: 100%;
-                    height: 100%;
-                    object-fit: cover;
-                }
-
-                .featured-badge {
-                    position: absolute;
-                    top: 1rem;
-                    left: 1rem;
-                    background: #d32f2f;
-                    color: white;
+                .badge-premium {
+                    display: inline-block;
                     padding: 0.4rem 1rem;
+                    background: rgba(59,130,246,0.1);
+                    color: #60a5fa;
                     border-radius: 20px;
-                    font-size: 0.8rem;
-                    font-weight: 600;
-                }
-
-                .featured-content {
-                    padding: 2rem;
-                    display: flex;
-                    flex-direction: column;
-                    justify-content: center;
-                }
-
-                .post-category {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.25rem;
-                    color: var(--brand-primary);
                     font-size: 0.85rem;
                     font-weight: 600;
-                    margin-bottom: 0.5rem;
+                    margin-bottom: 1.5rem;
+                    border: 1px solid rgba(59,130,246,0.2);
                 }
 
-                .featured-content h2 {
-                    font-size: 1.5rem;
-                    margin-bottom: 0.75rem;
-                    line-height: 1.3;
+                .blog-header-content h1 {
+                    font-size: 3.5rem;
+                    font-weight: 800;
+                    letter-spacing: -0.02em;
+                    line-height: 1.1;
+                    margin-bottom: 1.5rem;
+                }
+                .blog-header-content h1 span {
+                    background: linear-gradient(135deg, #60a5fa, #3b82f6);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
                 }
 
-                .featured-content p {
-                    color: var(--text-secondary);
-                    margin-bottom: 1rem;
+                .blog-header-content p {
+                    font-size: 1.2rem;
+                    color: #a1a1aa;
                     line-height: 1.6;
                 }
 
-                .post-meta {
-                    display: flex;
-                    gap: 1rem;
-                    color: var(--text-muted);
-                    font-size: 0.85rem;
-                    margin-bottom: 1rem;
-                }
-
-                .post-meta span {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.25rem;
-                }
-
-                .read-more-btn {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    background: var(--brand-primary);
-                    color: white;
-                    padding: 0.75rem 1.5rem;
-                    border: none;
-                    border-radius: 6px;
-                    font-weight: 600;
-                    cursor: pointer;
-                    transition: background 0.2s ease;
-                    width: fit-content;
-                }
-
-                .read-more-btn:hover {
-                    background: var(--brand-secondary);
-                }
-
-                /* Article View */
-                .article-section {
+                /* Search and Filters */
+                .search-filter-section {
                     padding: 2rem;
+                    border-bottom: 1px solid rgba(255,255,255,0.05);
+                    background: #09090b;
+                    position: sticky;
+                    top: 0;
+                    z-index: 10;
                 }
-
-                .article-container {
-                    max-width: 800px;
+                .filter-wrapper {
+                    max-width: 1200px;
                     margin: 0 auto;
-                }
-
-                .back-to-blog {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                    background: none;
-                    border: none;
-                    color: var(--brand-primary);
-                    font-weight: 600;
-                    cursor: pointer;
-                    margin-bottom: 2rem;
-                    padding: 0;
-                }
-
-                .back-to-blog:hover {
-                    text-decoration: underline;
-                }
-
-                .full-article {
-                    background: var(--bg-card);
-                    border-radius: 20px;
-                    overflow: hidden;
-                    border: 1px solid var(--border-color);
-                }
-
-                .article-header {
-                    padding: 2rem 2rem 1rem;
-                }
-
-                .article-header h1 {
-                    font-size: 2rem;
-                    line-height: 1.3;
-                    margin-bottom: 1.5rem;
-                }
-
-                .article-meta {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                     flex-wrap: wrap;
-                    gap: 1rem;
-                    padding-bottom: 1.5rem;
-                    border-bottom: 1px solid var(--border-color);
-                }
-
-                .author-info {
-                    display: flex;
-                    align-items: center;
-                    gap: 1rem;
-                }
-
-                .author-avatar {
-                    width: 48px;
-                    height: 48px;
-                    border-radius: 50%;
-                    background: var(--brand-primary);
-                    color: white;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-weight: 700;
-                    font-size: 1.25rem;
-                }
-
-                .author-info > div {
-                    display: flex;
-                    flex-direction: column;
-                }
-
-                .author-info span {
-                    color: var(--text-muted);
-                    font-size: 0.85rem;
-                }
-
-                .article-stats {
-                    display: flex;
                     gap: 1.5rem;
-                    color: var(--text-muted);
-                    font-size: 0.9rem;
                 }
-
-                .article-stats span {
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                }
-
-                .article-cover {
-                    width: 100%;
-                    max-height: 400px;
-                    object-fit: cover;
-                }
-
-                .article-content {
-                    padding: 2rem;
-                    line-height: 1.8;
-                    color: var(--text-secondary);
-                }
-
-                .article-content h2 {
-                    color: var(--text-primary);
-                    margin: 2rem 0 1rem;
-                    font-size: 1.5rem;
-                }
-
-                .article-content h3 {
-                    color: var(--text-primary);
-                    margin: 1.5rem 0 0.75rem;
-                    font-size: 1.2rem;
-                }
-
-                .article-content strong {
-                    color: var(--text-primary);
-                }
-
-                .article-footer {
-                    padding: 1.5rem 2rem;
-                    background: var(--bg-tertiary);
-                    text-align: center;
-                }
-
-                .article-footer a {
-                    color: var(--brand-primary);
-                    font-weight: 600;
-                }
-
-                .blog-filters {
-                    padding: 0 2rem 2rem;
-                }
-
-                .filters-container {
-                    max-width: 1000px;
-                    margin: 0 auto;
-                }
-
-                .search-box {
+                .search-bar-premium {
                     position: relative;
-                    margin-bottom: 1rem;
+                    width: 300px;
                 }
-
-                .search-icon {
+                .search-bar-premium svg {
                     position: absolute;
                     left: 1rem;
                     top: 50%;
                     transform: translateY(-50%);
-                    color: var(--text-muted);
+                    color: #71717a;
                 }
-
-                .search-box input {
+                .search-bar-premium input {
                     width: 100%;
-                    padding: 1rem 1rem 1rem 3rem;
-                    border: 1px solid var(--border-color);
-                    border-radius: 12px;
-                    background: var(--bg-card);
-                    font-size: 1rem;
-                    color: var(--text-primary);
+                    padding: 0.8rem 1rem 0.8rem 2.5rem;
+                    background: rgba(255,255,255,0.03);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    border-radius: 8px;
+                    color: #fff;
+                    outline: none;
+                    transition: border-color 0.3s;
                 }
-
-                .category-tabs {
+                .search-bar-premium input:focus { border-color: #3b82f6; }
+                
+                .category-pills {
                     display: flex;
-                    gap: 0.5rem;
-                    flex-wrap: wrap;
+                    gap: 0.75rem;
+                    overflow-x: auto;
+                    padding-bottom: 0.5rem;
                 }
-
-                .category-tab {
-                    padding: 0.5rem 1rem;
-                    border: 1px solid var(--border-color);
-                    border-radius: 20px;
+                .pill {
+                    padding: 0.5rem 1.25rem;
                     background: transparent;
-                    color: var(--text-secondary);
+                    border: 1px solid rgba(255,255,255,0.1);
+                    color: #a1a1aa;
+                    border-radius: 20px;
+                    cursor: pointer;
                     font-size: 0.9rem;
-                    cursor: pointer;
-                    transition: all 0.2s;
-                }
-
-                .category-tab.active,
-                .category-tab:hover {
-                    background: var(--brand-primary);
-                    color: white;
-                    border-color: var(--brand-primary);
-                }
-
-                .blog-grid-section {
-                    padding: 0 2rem 4rem;
-                }
-
-                .blog-container {
-                    max-width: 1000px;
-                    margin: 0 auto;
-                }
-
-                .blog-grid {
-                    display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 1.5rem;
-                }
-
-                .blog-card {
-                    background: var(--bg-card);
-                    border: 1px solid var(--border-color);
-                    border-radius: 16px;
-                    overflow: hidden;
                     transition: all 0.3s ease;
-                    animation: fadeInUp 0.5s ease forwards;
-                    opacity: 0;
-                    cursor: pointer;
+                    white-space: nowrap;
                 }
+                .pill:hover { background: rgba(255,255,255,0.05); color: #fff; }
+                .pill.active { background: #fff; color: #000; border-color: #fff; font-weight: 600; }
 
-                .blog-card:hover {
-                    border-color: var(--brand-primary);
-                }
-
-                .card-image img {
-                    width: 100%;
-                    height: 160px;
-                    object-fit: cover;
-                }
-
-                .card-content {
-                    padding: 1.25rem;
-                }
-
-                .card-content h3 {
-                    font-size: 1rem;
-                    margin-bottom: 0.5rem;
-                    line-height: 1.4;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 2;
-                    -webkit-box-orient: vertical;
-                    overflow: hidden;
-                }
-
-                .card-content p {
-                    color: var(--text-secondary);
-                    font-size: 0.85rem;
-                    line-height: 1.5;
-                    margin-bottom: 1rem;
-                    display: -webkit-box;
-                    -webkit-line-clamp: 2;
-                    -webkit-box-orient: vertical;
-                    overflow: hidden;
-                }
-
-                .no-posts {
-                    text-align: center;
-                    padding: 3rem;
-                    color: var(--text-muted);
-                }
-
-                .newsletter-section {
-                    background: var(--navy-900, #0f172a);
+                /* Featured Section */
+                .featured-premium {
                     padding: 4rem 2rem;
-                    text-align: center;
+                    background: #09090b;
                 }
-
-                .newsletter-container {
-                    max-width: 500px;
+                .featured-wrapper {
+                    max-width: 1200px;
                     margin: 0 auto;
+                    display: grid;
+                    grid-template-columns: 1.2fr 1fr;
+                    background: rgba(255,255,255,0.02);
+                    border: 1px solid rgba(255,255,255,0.05);
+                    border-radius: 24px;
+                    overflow: hidden;
+                    cursor: pointer;
+                    transition: transform 0.4s ease, box-shadow 0.4s ease;
                 }
+                .featured-wrapper:hover {
+                    transform: translateY(-5px);
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+                    border-color: rgba(255,255,255,0.1);
+                }
+                .featured-image-box { position: relative; height: 100%; min-height: 400px; }
+                .featured-image-box img { width: 100%; height: 100%; object-fit: cover; }
+                .featured-tag {
+                    position: absolute; top: 1.5rem; left: 1.5rem;
+                    background: rgba(0,0,0,0.6); backdrop-filter: blur(8px);
+                    color: #fff; padding: 0.5rem 1rem; border-radius: 8px;
+                    font-size: 0.8rem; font-weight: 600; border: 1px solid rgba(255,255,255,0.1);
+                }
+                .featured-info { padding: 4rem 3rem; display: flex; flex-direction: column; justify-content: center; }
+                .featured-info .category { color: #60a5fa; font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem; }
+                .featured-info h2 { font-size: 2.2rem; margin-bottom: 1.5rem; line-height: 1.2; letter-spacing: -0.01em; }
+                .featured-info p { color: #a1a1aa; font-size: 1.1rem; line-height: 1.6; margin-bottom: 2rem; }
+                .featured-info .meta { display: flex; gap: 1.5rem; color: #71717a; font-size: 0.9rem; margin-bottom: 2rem; }
+                .featured-info .meta span { display: flex; align-items: center; gap: 0.5rem; }
+                .btn-read-feat {
+                    align-self: flex-start; padding: 0.8rem 1.5rem; background: #fff; color: #000;
+                    border: none; border-radius: 8px; font-weight: 600; cursor: pointer;
+                    display: flex; align-items: center; gap: 0.5rem; transition: background 0.3s;
+                }
+                .btn-read-feat:hover { background: #e4e4e7; }
 
-                .newsletter-container h2 {
-                    color: white;
-                    margin-bottom: 0.5rem;
+                /* Grid Layout */
+                .grid-premium { padding: 2rem 2rem 6rem; }
+                .grid-wrapper {
+                    max-width: 1200px; margin: 0 auto;
+                    display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 2rem;
                 }
+                .premium-card {
+                    background: rgba(255,255,255,0.02);
+                    border: 1px solid rgba(255,255,255,0.05);
+                    border-radius: 16px; overflow: hidden;
+                    cursor: pointer; transition: all 0.3s ease;
+                    display: flex; flex-direction: column;
+                }
+                .premium-card:hover {
+                    transform: translateY(-4px);
+                    border-color: rgba(255,255,255,0.15);
+                    background: rgba(255,255,255,0.03);
+                }
+                .card-img-wrap { position: relative; height: 220px; }
+                .card-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+                .card-category {
+                    position: absolute; bottom: 1rem; left: 1rem;
+                    background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+                    color: #fff; padding: 0.4rem 0.8rem; border-radius: 6px;
+                    font-size: 0.8rem; font-weight: 500; display: flex; align-items: center; gap: 0.4rem;
+                }
+                .card-text { padding: 1.5rem; flex: 1; }
+                .card-text h3 { font-size: 1.3rem; margin-bottom: 0.75rem; line-height: 1.4; color: #fff; }
+                .card-text p { color: #a1a1aa; font-size: 0.95rem; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+                .card-footer {
+                    padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.05);
+                    display: flex; justify-content: space-between; align-items: center;
+                }
+                .author-mini { display: flex; align-items: center; gap: 0.75rem; }
+                .author-mini .av { width: 32px; height: 32px; border-radius: 50%; background: #3b82f6; color: white; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: bold; }
+                .author-mini span { font-size: 0.9rem; color: #d4d4d8; font-weight: 500; }
+                .card-footer .date { font-size: 0.85rem; color: #71717a; }
 
-                .newsletter-container p {
-                    color: rgba(255, 255, 255, 0.8);
-                    margin-bottom: 1.5rem;
+                /* Article View */
+                .article-view-premium { padding: 2rem 2rem 6rem; background: #09090b; }
+                .article-container { max-width: 800px; margin: 0 auto; }
+                .back-to-blog-btn {
+                    display: flex; align-items: center; gap: 0.5rem; background: none; border: none;
+                    color: #a1a1aa; font-size: 1rem; cursor: pointer; margin-bottom: 2rem; transition: color 0.3s;
                 }
+                .back-to-blog-btn:hover { color: #fff; }
+                
+                .premium-article { background: transparent; }
+                .article-hero { margin-bottom: 3rem; }
+                .category-pill { display: inline-flex; align-items: center; gap: 0.5rem; color: #60a5fa; font-weight: 600; margin-bottom: 1rem; font-size: 0.9rem; }
+                .article-hero h1 { font-size: 3rem; line-height: 1.2; letter-spacing: -0.02em; margin-bottom: 2rem; color: #fff; }
+                .meta-bar { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 0; border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 2rem; }
+                .author-block { display: flex; align-items: center; gap: 1rem; }
+                .author-block .author-avatar { width: 50px; height: 50px; border-radius: 50%; background: #3b82f6; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; font-weight: bold; }
+                .author-details strong { display: block; font-size: 1.1rem; color: #fff; }
+                .author-details span { color: #a1a1aa; font-size: 0.9rem; }
+                .stats-block { display: flex; gap: 1.5rem; color: #a1a1aa; font-size: 0.95rem; }
+                .stats-block span { display: flex; align-items: center; gap: 0.5rem; }
+                .article-hero-image img { width: 100%; border-radius: 16px; object-fit: cover; max-height: 450px; }
+                
+                .article-body { font-size: 1.1rem; line-height: 1.8; color: #d4d4d8; padding-bottom: 3rem; }
+                .article-h2 { font-size: 1.8rem; color: #fff; margin: 3rem 0 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; }
+                .article-h3 { font-size: 1.4rem; color: #fff; margin: 2rem 0 1rem; }
+                .article-p { margin-bottom: 1.5rem; }
+                .article-ul { margin-bottom: 1.5rem; padding-left: 1.5rem; list-style-type: disc; }
+                .article-ul li { margin-bottom: 0.5rem; }
+                .article-quote { border-left: 4px solid #3b82f6; padding: 1.5rem; background: rgba(59,130,246,0.05); font-style: italic; margin: 2rem 0; border-radius: 0 8px 8px 0; color: #e4e4e7; }
+                
+                .table-wrapper { overflow-x: auto; margin: 2rem 0; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+                .table-wrapper table { width: 100%; border-collapse: collapse; text-align: left; }
+                .table-wrapper td { padding: 1rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
+                .table-header { background: rgba(255,255,255,0.05); font-weight: 600; color: #fff; }
 
-                .newsletter-form {
-                    display: flex;
-                    gap: 0.5rem;
-                }
+                .article-sharing { padding: 2rem 0; border-top: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center; }
+                .btn-share { display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; transition: background 0.3s; }
+                .btn-share:hover { background: rgba(255,255,255,0.1); }
 
-                .newsletter-form input {
-                    flex: 1;
-                    padding: 1rem;
-                    border: none;
-                    border-radius: 10px;
-                    font-size: 1rem;
-                }
+                /* Comments Section with Anti-Bot */
+                .comments-section { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; padding: 3rem; margin-top: 2rem; }
+                .comments-header h2 { font-size: 1.5rem; display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem; }
+                
+                .comments-list { margin-bottom: 3rem; }
+                .comment-card { display: flex; gap: 1.5rem; margin-bottom: 2rem; padding-bottom: 2rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+                .comment-card:last-child { border-bottom: none; }
+                .comment-avatar { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-weight: bold; flex-shrink: 0; }
+                .comment-meta { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 0.5rem; }
+                .comment-meta strong { color: #fff; font-size: 1.1rem; }
+                .comment-date { color: #71717a; font-size: 0.85rem; }
+                .comment-content p { color: #d4d4d8; line-height: 1.6; }
+                .no-comments { color: #a1a1aa; font-style: italic; text-align: center; padding: 2rem 0; }
 
-                .newsletter-form .btn {
-                    padding: 1rem 1.5rem;
-                }
+                .comment-form { background: #000; padding: 2rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+                .comment-form h3 { font-size: 1.3rem; margin-bottom: 0.5rem; }
+                .form-subtitle { color: #71717a; font-size: 0.9rem; margin-bottom: 2rem; }
+                
+                .hidden-field { display: none; opacity: 0; position: absolute; top: -9999px; left: -9999px; }
+                
+                .input-group { margin-bottom: 1.5rem; }
+                .input-group label { display: block; margin-bottom: 0.5rem; color: #d4d4d8; font-size: 0.95rem; font-weight: 500; }
+                .input-group input, .input-group textarea { width: 100%; padding: 1rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-family: inherit; font-size: 1rem; transition: border-color 0.3s; }
+                .input-group input:focus, .input-group textarea:focus { border-color: #3b82f6; outline: none; }
+                
+                .bot-check { background: rgba(59,130,246,0.05); padding: 1.5rem; border-radius: 8px; border: 1px dashed rgba(59,130,246,0.3); }
+                .bot-check label { color: #60a5fa; }
+                .bot-check strong { font-size: 1.2rem; color: #fff; background: rgba(0,0,0,0.3); padding: 0.2rem 0.6rem; border-radius: 4px; margin-left: 0.5rem; }
+                
+                .btn-post-comment { background: #fff; color: #000; border: none; padding: 1rem 2rem; border-radius: 8px; font-weight: 600; font-size: 1rem; cursor: pointer; transition: opacity 0.3s; width: 100%; }
+                .btn-post-comment:hover { opacity: 0.9; }
 
-                .newsletter-note {
-                    font-size: 0.85rem;
-                    margin-top: 1rem;
-                    opacity: 0.7;
-                }
-
-                @keyframes fadeInUp {
-                    from {
-                        opacity: 0;
-                        transform: translateY(20px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
+                /* Newsletter */
+                .newsletter-premium { padding: 5rem 2rem; background: linear-gradient(to top, rgba(59,130,246,0.1), transparent); border-top: 1px solid rgba(255,255,255,0.05); text-align: center; }
+                .newsletter-content { max-width: 600px; margin: 0 auto; }
+                .newsletter-content h2 { font-size: 2.2rem; margin-bottom: 1rem; letter-spacing: -0.01em; }
+                .newsletter-content p { color: #a1a1aa; font-size: 1.1rem; margin-bottom: 2.5rem; }
+                .subscribe-box { display: flex; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 0.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+                .subscribe-box input { flex: 1; background: transparent; border: none; padding: 0.8rem 1rem; color: #fff; outline: none; font-size: 1rem; }
+                .subscribe-box button { background: #fff; color: #000; border: none; padding: 0 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; }
+                .privacy-note { font-size: 0.85rem !important; margin-top: 1rem !important; opacity: 0.6; }
 
                 @media (max-width: 768px) {
-                    .featured-post {
-                        grid-template-columns: 1fr;
-                    }
-                    .blog-grid {
-                        grid-template-columns: 1fr;
-                    }
-                    .newsletter-form {
-                        flex-direction: column;
-                    }
-                    .article-meta {
-                        flex-direction: column;
-                        align-items: flex-start;
-                    }
+                    .featured-wrapper { grid-template-columns: 1fr; }
+                    .featured-image-box { min-height: 250px; }
+                    .article-hero h1 { font-size: 2.2rem; }
+                    .meta-bar { flex-direction: column; align-items: flex-start; gap: 1.5rem; }
+                    .blog-header-content h1 { font-size: 2.5rem; }
+                    .comments-section { padding: 1.5rem; }
                 }
             `}</style>
         </div>
