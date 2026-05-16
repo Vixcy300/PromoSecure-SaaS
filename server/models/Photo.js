@@ -56,26 +56,20 @@ const photoSchema = new mongoose.Schema({
             default: 0,
             min: 0,
             max: 100
-        }
-    },
-    // GPS location data
-    location: {
-        latitude: {
-            type: Number,
-            default: null
         },
-        longitude: {
-            type: Number,
-            default: null
-        },
-        accuracy: {
-            type: Number,
-            default: null
-        },
-        address: {
+        cryptographicSignature: {
             type: String,
             default: ''
-        }
+        },
+        detectedObjects: [{
+            label: String,
+            confidence: Number
+        }]
+    },
+    // Zero-Knowledge Geofencing Proof (instead of exact coordinates)
+    zoneProof: {
+        type: String,
+        default: ''
     },
     capturedAt: {
         type: Date,

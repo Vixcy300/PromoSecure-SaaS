@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['admin', 'manager', 'promoter'],
+        enum: ['admin', 'manager', 'promoter', 'client'],
         required: true
     },
     createdBy: {
@@ -51,6 +51,12 @@ const userSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    // For client portal users: reference to the Client profile they belong to
+    linkedClient: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Client',
+        default: null
     },
     lastLogin: {
         type: Date,

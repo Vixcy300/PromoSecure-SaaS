@@ -18,6 +18,7 @@ import ManagerChat from './pages/manager/ManagerChat';
 import PromoterDashboard from './pages/promoter/PromoterDashboard';
 import PromoterBatch from './pages/promoter/PromoterBatch';
 import PromoterChat from './pages/promoter/PromoterChat';
+import ClientDashboard from './pages/client/ClientDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import Help from './pages/Help';
 import About from './pages/About';
@@ -99,6 +100,16 @@ function App() {
                         <Route index element={<PromoterDashboard />} />
                         <Route path="batch/:id" element={<PromoterBatch />} />
                         <Route path="chat" element={<PromoterChat />} />
+                    </Route>
+
+                    {/* Client Routes */}
+                    <Route path="/client" element={
+                        <ProtectedRoute roles={['client']}>
+                            <Layout />
+                        </ProtectedRoute>
+                    }>
+                        <Route index element={<ClientDashboard />} />
+                        <Route path="batches/:id" element={<ManagerBatches />} />
                     </Route>
 
                     {/* Public Pages (no login required) */}

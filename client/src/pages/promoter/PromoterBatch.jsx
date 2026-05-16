@@ -1,31 +1,65 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { HiArrowLeft, HiCamera, HiTrash, HiPaperAirplane, HiPhotograph } from 'react-icons/hi';
+import { HiArrowLeft, HiCamera, HiTrash, HiPaperAirplane, HiPhotograph, HiCloudUpload, HiWifi } from 'react-icons/hi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import CameraCapture from '../../components/CameraCapture';
+import { saveOfflinePhoto, getOfflinePhotos, deleteOfflinePhoto, getOfflineBatches } from '../../utils/db';
 
 const PromoterBatch = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [batch, setBatch] = useState(null);
     const [photos, setPhotos] = useState([]);
+    const [offlinePhotos, setOfflinePhotos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showCamera, setShowCamera] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
     useEffect(() => {
+        const handleOnline = () => {
+            setIsOffline(false);
+            fetchBatch();
+        };
+        const handleOffline = () => setIsOffline(true);
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
         fetchBatch();
-    }, [id]);
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, [id, isOffline]);
 
     const fetchBatch = async () => {
         try {
-            const res = await api.get(`/batches/${id}`);
-            setBatch(res.data.batch);
-            setPhotos(res.data.photos);
+            if (id.startsWith('offline-')) {
+                const offlineBatchesList = await getOfflineBatches();
+                const offlineBatch = offlineBatchesList.find(b => b.tempId === id);
+                if (offlineBatch) {
+                    setBatch(offlineBatch);
+                } else {
+                    toast.error('Offline batch not found');
+                    navigate('/promoter');
+                }
+            } else if (!isOffline) {
+                const res = await api.get(`/batches/${id}`);
+                setBatch(res.data.batch);
+                setPhotos(res.data.photos);
+            }
+
+            const offlinePs = await getOfflinePhotos(id);
+            setOfflinePhotos(offlinePs || []);
+
         } catch (error) {
-            toast.error('Failed to load batch');
-            navigate('/promoter');
+            if (isOffline && !id.startsWith('offline-')) {
+                toast.error('Cannot load full batch details while offline');
+            } else {
+                toast.error('Failed to load batch');
+                navigate('/promoter');
+            }
         } finally {
             setLoading(false);
         }
@@ -33,26 +67,48 @@ const PromoterBatch = () => {
 
     const handlePhotoCapture = async (photoData) => {
         setShowCamera(false);
-        try {
-            await api.post('/photos', {
-                batchId: id,
-                originalImage: photoData.originalImage,
-                blurredImage: photoData.blurredImage,
-                aiMetadata: photoData.aiMetadata,
-                location: photoData.location,
-            });
-            toast.success('Photo added to batch!');
-            fetchBatch();
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to save photo');
+        const payload = {
+            batchId: id,
+            originalImage: photoData.originalImage,
+            blurredImage: photoData.blurredImage,
+            aiMetadata: photoData.aiMetadata,
+            location: photoData.location,
+        };
+
+        if (isOffline || id.startsWith('offline-')) {
+            try {
+                await saveOfflinePhoto(payload);
+                toast.success('Photo saved offline!');
+                fetchBatch();
+            } catch (err) {
+                toast.error('Failed to save photo offline');
+            }
+        } else {
+            try {
+                await api.post('/photos', payload);
+                toast.success('Photo added to batch!');
+                fetchBatch();
+            } catch (error) {
+                toast.error(error.response?.data?.message || 'Failed to save photo');
+            }
         }
     };
 
-    const handleDeletePhoto = async (photoId) => {
+    const handleDeletePhoto = async (photoId, isOfflinePhoto = false) => {
         if (!confirm('Delete this photo?')) return;
+        
         try {
-            await api.delete(`/photos/${photoId}`);
-            toast.success('Photo deleted');
+            if (isOfflinePhoto) {
+                await deleteOfflinePhoto(photoId);
+                toast.success('Offline photo deleted');
+            } else {
+                if (isOffline) {
+                    toast.error('Cannot delete online photos while offline');
+                    return;
+                }
+                await api.delete(`/photos/${photoId}`);
+                toast.success('Photo deleted');
+            }
             fetchBatch();
         } catch (error) {
             toast.error('Failed to delete photo');
@@ -60,8 +116,14 @@ const PromoterBatch = () => {
     };
 
     const handleSubmit = async () => {
-        if (photos.length === 0) {
+        const totalPhotos = photos.length + offlinePhotos.length;
+        if (totalPhotos === 0) {
             toast.error('Add at least one photo before submitting');
+            return;
+        }
+
+        if (isOffline || id.startsWith('offline-')) {
+            toast.error('You must be online and synced to submit a batch for review.');
             return;
         }
 
@@ -93,6 +155,7 @@ const PromoterBatch = () => {
     }
 
     const isDraft = batch.status === 'draft';
+    const allPhotos = [...offlinePhotos.map(p => ({...p, isOfflineSync: true})), ...photos];
 
     return (
         <div className="page">
@@ -106,6 +169,11 @@ const PromoterBatch = () => {
                         <div className="flex items-center gap-2 mb-1">
                             <h2>{batch.title}</h2>
                             <span className={`badge badge-${batch.status}`}>{batch.status}</span>
+                            {id.startsWith('offline-') && (
+                                <span className="badge badge-warning flex items-center gap-1 text-xs">
+                                    <HiCloudUpload /> Offline Batch
+                                </span>
+                            )}
                         </div>
                         <p className="text-muted">{batch.description || 'No description'}</p>
                         {batch.location && (
@@ -116,7 +184,8 @@ const PromoterBatch = () => {
                         <button
                             className="btn btn-primary"
                             onClick={handleSubmit}
-                            disabled={submitting || photos.length === 0}
+                            disabled={submitting || allPhotos.length === 0 || isOffline || id.startsWith('offline-')}
+                            title={isOffline ? "Cannot submit while offline" : ""}
                         >
                             {submitting ? (
                                 <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }}></div>
@@ -147,7 +216,7 @@ const PromoterBatch = () => {
             <div className="flex justify-between items-center mb-2">
                 <h3>
                     <HiPhotograph style={{ marginRight: '0.5rem' }} />
-                    Photos ({photos.length})
+                    Photos ({allPhotos.length})
                 </h3>
                 {isDraft && (
                     <button className="btn btn-primary" onClick={() => setShowCamera(true)}>
@@ -156,7 +225,7 @@ const PromoterBatch = () => {
                 )}
             </div>
 
-            {photos.length === 0 ? (
+            {allPhotos.length === 0 ? (
                 <div className="card empty-state">
                     <div className="empty-state-icon">📷</div>
                     <h3>No Photos Yet</h3>
@@ -173,14 +242,19 @@ const PromoterBatch = () => {
                 </div>
             ) : (
                 <div className="photo-grid">
-                    {photos.map((photo, index) => (
-                        <div key={photo._id} className="photo-item">
+                    {allPhotos.map((photo, index) => (
+                        <div key={photo._id || photo.id} className="photo-item">
                             <img
                                 src={photo.blurredImage}
                                 alt={`Photo ${index + 1}`}
                             />
                             <div className="photo-overlay">
-                                <div className="photo-info">
+                                <div className="photo-info flex flex-col gap-1">
+                                    {photo.isOfflineSync && (
+                                        <span className="badge" style={{ background: '#f59e0b', color: '#fff', fontSize: '10px' }}>
+                                            <HiCloudUpload /> PENDING SYNC
+                                        </span>
+                                    )}
                                     <span className={`badge ${photo.aiMetadata?.isUnique === false ? 'badge-rejected' : 'badge-approved'}`}>
                                         {photo.aiMetadata?.isUnique === false ? '⚠ DUPLICATE' : '✓ UNIQUE'}
                                     </span>
@@ -191,7 +265,7 @@ const PromoterBatch = () => {
                                 {isDraft && (
                                     <button
                                         className="btn btn-icon btn-danger"
-                                        onClick={() => handleDeletePhoto(photo._id)}
+                                        onClick={() => handleDeletePhoto(photo._id || photo.id, photo.isOfflineSync)}
                                     >
                                         <HiTrash />
                                     </button>
@@ -202,26 +276,25 @@ const PromoterBatch = () => {
                 </div>
             )}
 
-            {/* AI Summary - shows for all batches with photos */}
-            {photos.length > 0 && (
+            {allPhotos.length > 0 && (
                 <div className="card mt-2 ai-summary-card">
                     <h3 className="mb-1">🤖 AI Verification Summary</h3>
                     <div className="grid grid-4">
                         <div className="ai-stat">
                             <span className="ai-stat-value">
-                                {photos.filter(p => p.aiMetadata?.isUnique !== false).length}
+                                {allPhotos.filter(p => p.aiMetadata?.isUnique !== false).length}
                             </span>
                             <span className="ai-stat-label">Unique People</span>
                         </div>
                         <div className="ai-stat">
                             <span className="ai-stat-value">
-                                {photos.reduce((sum, p) => sum + (p.aiMetadata?.facesDetected || 0), 0)}
+                                {allPhotos.reduce((sum, p) => sum + (p.aiMetadata?.facesDetected || 0), 0)}
                             </span>
                             <span className="ai-stat-label">Total Faces</span>
                         </div>
                         <div className="ai-stat">
-                            <span className="ai-stat-value" style={{ color: photos.filter(p => p.aiMetadata?.isUnique === false).length > 0 ? 'var(--error)' : 'var(--text-primary)' }}>
-                                {photos.filter(p => p.aiMetadata?.isUnique === false).length}
+                            <span className="ai-stat-value" style={{ color: allPhotos.filter(p => p.aiMetadata?.isUnique === false).length > 0 ? 'var(--error)' : 'var(--text-primary)' }}>
+                                {allPhotos.filter(p => p.aiMetadata?.isUnique === false).length}
                             </span>
                             <span className="ai-stat-label">Duplicates</span>
                         </div>
@@ -229,12 +302,12 @@ const PromoterBatch = () => {
                             <span
                                 className="ai-stat-value"
                                 style={{
-                                    color: photos.filter(p => p.aiMetadata?.isUnique !== false).length / photos.length > 0.8
+                                    color: allPhotos.filter(p => p.aiMetadata?.isUnique !== false).length / allPhotos.length > 0.8
                                         ? 'var(--success)'
                                         : 'var(--warning)'
                                 }}
                             >
-                                {Math.round((photos.filter(p => p.aiMetadata?.isUnique !== false).length / photos.length) * 100)}%
+                                {Math.round((allPhotos.filter(p => p.aiMetadata?.isUnique !== false).length / allPhotos.length) * 100) || 0}%
                             </span>
                             <span className="ai-stat-label">Score</span>
                         </div>
@@ -246,7 +319,7 @@ const PromoterBatch = () => {
                 <CameraCapture
                     onCapture={handlePhotoCapture}
                     onClose={() => setShowCamera(false)}
-                    existingPhotos={photos}
+                    existingPhotos={allPhotos}
                 />
             )}
 

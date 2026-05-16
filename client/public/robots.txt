@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /manager
+Disallow: /promoter
+Disallow: /client
+
+Sitemap: https://promosecure.vercel.app/sitemap.xml

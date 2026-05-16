@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { HiSwitchHorizontal, HiX, HiCheck, HiExclamation, HiRefresh } from 'react-icons/hi';
 import { detectFaces, generateFaceSignature, compareFaceSignatures } from '../ai/FaceDetection';
 import { processImage, generateImageHash, compareImageHashes } from '../ai/FaceBlur';
+import { detectPromotionalItems } from '../ai/BrandRecognition';
 import toast from 'react-hot-toast';
 
 const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
@@ -134,6 +135,53 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
+        // --- SECURE CAMERA SANDBOX ---
+        // 1. Hardware Timestamp
+        const timestamp = new Date().toISOString();
+        
+        // 2. Location data
+        const locString = location ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}` : 'GPS Unavailable';
+        
+        // 2.5 ZK-Geofencing: Generate Zone Proof
+        let zoneProof = '';
+        if (location) {
+            // Grid cell of roughly 100m (3 decimal places)
+            const gridLat = location.latitude.toFixed(3);
+            const gridLng = location.longitude.toFixed(3);
+            const zoneStr = `${gridLat}|${gridLng}|promosecure-zk-salt`;
+            let zHash = 0;
+            for (let i = 0; i < zoneStr.length; i++) {
+                const char = zoneStr.charCodeAt(i);
+                zHash = ((zHash << 5) - zHash) + char;
+                zHash = zHash & zHash;
+            }
+            zoneProof = `ZK-${Math.abs(zHash).toString(16).toUpperCase()}`;
+        }
+
+        // 3. Cryptographic Signature (Simple hash of time + loc + random salt)
+        const salt = Math.random().toString(36).substring(2, 10);
+        const rawString = `${timestamp}|${locString}|${salt}`;
+        // Simple fast string hash for client-side watermarking
+        let hash = 0;
+        for (let i = 0; i < rawString.length; i++) {
+            const char = rawString.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        const signature = `SEC-${Math.abs(hash).toString(16).toUpperCase()}`;
+
+        // Draw Watermark Background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(10, canvas.height - 70, 300, 60);
+        
+        // Draw Watermark Text
+        ctx.font = '12px monospace';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`TIME: ${timestamp}`, 20, canvas.height - 50);
+        ctx.fillText(`LOC:  ${locString}`, 20, canvas.height - 35);
+        ctx.fillText(`SIG:  ${signature}`, 20, canvas.height - 20);
+        // -----------------------------
+
         // Lower quality for faster upload (0.6 = good balance)
         const imageDataUrl = canvas.toDataURL('image/jpeg', 0.6);
         setPreview(imageDataUrl);
@@ -142,10 +190,10 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
         // Stop camera while processing to free resources
         stopCamera();
 
-        await processWithAI(imageDataUrl);
+        await processWithAI(imageDataUrl, signature, zoneProof);
     };
 
-    const processWithAI = async (imageDataUrl) => {
+    const processWithAI = async (imageDataUrl, signature, zoneProof) => {
         setProcessing(true);
         setDuplicateWarning(null);
 
@@ -161,6 +209,13 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                 await startCamera(facingMode);
                 return;
             }
+
+            setProcessingStep('Analyzing scene objects...');
+            const imgForAI = new Image();
+            imgForAI.src = imageDataUrl;
+            await new Promise((resolve) => { imgForAI.onload = resolve; });
+            const objectResult = await detectPromotionalItems(imgForAI);
+            const detectedObjects = objectResult.success ? objectResult.detectedObjects : [];
 
             setProcessingStep('Checking for duplicates...');
             const imageHash = await generateImageHash(imageDataUrl);
@@ -206,6 +261,9 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                 imageHash,
                 isDuplicate,
                 duplicateSimilarity,
+                cryptographicSignature: signature,
+                detectedObjects,
+                zoneProof
             });
 
             if (isDuplicate) {
@@ -214,8 +272,10 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                     message: `⚠️ ${duplicateSimilarity}% similar to existing photo!`,
                 });
                 toast.error(`Possible duplicate (${duplicateSimilarity}% similar)`);
+            } else if (detectedObjects.length === 0) {
+                toast.success(`${result.facesDetected} face(s) blurred. No objects detected.`);
             } else {
-                toast.success(`${result.facesDetected} face(s) detected & blurred!`);
+                toast.success(`${result.facesDetected} face(s) & ${detectedObjects.length} object(s) detected!`);
             }
         } catch (error) {
             console.error('Processing error:', error);
@@ -233,7 +293,7 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
             onCapture({
                 originalImage: processedData.originalImage,
                 blurredImage: processedData.blurredImage,
-                location: location,
+                zoneProof: processedData.zoneProof,
                 aiMetadata: {
                     facesDetected: processedData.facesDetected,
                     faceLocations: processedData.faces,
@@ -245,6 +305,8 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                     ),
                     isUnique: !processedData.isDuplicate,
                     duplicateSimilarity: processedData.duplicateSimilarity,
+                    cryptographicSignature: processedData.cryptographicSignature,
+                    detectedObjects: processedData.detectedObjects
                 },
             });
         }

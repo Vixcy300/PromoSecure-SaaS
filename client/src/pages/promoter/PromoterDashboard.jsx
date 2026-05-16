@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { HiPlus, HiCamera, HiPaperAirplane, HiTrash, HiX, HiBriefcase } from 'react-icons/hi';
+import { HiPlus, HiCamera, HiPaperAirplane, HiTrash, HiX, HiBriefcase, HiCloudUpload, HiWifi } from 'react-icons/hi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { saveOfflineBatch, getOfflineBatches, deleteOfflineBatch, cacheData, getCachedData } from '../../utils/db';
 
 const PromoterDashboard = () => {
     const navigate = useNavigate();
     const [batches, setBatches] = useState([]);
+    const [offlineBatches, setOfflineBatches] = useState([]);
     const [clients, setClients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [isOffline, setIsOffline] = useState(!navigator.onLine);
     const [formData, setFormData] = useState({
         title: '',
         description: '',
@@ -18,16 +21,45 @@ const PromoterDashboard = () => {
     });
 
     useEffect(() => {
+        const handleOnline = () => {
+            setIsOffline(false);
+            toast.success('Back online! Syncing soon...');
+            fetchBatches();
+        };
+        const handleOffline = () => {
+            setIsOffline(true);
+            toast.error('You are offline. Working in offline mode.');
+        };
+        
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
         fetchBatches();
         fetchClients();
-    }, []);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
+    }, [isOffline]);
 
     const fetchBatches = async () => {
         try {
-            const res = await api.get('/batches');
-            setBatches(res.data.batches);
+            if (isOffline) {
+                const cached = await getCachedData('promoter_batches');
+                setBatches(cached || []);
+            } else {
+                const res = await api.get('/batches');
+                setBatches(res.data.batches);
+                await cacheData('promoter_batches', res.data.batches);
+            }
+            
+            const offline = await getOfflineBatches();
+            setOfflineBatches(offline || []);
         } catch (error) {
             toast.error('Failed to load batches');
+            const cached = await getCachedData('promoter_batches');
+            if (cached) setBatches(cached);
         } finally {
             setLoading(false);
         }
@@ -35,10 +67,15 @@ const PromoterDashboard = () => {
 
     const fetchClients = async () => {
         try {
+            if (isOffline) {
+                const cached = await getCachedData('promoter_clients');
+                setClients(cached || []);
+                return;
+            }
             const res = await api.get('/clients');
             setClients(res.data.clients || []);
+            await cacheData('promoter_clients', res.data.clients || []);
         } catch (error) {
-            // Silently fail if no clients access (promoter may not have client list)
             console.log('Clients not available');
         }
     };
@@ -51,26 +88,43 @@ const PromoterDashboard = () => {
                 description: formData.description,
                 location: formData.location,
             };
-            // Only include client if selected
             if (formData.client) {
                 payload.client = formData.client;
             }
-            const res = await api.post('/batches', payload);
-            toast.success('Batch created! Start adding photos.');
-            setShowModal(false);
-            setFormData({ title: '', description: '', location: '', client: '' });
-            navigate(`/promoter/batch/${res.data.batch._id}`);
+
+            if (isOffline) {
+                const tempId = await saveOfflineBatch({ ...payload, status: 'draft', photoCount: 0 });
+                toast.success('Batch saved offline! Will sync when connected.');
+                setShowModal(false);
+                setFormData({ title: '', description: '', location: '', client: '' });
+                navigate(`/promoter/batch/${tempId}`);
+            } else {
+                const res = await api.post('/batches', payload);
+                toast.success('Batch created! Start adding photos.');
+                setShowModal(false);
+                setFormData({ title: '', description: '', location: '', client: '' });
+                navigate(`/promoter/batch/${res.data.batch._id}`);
+            }
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to create batch');
         }
     };
 
-    const handleDelete = async (id, e) => {
+    const handleDelete = async (id, e, isOfflineBatch = false) => {
         e.stopPropagation();
         if (!confirm('Delete this batch?')) return;
         try {
-            await api.delete(`/batches/${id}`);
-            toast.success('Batch deleted');
+            if (isOfflineBatch) {
+                await deleteOfflineBatch(id);
+                toast.success('Offline batch deleted');
+            } else {
+                if (isOffline) {
+                    toast.error('Cannot delete online batches while offline');
+                    return;
+                }
+                await api.delete(`/batches/${id}`);
+                toast.success('Batch deleted');
+            }
             fetchBatches();
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to delete');
@@ -87,13 +141,20 @@ const PromoterDashboard = () => {
         }
     };
 
+    const allBatches = [...offlineBatches, ...batches];
+
     return (
         <div className="page">
             <div className="page-header flex justify-between items-center">
                 <div>
-                    <h1>
+                    <h1 className="flex items-center gap-2">
                         <HiCamera style={{ color: 'var(--accent-primary)' }} />
                         My Batches
+                        {isOffline && (
+                            <span className="badge badge-warning flex items-center gap-1 text-xs">
+                                <HiWifi /> Offline
+                            </span>
+                        )}
                     </h1>
                     <p>Create batches and capture photos for verification</p>
                 </div>
@@ -107,7 +168,7 @@ const PromoterDashboard = () => {
                 <div className="flex justify-center mt-3">
                     <div className="spinner"></div>
                 </div>
-            ) : batches.length === 0 ? (
+            ) : allBatches.length === 0 ? (
                 <div className="card empty-state">
                     <div className="empty-state-icon">📸</div>
                     <h3>No Batches Yet</h3>
@@ -118,46 +179,58 @@ const PromoterDashboard = () => {
                 </div>
             ) : (
                 <div className="grid grid-3">
-                    {batches.map((batch) => (
-                        <div
-                            key={batch._id}
-                            className="card batch-card"
-                            onClick={() => navigate(`/promoter/batch/${batch._id}`)}
-                            style={{ cursor: 'pointer' }}
-                        >
-                            <div className="batch-card-header">
-                                <span className="batch-icon">{getStatusIcon(batch.status)}</span>
-                                <span className={`badge badge-${batch.status}`}>{batch.status}</span>
-                            </div>
-                            <h4>{batch.title}</h4>
-                            {batch.client && (
-                                <div className="client-tag">
-                                    <HiBriefcase /> {batch.client.name || 'Client'}
+                    {allBatches.map((batch) => {
+                        const isOfflineSync = batch.isOfflineSync;
+                        const id = isOfflineSync ? batch.tempId : batch._id;
+                        
+                        return (
+                            <div
+                                key={id}
+                                className={`card batch-card ${isOfflineSync ? 'offline-border' : ''}`}
+                                onClick={() => navigate(`/promoter/batch/${id}`)}
+                                style={{ cursor: 'pointer' }}
+                            >
+                                <div className="batch-card-header">
+                                    <span className="batch-icon">{getStatusIcon(batch.status)}</span>
+                                    <div className="flex gap-1">
+                                        {isOfflineSync && (
+                                            <span className="badge" style={{ background: '#f59e0b', color: '#fff' }}>
+                                                <HiCloudUpload /> Pending Sync
+                                            </span>
+                                        )}
+                                        <span className={`badge badge-${batch.status}`}>{batch.status}</span>
+                                    </div>
                                 </div>
-                            )}
-                            <p className="text-sm text-muted">{batch.description || 'No description'}</p>
-                            <div className="batch-card-footer">
-                                <span className="photo-count">
-                                    <HiCamera /> {batch.photoCount} photos
-                                </span>
-                                {batch.status === 'draft' && (
-                                    <button
-                                        className="btn btn-icon btn-ghost"
-                                        onClick={(e) => handleDelete(batch._id, e)}
-                                    >
-                                        <HiTrash style={{ color: 'var(--error)' }} />
-                                    </button>
+                                <h4>{batch.title}</h4>
+                                {batch.client && (
+                                    <div className="client-tag">
+                                        <HiBriefcase /> Client ID Linked
+                                    </div>
+                                )}
+                                <p className="text-sm text-muted">{batch.description || 'No description'}</p>
+                                <div className="batch-card-footer">
+                                    <span className="photo-count">
+                                        <HiCamera /> {batch.photoCount || 0} photos
+                                    </span>
+                                    {batch.status === 'draft' && (
+                                        <button
+                                            className="btn btn-icon btn-ghost"
+                                            onClick={(e) => handleDelete(id, e, isOfflineSync)}
+                                        >
+                                            <HiTrash style={{ color: 'var(--error)' }} />
+                                        </button>
+                                    )}
+                                </div>
+                                {batch.reviewNote && (
+                                    <div className="review-note">
+                                        <span className="text-sm">
+                                            {batch.status === 'rejected' ? '❌' : '✅'} {batch.reviewNote}
+                                        </span>
+                                    </div>
                                 )}
                             </div>
-                            {batch.reviewNote && (
-                                <div className="review-note">
-                                    <span className="text-sm">
-                                        {batch.status === 'rejected' ? '❌' : '✅'} {batch.reviewNote}
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 
@@ -241,6 +314,10 @@ const PromoterDashboard = () => {
         .batch-card:hover {
           transform: translateY(-4px);
           box-shadow: var(--shadow-lg);
+        }
+        
+        .offline-border {
+            border-left: 4px solid #f59e0b;
         }
 
         .batch-card-header {

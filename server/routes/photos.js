@@ -13,7 +13,7 @@ router.use(protect);
 // @access  Promoter only
 router.post('/', authorize('promoter'), async (req, res) => {
     try {
-        const { batchId, originalImage, blurredImage, aiMetadata, location } = req.body;
+        const { batchId, originalImage, blurredImage, aiMetadata, zoneProof } = req.body;
 
         // Verify batch exists and belongs to promoter
         const batch = await Batch.findById(batchId);
@@ -78,11 +78,34 @@ router.post('/', authorize('promoter'), async (req, res) => {
             }
         }
 
+        // ZK-Geofencing Velocity Check (Fraud Detection)
+        if (zoneProof && existingPhotos.length > 0) {
+            let mostRecentPhoto = existingPhotos[0];
+            for (const p of existingPhotos) {
+                if (new Date(p.capturedAt).getTime() > new Date(mostRecentPhoto.capturedAt).getTime()) {
+                    mostRecentPhoto = p;
+                }
+            }
+
+            // If the zoneProof changed (meaning they moved out of the 100m grid cell)
+            if (mostRecentPhoto.zoneProof && mostRecentPhoto.zoneProof !== zoneProof) {
+                const timeDiffSeconds = Math.abs(Date.now() - new Date(mostRecentPhoto.capturedAt).getTime()) / 1000;
+                
+                // If they jumped to a new grid cell in less than 2 seconds, it's a teleport (GPS Spoof)
+                if (timeDiffSeconds < 2) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Fraud Detected: Impossible geographical teleportation (GPS Spoofing). Photo rejected.'
+                    });
+                }
+            }
+        }
+
         const photo = await Photo.create({
             batch: batchId,
             originalImage,
             blurredImage,
-            location: location || null,
+            zoneProof: zoneProof || null,
             aiMetadata: {
                 ...aiMetadata,
                 isUnique,
@@ -102,7 +125,7 @@ router.post('/', authorize('promoter'), async (req, res) => {
                 _id: photo._id,
                 blurredImage: photo.blurredImage,
                 aiMetadata: photo.aiMetadata,
-                location: photo.location,
+                zoneProof: photo.zoneProof,
                 capturedAt: photo.capturedAt
             },
             duplicateWarning: !isUnique ? {
@@ -118,6 +141,17 @@ router.post('/', authorize('promoter'), async (req, res) => {
         });
     }
 });
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon1 - lon2) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
 
 // Helper: Compare two image hashes and return similarity percentage
 function compareHashes(hash1, hash2) {

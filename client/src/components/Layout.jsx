@@ -67,6 +67,10 @@ const Layout = () => {
           { to: '/promoter', icon: HiCamera, label: 'My Batches', end: true },
           { to: '/promoter/chat', icon: HiChat, label: 'Messages' },
         ];
+      case 'client':
+        return [
+          { to: '/client', icon: HiBriefcase, label: 'Client Portal', end: true },
+        ];
       default:
         return [];
     }
@@ -77,6 +81,7 @@ const Layout = () => {
       admin: { icon: HiShieldCheck, color: '#0066CC', label: 'Admin', solid: '#0066CC' },
       manager: { icon: HiOfficeBuilding, color: '#1976d2', label: 'Manager', solid: '#1976d2' },
       promoter: { icon: HiCamera, color: '#15803d', label: 'Promoter', solid: '#15803d' },
+      client: { icon: HiBriefcase, color: '#f59e0b', label: 'Client', solid: '#f59e0b' },
     };
     return badges[user?.role] || badges.promoter;
   };

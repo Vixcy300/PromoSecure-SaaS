@@ -3,10 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { HiCollection, HiCheckCircle, HiXCircle, HiArrowLeft, HiEye, HiTrash, HiDownload, HiMail, HiX } from 'react-icons/hi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const ManagerBatches = () => {
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = useAuth();
     const [batches, setBatches] = useState([]);
     const [selectedBatch, setSelectedBatch] = useState(null);
     const [photos, setPhotos] = useState([]);
@@ -137,19 +139,21 @@ const ManagerBatches = () => {
         return (
             <div className="page">
                 <div className="flex justify-between items-center mb-2">
-                    <button className="btn btn-ghost" onClick={() => navigate('/manager/batches')}>
+                    <button className="btn btn-ghost" onClick={() => navigate(user?.role === 'client' ? '/client' : '/manager/batches')}>
                         <HiArrowLeft /> Back to Batches
                     </button>
                     <div className="flex gap-1">
-                        <button className="btn btn-secondary" onClick={() => {
-                            setEmailData({
-                                email: selectedBatch.client?.contactEmail || '',
-                                message: ''
-                            });
-                            setShowEmailModal(true);
-                        }}>
-                            <HiMail /> Email Report
-                        </button>
+                        {user?.role !== 'client' && (
+                            <button className="btn btn-secondary" onClick={() => {
+                                setEmailData({
+                                    email: selectedBatch.client?.contactEmail || '',
+                                    message: ''
+                                });
+                                setShowEmailModal(true);
+                            }}>
+                                <HiMail /> Email Report
+                            </button>
+                        )}
                         <button className="btn btn-primary" onClick={handleDownloadReport}>
                             <HiDownload /> Download
                         </button>
@@ -222,7 +226,7 @@ const ManagerBatches = () => {
                     ))}
                 </div>
 
-                {selectedBatch.status === 'pending' && (
+                {selectedBatch.status === 'pending' && user?.role !== 'client' && (
                     <div className="card review-section">
                         <h3 className="mb-1">Review This Batch</h3>
                         <div className="input-group mb-2">

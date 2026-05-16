@@ -56,6 +56,10 @@ router.get('/', async (req, res) => {
             // Promoter sees only their batches
             query.promoter = req.user._id;
             if (status) query.status = status;
+        } else if (req.user.role === 'client') {
+            // Client sees only non-draft batches linked to their client profile
+            query.client = req.user.linkedClient;
+            query.status = status ? status : { $ne: 'draft' };
         }
 
         const batches = await Batch.find(query)
@@ -79,7 +83,7 @@ router.get('/', async (req, res) => {
 
 // @route   GET /api/batches/:id
 // @desc    Get single batch with photos
-// @access  Owner/Manager/Admin
+// @access  Owner/Manager/Admin/Client
 router.get('/:id', async (req, res) => {
     try {
         const batch = await Batch.findById(req.params.id)
@@ -97,7 +101,8 @@ router.get('/:id', async (req, res) => {
         const hasAccess =
             req.user.role === 'admin' ||
             (req.user.role === 'manager' && batch.manager._id.toString() === req.user._id.toString()) ||
-            (req.user.role === 'promoter' && batch.promoter._id.toString() === req.user._id.toString());
+            (req.user.role === 'promoter' && batch.promoter._id.toString() === req.user._id.toString()) ||
+            (req.user.role === 'client' && batch.client && batch.client.toString() === req.user.linkedClient?.toString());
 
         if (!hasAccess) {
             return res.status(403).json({
