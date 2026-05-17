@@ -619,6 +619,7 @@ const Login = () => {
           .login-container {
             grid-template-columns: 1fr;
             max-width: 500px;
+            min-height: auto;
           }
 
           .login-hero {
@@ -630,14 +631,75 @@ const Login = () => {
           }
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 768px) {
           .login-page {
             padding: 0;
+            align-items: flex-start;
           }
 
           .login-container {
             border-radius: 0;
             min-height: 100vh;
+            max-width: 100%;
+            border: none;
+            box-shadow: none;
+          }
+
+          .login-form-panel {
+            padding: 1.5rem;
+            padding-top: max(2rem, env(safe-area-inset-top, 2rem));
+            padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
+          }
+
+          .form-container {
+            max-width: 100%;
+          }
+
+          .form-header h2 {
+            font-size: 1.5rem;
+          }
+
+          .form-logo {
+            font-size: 2.5rem;
+          }
+
+          .login-form {
+            gap: 1rem;
+          }
+
+          .login-form .input {
+            min-height: 48px;
+            font-size: 16px !important;
+            border-radius: var(--radius-lg);
+          }
+
+          .btn-lg {
+            min-height: 48px;
+            font-size: 1rem;
+            border-radius: var(--radius-lg);
+          }
+
+          .input-group label {
+            font-size: 0.85rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .login-form-panel {
+            padding: 1rem;
+            padding-top: max(1.5rem, env(safe-area-inset-top, 1.5rem));
+          }
+
+          .form-header {
+            margin-bottom: 1.5rem;
+          }
+
+          .form-footer {
+            margin-top: 1.5rem;
+          }
+
+          .form-footer p {
+            font-size: 0.75rem;
           }
         }
       `}</style>

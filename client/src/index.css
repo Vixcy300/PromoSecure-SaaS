@@ -1278,6 +1278,201 @@ html {
 }
 
 /* ============================================
+   MOBILE-FIRST RESPONSIVE DESIGN SYSTEM
+   Comprehensive optimization for all pages
+   ============================================ */
+
+/* Tablet Breakpoint */
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 280px;
+    z-index: 200;
+    box-shadow: var(--shadow-xl);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .main-content {
+    margin-left: 0;
+  }
+  .grid-3 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Mobile Breakpoint - MAJOR CHANGES */
+@media (max-width: 768px) {
+  /* Typography scale down */
+  h1 { font-size: 1.75rem !important; }
+  h2 { font-size: 1.5rem !important; }
+  h3 { font-size: 1.25rem !important; }
+  h4 { font-size: 1.1rem !important; }
+
+  /* Page layout */
+  .page {
+    padding: 1rem;
+  }
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .page-header h1 {
+    font-size: 1.5rem !important;
+  }
+
+  /* Card component */
+  .card {
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+  }
+
+  /* Grid system */
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+  .grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Flex utilities */
+  .flex.justify-between.items-center {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .flex.gap-2,
+  .flex.gap-1 {
+    flex-wrap: wrap;
+  }
+
+  /* Buttons - touch-friendly sizing */
+  .btn {
+    min-height: 44px;
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+  .btn-lg {
+    min-height: 48px;
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+  }
+  .btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  /* Inputs - comfortable for mobile */
+  .input,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  textarea,
+  select {
+    min-height: 44px;
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+    padding: 0.6rem 0.75rem;
+  }
+
+  /* Modal responsive */
+  .modal-overlay .modal {
+    width: calc(100% - 2rem) !important;
+    max-height: 90vh !important;
+    margin: 1rem;
+    border-radius: var(--radius-lg) !important;
+  }
+
+  /* Stats cards */
+  .stat-card,
+  .stat-box,
+  .ai-stat {
+    padding: 1rem;
+    min-width: 0;
+  }
+  .stat-value,
+  .ai-stat-value {
+    font-size: 1.5rem !important;
+  }
+
+  /* Photo grid */
+  .photo-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.5rem !important;
+  }
+
+  /* Batch card meta */
+  .batch-meta {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Table responsive */
+  table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: 0.85rem;
+  }
+
+  /* Hide non-essential UI */
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* Small phone breakpoint */
+@media (max-width: 480px) {
+  body {
+    font-size: 14px;
+  }
+  .page {
+    padding: 0.75rem;
+  }
+  .card {
+    padding: 0.85rem;
+    border-radius: var(--radius-md);
+  }
+  .photo-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Sidebar user section */
+  .sidebar-user {
+    padding: 0.75rem;
+  }
+
+  /* Reduce button gaps */
+  .flex.gap-2 {
+    gap: 0.5rem !important;
+  }
+  .flex.gap-1 {
+    gap: 0.4rem !important;
+  }
+
+  /* Stacked action buttons */
+  .action-btns,
+  .review-section .flex.gap-2 {
+    flex-direction: column;
+  }
+}
+
+/* Safe area insets for modern phones with notches */
+@supports (padding: env(safe-area-inset-bottom)) {
+  .layout {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .sidebar {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* ============================================
    Dark Mode Variables & Overrides
    ============================================ */
 [data-theme="dark"] {

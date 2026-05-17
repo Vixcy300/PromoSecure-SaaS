@@ -747,6 +747,72 @@ const CameraCapture = ({ onCapture, onClose, existingPhotos = [] }) => {
                 .btn-action.primary.warning {
                     background: linear-gradient(135deg, #f59e0b, #d97706);
                 }
+
+                /* Camera Mobile Optimization */
+                @media (max-width: 768px) {
+                    .camera-top-bar {
+                        padding: 8px 12px;
+                        padding-top: max(8px, env(safe-area-inset-top));
+                    }
+
+                    .camera-title h3 {
+                        font-size: 14px;
+                    }
+
+                    .camera-title span {
+                        font-size: 12px;
+                    }
+
+                    .camera-bottom-bar {
+                        padding: 12px;
+                        padding-bottom: max(12px, env(safe-area-inset-bottom));
+                    }
+
+                    .shutter-btn {
+                        width: 68px;
+                        height: 68px;
+                    }
+
+                    .switch-cam-btn {
+                        width: 46px;
+                        height: 46px;
+                    }
+
+                    .capture-controls {
+                        gap: 24px;
+                    }
+
+                    .btn-action {
+                        height: 48px;
+                        font-size: 14px;
+                        border-radius: 12px;
+                    }
+
+                    .dup-warning-bar {
+                        font-size: 12px;
+                        padding: 8px 10px;
+                    }
+
+                    .processing-label {
+                        font-size: 14px;
+                    }
+                }
+
+                @media (max-width: 380px) {
+                    .capture-controls {
+                        gap: 16px;
+                    }
+
+                    .shutter-btn {
+                        width: 60px;
+                        height: 60px;
+                    }
+
+                    .switch-cam-btn {
+                        width: 40px;
+                        height: 40px;
+                    }
+                }
             `}</style>
         </div>
     );

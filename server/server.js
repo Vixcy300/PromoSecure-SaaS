@@ -54,6 +54,7 @@ app.use('/api/batches', require('./routes/batches'));
 app.use('/api/photos', require('./routes/photos'));
 app.use('/api/clients', require('./routes/clients'));
 app.use('/api/messages', require('./routes/messages'));
+app.use('/api/comments', require('./routes/comments'));
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

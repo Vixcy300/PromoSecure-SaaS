@@ -2,18 +2,16 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { HiArrowLeft, HiArrowRight, HiChatAlt2, HiCheckCircle } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import api from '../services/api';
 
 const Blog = () => {
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [selectedArticle, setSelectedArticle] = useState(null);
     const [email, setEmail] = useState('');
     
-    // Anti-Bot Comment System State
-    const [comments, setComments] = useState({
-        1: [
-            { id: 1, name: 'Alex T.', date: 'Oct 12, 2025', text: 'Fascinating dive into the IndexedDB architecture. We struggled with the same staleness issues before migrating to a similar custom sync manager.' }
-        ]
-    });
+    // Persistent Comment System State (API-backed)
+    const [comments, setComments] = useState([]);
+    const [commentsLoading, setCommentsLoading] = useState(false);
     const [newComment, setNewComment] = useState('');
     const [commentName, setCommentName] = useState('');
     const [honeypot, setHoneypot] = useState('');
@@ -22,7 +20,21 @@ const Blog = () => {
     useEffect(() => {
         generateCaptcha();
         window.scrollTo(0, 0);
+        if (selectedArticle) {
+            fetchComments(selectedArticle.id);
+        }
     }, [selectedArticle]);
+
+    const fetchComments = async (postId) => {
+        setCommentsLoading(true);
+        try {
+            const res = await api.get(`/comments/${postId}`);
+            setComments(res.data.comments || []);
+        } catch {
+            setComments([]);
+        }
+        setCommentsLoading(false);
+    };
 
     const generateCaptcha = () => {
         setMathCaptcha({
@@ -34,7 +46,7 @@ const Blog = () => {
 
     const categories = ['all', 'Engineering', 'Product', 'Security', 'Company'];
 
-    const handleCommentSubmit = (e) => {
+    const handleCommentSubmit = async (e) => {
         e.preventDefault();
         
         if (honeypot !== '') {
@@ -54,22 +66,25 @@ const Blog = () => {
             return;
         }
 
-        const commentObj = {
-            id: Date.now(),
-            name: commentName,
-            date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-            text: newComment
-        };
+        try {
+            const res = await api.post('/comments', {
+                postId: selectedArticle.id,
+                name: commentName,
+                text: newComment,
+                honeypot,
+                captchaAnswer: correctAnswer,
+                captchaExpected: correctAnswer
+            });
 
-        setComments(prev => ({
-            ...prev,
-            [selectedArticle.id]: [...(prev[selectedArticle.id] || []), commentObj]
-        }));
-
-        toast.success('Comment posted.');
-        setNewComment('');
-        setCommentName('');
-        generateCaptcha();
+            setComments(prev => [res.data.comment, ...prev]);
+            toast.success('Comment posted.');
+            setNewComment('');
+            setCommentName('');
+            generateCaptcha();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to post comment.');
+            generateCaptcha();
+        }
     };
 
     const renderContent = (content) => {
@@ -327,21 +342,23 @@ The security is mathematically guaranteed.
                         <hr className="divider" />
                         
                         <section className="comments-module">
-                            <h3 className="comments-title">Discussion</h3>
+                            <h3 className="comments-title">Discussion ({comments.length})</h3>
                             
                             <div className="comments-feed">
-                                {comments[selectedArticle.id]?.length > 0 ? (
-                                    comments[selectedArticle.id].map(comment => (
-                                        <div key={comment.id} className="comment-item">
+                                {commentsLoading ? (
+                                    <p className="empty-state">Loading comments...</p>
+                                ) : comments.length > 0 ? (
+                                    comments.map(comment => (
+                                        <div key={comment._id || comment.id} className="comment-item">
                                             <div className="comment-header">
                                                 <strong>{comment.name}</strong>
-                                                <span className="comment-date">{comment.date}</span>
+                                                <span className="comment-date">{new Date(comment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                             </div>
                                             <p className="comment-text">{comment.text}</p>
                                         </div>
                                     ))
                                 ) : (
-                                    <p className="empty-state">No comments yet.</p>
+                                    <p className="empty-state">No comments yet. Be the first to share your thoughts.</p>
                                 )}
                             </div>
 
