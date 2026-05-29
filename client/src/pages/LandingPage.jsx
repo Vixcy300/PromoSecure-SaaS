@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Footer from '../components/Footer';
 import {
   HiShieldCheck,
   HiCamera,
@@ -377,38 +378,7 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="landing-footer">
-        <div className="footer-container">
-          <div className="footer-brand">
-            <div className="nav-logo">
-              <span className="logo-text">PromoSecure</span>
-            </div>
-            <p>Privacy-first promotional verification platform with AI-powered face blurring.</p>
-          </div>
-          <div className="footer-links">
-            <div className="footer-col">
-              <h4>Product</h4>
-              <a href="#features">Features</a>
-              <a href="#how-it-works">How It Works</a>
-              <a href="#faq">FAQ</a>
-            </div>
-            <div className="footer-col">
-              <h4>Legal</h4>
-              <a href="/privacy">Privacy Policy</a>
-              <a href="/about">About Us</a>
-              <a href="/terms">Terms of Service</a>
-            </div>
-            <div className="footer-col">
-              <h4>Support</h4>
-              <a href="#contact">Contact Us</a>
-              <a href="/help">Help Center</a>
-            </div>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>© 2024-2026 PromoSecure. All rights reserved. Built with ❤️ by Vignesh</p>
-        </div>
-      </footer>
+      <Footer />
 
       <style>{`
         .landing-page {
@@ -985,68 +955,7 @@ const LandingPage = () => {
           color: var(--text-muted);
         }
 
-        /* Footer */
-        .landing-footer {
-          background: var(--slate-900);
-          color: white;
-          padding: 4rem 0 0;
-        }
-
-        .footer-container {
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 2rem 3rem;
-          display: grid;
-          grid-template-columns: 2fr 3fr;
-          gap: 4rem;
-        }
-
-        .footer-brand .logo-text {
-          color: white;
-          -webkit-text-fill-color: white;
-        }
-
-        .footer-brand p {
-          color: var(--slate-400);
-          margin-top: 1rem;
-          font-size: 0.95rem;
-        }
-
-        .footer-links {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 2rem;
-        }
-
-        .footer-col h4 {
-          color: white;
-          font-size: 0.9rem;
-          margin-bottom: 1rem;
-        }
-
-        .footer-col a {
-          display: block;
-          color: var(--slate-400);
-          font-size: 0.9rem;
-          margin-bottom: 0.5rem;
-          transition: color var(--transition-fast);
-        }
-
-        .footer-col a:hover {
-          color: white;
-        }
-
-        .footer-bottom {
-          border-top: 1px solid var(--slate-800);
-          padding: 1.5rem 2rem;
-          text-align: center;
-        }
-
-        .footer-bottom p {
-          color: var(--slate-500);
-          font-size: 0.85rem;
-          margin: 0;
-        }
+        /* Footer styles now in Footer.jsx component */
 
         @keyframes fadeInUp {
           from {
@@ -1116,13 +1025,7 @@ const LandingPage = () => {
             grid-template-columns: 1fr;
           }
 
-          .footer-container {
-            grid-template-columns: 1fr;
-          }
-
-          .footer-links {
-            grid-template-columns: repeat(2, 1fr);
-          }
+          /* Footer responsive now handled in Footer.jsx */
         }
       `}</style>
     </div >

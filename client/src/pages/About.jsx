@@ -1,5 +1,6 @@
 import { HiExternalLink, HiCode, HiHeart, HiMail, HiArrowLeft } from 'react-icons/hi';
 import { Link } from 'react-router-dom';
+import Footer from '../components/Footer';
 
 const About = () => {
     return (
@@ -180,10 +181,7 @@ const About = () => {
                     </section>
 
                     {/* Footer */}
-                    <div className="about-footer">
-                        <p>Made with <HiHeart className="heart-icon" /> by Vignesh</p>
-                        <p className="copyright">© 2025 PromoSecure. All rights reserved.</p>
-                    </div>
+                    <Footer />
                 </div>
             </div>
 

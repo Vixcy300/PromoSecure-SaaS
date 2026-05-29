@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import { HiArrowLeft, HiArrowRight, HiChatAlt2, HiCheckCircle } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import api from '../services/api';
+import Footer from '../components/Footer';
 
 const Blog = () => {
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [selectedArticle, setSelectedArticle] = useState(null);
-    const [email, setEmail] = useState('');
+
     
     // Persistent Comment System State (API-backed)
     const [comments, setComments] = useState([]);
@@ -294,15 +295,7 @@ The security is mathematically guaranteed.
 
     const featuredPost = blogPosts.find(p => p.featured);
 
-    const handleSubscribe = (e) => {
-        e.preventDefault();
-        if (!email) {
-            toast.error('Enter an email address.');
-            return;
-        }
-        toast.success('Subscribed.');
-        setEmail('');
-    };
+
 
     return (
         <div className="layout-root">
@@ -436,18 +429,7 @@ The security is mathematically guaranteed.
                 </main>
             )}
 
-            <footer className="footer">
-                <div className="footer-content">
-                    <div className="footer-brand">
-                        <div className="brand-logo">P</div>
-                        <span>PromoSecure</span>
-                    </div>
-                    <form className="footer-subscribe" onSubmit={handleSubscribe}>
-                        <input type="email" placeholder="Subscribe to updates" value={email} onChange={(e) => setEmail(e.target.value)} />
-                        <button type="submit">Subscribe</button>
-                    </form>
-                </div>
-            </footer>
+            <Footer />
 
             <style>{`
                 /* Ultra-Premium MNC Aesthetic (Linear / Vercel Vibe) */
@@ -663,13 +645,6 @@ The security is mathematically guaranteed.
                 .btn-back-bottom:hover { color: #fff; }
 
                 /* Footer */
-                .footer { border-top: 1px solid rgba(255,255,255,0.08); padding: 48px 24px; }
-                .footer-content { max-width: 1000px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
-                .footer-brand { display: flex; align-items: center; gap: 12px; color: #fff; font-weight: 600; }
-                .footer-subscribe { display: flex; gap: 8px; }
-                .footer-subscribe input { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 6px; color: #fff; font-size: 14px; width: 220px; }
-                .footer-subscribe input:focus { outline: none; border-color: rgba(255,255,255,0.3); }
-                .footer-subscribe button { background: #fff; color: #000; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 500; cursor: pointer; }
 
                 @media (max-width: 768px) {
                     .index-header h1 { font-size: 40px; }
@@ -677,9 +652,6 @@ The security is mathematically guaranteed.
                     .post-grid { grid-template-columns: 1fr; }
                     .article-title { font-size: 32px; }
                     .form-row { grid-template-columns: 1fr; }
-                    .footer-content { flex-direction: column; gap: 24px; align-items: flex-start; }
-                    .footer-subscribe { width: 100%; }
-                    .footer-subscribe input { flex: 1; }
                 }
             `}</style>
         </div>
