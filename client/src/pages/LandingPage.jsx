@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Footer from '../components/Footer';
+import { DropdownNavigation } from '../components/DropdownNavigation';
+import { FlipWords } from '../components/FlipWords';
+import { Eye, Camera, ShieldCheck, Cpu, BarChart, Users, FileText, BookOpen } from "lucide-react";
 import {
   HiShieldCheck,
   HiCamera,
@@ -24,6 +27,100 @@ const LandingPage = () => {
   const [openFaq, setOpenFaq] = useState(null);
   const [isVisible, setIsVisible] = useState({});
   const observerRefs = useRef([]);
+
+  const NAV_ITEMS = [
+    {
+      id: 1,
+      label: "Product",
+      subMenus: [
+        {
+          title: "Features",
+          items: [
+            {
+              label: "AI Face Blurring",
+              description: "4-layer privacy protection",
+              icon: Eye,
+              href: "#features"
+            },
+            {
+              label: "Offline Camera",
+              description: "Works without internet",
+              icon: Camera,
+              href: "#features"
+            },
+            {
+              label: "Fraud Detection",
+              description: "Prevents duplicate uploads",
+              icon: ShieldCheck,
+              href: "#features"
+            },
+          ],
+        },
+        {
+          title: "Platform",
+          items: [
+            {
+              label: "How It Works",
+              description: "Step-by-step verification process",
+              icon: Cpu,
+              href: "#how-it-works"
+            },
+            {
+              label: "Analytics",
+              description: "Track promoter performance",
+              icon: BarChart,
+              href: "#features"
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: 2,
+      label: "Resources",
+      subMenus: [
+        {
+          title: "Company",
+          items: [
+            {
+              label: "About Us",
+              description: "Learn about PromoSecure",
+              icon: Users,
+              href: "/about"
+            },
+            {
+              label: "Blog",
+              description: "Latest news and updates",
+              icon: FileText,
+              href: "/blog"
+            },
+            {
+              label: "Help Center",
+              description: "Guides and support",
+              icon: BookOpen,
+              href: "/help"
+            },
+          ],
+        },
+      ],
+    },
+    {
+      id: 3,
+      label: "FAQ",
+      link: "#faq",
+    },
+    {
+      id: 4,
+      label: "Contact",
+      link: "#contact",
+    },
+    {
+      id: 5,
+      label: "🔥 50% Off Plan",
+      link: "/plans",
+      className: "discount-link"
+    },
+  ];
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -133,12 +230,7 @@ const LandingPage = () => {
             <span className="logo-text">PromoSecure</span>
           </div>
           <div className="nav-links">
-            <a href="#features">Features</a>
-            <a href="#how-it-works">How It Works</a>
-            <a href="#faq">FAQ</a>
-            <a href="#contact">Contact</a>
-            <a href="/plans" className="discount-link">🔥 50% Off Plan</a>
-            <a href="/blog">Blog</a>
+            <DropdownNavigation navItems={NAV_ITEMS} />
           </div>
           <div className="nav-actions">
             <button className="btn btn-ghost" onClick={() => navigate('/login')}>Sign In</button>
@@ -158,9 +250,9 @@ const LandingPage = () => {
             <HiLightningBolt />
             <span>Privacy-First Verification Platform</span>
           </div>
-          <h1 className="hero-title hover-pop">
+          <h1 className="hero-title hover-pop" style={{ minHeight: '120px' }}>
             Verify Promotional Work<br />
-            <span className="gradient-text">Without Compromising Privacy</span>
+            <FlipWords words={["Securely.", "Privately.", "Instantly.", "Accurately."]} className="gradient-text" />
           </h1>
           <p className="hero-subtitle">
             AI-powered face blurring protects the public while giving managers verified proof
@@ -415,17 +507,6 @@ const LandingPage = () => {
 
         .nav-links {
           display: flex;
-          gap: 2rem;
-        }
-
-        .nav-links a {
-          color: var(--text-secondary);
-          font-weight: 500;
-          transition: color var(--transition-fast);
-        }
-
-        .nav-links a:hover {
-          color: var(--text-primary);
         }
 
         .nav-links .discount-link {
