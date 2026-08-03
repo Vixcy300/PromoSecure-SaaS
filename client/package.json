@@ -10,10 +10,13 @@
     },
     "dependencies": {
         "@mediapipe/face_detection": "^0.4.1646425229",
+        "@number-flow/react": "^0.6.2",
         "@react-three/fiber": "^8.17.10",
         "@tensorflow-models/coco-ssd": "^2.2.3",
         "@tensorflow-models/face-detection": "^1.0.2",
         "@tensorflow/tfjs": "^4.15.0",
+        "@tsparticles/react": "^4.3.2",
+        "@tsparticles/slim": "^4.3.2",
         "@vitejs/plugin-react": "^4.2.1",
         "axios": "^1.6.2",
         "chart.js": "^4.5.1",

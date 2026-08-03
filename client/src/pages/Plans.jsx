@@ -2,8 +2,8 @@ import { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { HiArrowLeft, HiCheck, HiSparkles, HiShieldCheck, HiSupport, HiLightningBolt, HiMail, HiUser, HiPhone, HiOfficeBuilding, HiX, HiCreditCard, HiLockClosed } from 'react-icons/hi';
 import toast from 'react-hot-toast';
-import { SquishyCard } from '../components/SquishyCard';
 import PaymentForm from '../components/PaymentForm';
+import PromoSecurePricing from '../components/PromoSecurePricing';
 
 const Plans = () => {
     const navigate = useNavigate();
@@ -125,35 +125,18 @@ const Plans = () => {
 
     return (
         <div className="plans-page">
-            {/* Header */}
-            <header className="plans-header">
-                <Link to="/" className="back-link">
+            {/* Back link */}
+            <div style={{ position: 'absolute', top: '1.25rem', left: '1.5rem', zIndex: 200 }}>
+                <Link to="/" className="back-link" style={{ color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', fontSize: '0.9rem' }}>
                     <HiArrowLeft /> Back to Home
                 </Link>
-                <div className="plans-header-content">
-                    <span className="plans-badge">
-                        <HiSparkles /> 50% OFF Limited Time
-                    </span>
-                    <h1>Choose Your Plan</h1>
-                    <p>Simple pricing. No hidden fees. Cancel anytime.</p>
-                </div>
-            </header>
+            </div>
 
-            {/* Plans Grid */}
-            <section className="plans-section">
-                <div className="plans-container">
-                    <div className="plans-grid">
-                        {plans.map((plan, index) => (
-                            <SquishyCard 
-                                key={plan.name} 
-                                plan={plan} 
-                                onAction={plan.action} 
-                                delay={index * 0.1} 
-                            />
-                        ))}
-                    </div>
-                </div>
-            </section>
+            {/* ✨ New premium pricing section */}
+            <PromoSecurePricing
+                onPlanAction={() => { setPaymentError(null); setShowProModal(true); }}
+                onScrollToDemo={scrollToDemo}
+            />
 
             {/* Trust Section */}
             <section className="trust-section">
@@ -357,7 +340,8 @@ const Plans = () => {
             <style>{`
                 .plans-page {
                     min-height: 100vh;
-                    background: var(--bg-primary);
+                    background: #000;
+                    position: relative;
                 }
 
                 .plans-header {
@@ -562,7 +546,8 @@ const Plans = () => {
                 }
 
                 .trust-section {
-                    background: var(--bg-secondary);
+                    background: #0d0d0d;
+                    border-top: 1px solid rgba(255,255,255,0.08);
                     padding: 4rem 2rem;
                 }
 
@@ -574,6 +559,7 @@ const Plans = () => {
 
                 .trust-container h2 {
                     margin-bottom: 2rem;
+                    color: #fff;
                 }
 
                 .trust-grid {
@@ -594,17 +580,19 @@ const Plans = () => {
 
                 .trust-item h4 {
                     margin-bottom: 0.5rem;
+                    color: #e5e7eb;
                 }
 
                 .trust-item p {
-                    color: var(--text-muted);
+                    color: #9ca3af;
                     font-size: 0.9rem;
                 }
 
                 /* DEMO SECTION */
                 .demo-section {
                     padding: 5rem 2rem;
-                    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+                    background: linear-gradient(135deg, #0c1a3a 0%, #0f2266 100%);
+                    border-top: 1px solid rgba(255,255,255,0.08);
                 }
 
                 .demo-container {
