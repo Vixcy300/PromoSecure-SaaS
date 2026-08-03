@@ -77,7 +77,7 @@ const plans = [
   },
 ];
 
-/* ─── High-Contrast, Crystal Clear Pricing Switch ─── */
+/* ─── Ultra High-Contrast, Crystal Clear Pricing Switch ─── */
 const PricingSwitch = ({ onSwitch }) => {
   const [selected, setSelected] = useState("0");
 
@@ -88,42 +88,58 @@ const PricingSwitch = ({ onSwitch }) => {
 
   return (
     <div className="flex justify-center my-3 sm:my-5">
-      <div className="relative z-10 mx-auto flex items-center w-fit rounded-full bg-neutral-900/95 border border-neutral-700/90 p-1 sm:p-1.5 backdrop-blur-lg shadow-2xl shadow-black/80">
+      <div
+        className="relative z-10 mx-auto flex items-center w-fit rounded-full border border-neutral-700/90 p-1 sm:p-1.5 backdrop-blur-lg shadow-2xl shadow-black/80"
+        style={{ backgroundColor: "#121212" }}
+      >
         <button
           type="button"
           onClick={() => handleSwitch("0")}
+          style={{ background: "transparent", color: selected === "0" ? "#ffffff" : "#a3a3a3" }}
           className={cn(
-            "relative z-10 h-9 sm:h-10 rounded-full px-4 sm:px-7 text-xs sm:text-sm font-semibold transition-colors duration-200 cursor-pointer flex items-center justify-center",
-            selected === "0" ? "text-white font-bold" : "text-neutral-400 hover:text-neutral-100"
+            "relative z-10 h-9 sm:h-10 rounded-full px-5 sm:px-7 text-xs sm:text-sm font-bold transition-colors duration-200 cursor-pointer flex items-center justify-center border-0 outline-none select-none",
+            selected === "0" ? "!text-white font-extrabold" : "!text-neutral-400 hover:!text-white font-medium"
           )}
         >
           {selected === "0" && (
             <motion.span
               layoutId="pricing-switch-pill"
-              className="absolute inset-0 rounded-full border-2 border-blue-400/80 shadow-md shadow-blue-600/50 bg-gradient-to-r from-blue-600 to-indigo-600 z-0"
+              className="absolute inset-0 rounded-full border-2 border-blue-400 shadow-lg shadow-blue-600/60 z-0"
+              style={{
+                background: "linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)",
+                backgroundColor: "#2563eb"
+              }}
               transition={{ type: "spring", stiffness: 500, damping: 32 }}
             />
           )}
-          <span className="relative z-10">Monthly</span>
+          <span className="relative z-10 !text-white">Monthly</span>
         </button>
 
         <button
           type="button"
           onClick={() => handleSwitch("1")}
+          style={{ background: "transparent", color: selected === "1" ? "#ffffff" : "#a3a3a3" }}
           className={cn(
-            "relative z-10 h-9 sm:h-10 rounded-full px-4 sm:px-7 text-xs sm:text-sm font-semibold transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5",
-            selected === "1" ? "text-white font-bold" : "text-neutral-400 hover:text-neutral-100"
+            "relative z-10 h-9 sm:h-10 rounded-full px-5 sm:px-7 text-xs sm:text-sm font-bold transition-colors duration-200 cursor-pointer flex items-center justify-center gap-1.5 border-0 outline-none select-none",
+            selected === "1" ? "!text-white font-extrabold" : "!text-neutral-400 hover:!text-white font-medium"
           )}
         >
           {selected === "1" && (
             <motion.span
               layoutId="pricing-switch-pill"
-              className="absolute inset-0 rounded-full border-2 border-blue-400/80 shadow-md shadow-blue-600/50 bg-gradient-to-r from-blue-600 to-indigo-600 z-0"
+              className="absolute inset-0 rounded-full border-2 border-blue-400 shadow-lg shadow-blue-600/60 z-0"
+              style={{
+                background: "linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)",
+                backgroundColor: "#2563eb"
+              }}
               transition={{ type: "spring", stiffness: 500, damping: 32 }}
             />
           )}
-          <span className="relative z-10">Yearly</span>
-          <span className="relative z-10 px-1.5 py-0.5 text-[10px] font-bold bg-emerald-500/25 text-emerald-300 border border-emerald-400/40 rounded-full tracking-tight">
+          <span className="relative z-10 !text-white">Yearly</span>
+          <span
+            className="relative z-10 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-300 border border-emerald-400/40 rounded-full tracking-tight"
+            style={{ backgroundColor: "rgba(16, 185, 129, 0.25)" }}
+          >
             50% OFF
           </span>
         </button>
@@ -143,8 +159,8 @@ export default function PromoSecurePricing({ onPlanAction, onScrollToDemo }) {
       opacity: 1,
       filter: "blur(0px)",
       transition: {
-        delay: i * 0.25,
-        duration: 0.5,
+        delay: i * 0.2,
+        duration: 0.45,
       },
     }),
     hidden: {
@@ -169,6 +185,7 @@ export default function PromoSecurePricing({ onPlanAction, onScrollToDemo }) {
     <div
       className="min-h-screen w-full relative bg-black overflow-hidden select-none"
       ref={pricingRef}
+      style={{ backgroundColor: "#000000" }}
     >
       {/* ── Background Grid + Sparkles ── */}
       <TimelineContent
@@ -187,7 +204,7 @@ export default function PromoSecurePricing({ onPlanAction, onScrollToDemo }) {
         />
       </TimelineContent>
 
-      {/* ── Dual Blue Glow Ellipses (Cleanly Clipped for Mobile) ── */}
+      {/* ── Dual Blue Glow Ellipses (Centered and safely clipped) ── */}
       <TimelineContent
         animationNum={5}
         timelineRef={pricingRef}
@@ -229,7 +246,10 @@ export default function PromoSecurePricing({ onPlanAction, onScrollToDemo }) {
 
       {/* ── Header ── */}
       <article className="text-center mb-6 pt-20 sm:pt-28 md:pt-32 max-w-3xl mx-auto space-y-3 px-4 relative z-20">
-        <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold uppercase tracking-wider mb-1 backdrop-blur-sm">
+        <div
+          className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full border border-blue-500/30 text-blue-400 text-xs font-semibold uppercase tracking-wider mb-1 backdrop-blur-sm"
+          style={{ backgroundColor: "rgba(59, 130, 246, 0.1)" }}
+        >
           <HiSparkles className="text-blue-400" />
           <span>Flexible Pricing</span>
         </div>
@@ -291,17 +311,29 @@ export default function PromoSecurePricing({ onPlanAction, onScrollToDemo }) {
                 className={cn(
                   "relative flex flex-col justify-between h-full rounded-2xl transition-all duration-300",
                   isPro
-                    ? "bg-gradient-to-b from-neutral-900 via-neutral-900 to-neutral-950 border-2 border-blue-500/80 shadow-[0_0_50px_rgba(37,99,235,0.4)] ring-1 ring-blue-400/40 md:-translate-y-2"
-                    : "bg-gradient-to-b from-neutral-900/90 via-neutral-900/95 to-neutral-950 border border-neutral-800 hover:border-neutral-700 shadow-xl shadow-black/60"
+                    ? "border-2 border-blue-500/80 shadow-[0_0_50px_rgba(37,99,235,0.45)] ring-1 ring-blue-400/40 md:-translate-y-2"
+                    : "border border-neutral-800 hover:border-neutral-700 shadow-2xl shadow-black/80"
                 )}
+                style={{
+                  backgroundColor: isPro ? "#111116" : "#0d0d10",
+                  backgroundImage: isPro
+                    ? "linear-gradient(180deg, #161622 0%, #0d0d13 100%)"
+                    : "linear-gradient(180deg, #141416 0%, #09090b 100%)",
+                }}
               >
                 {/* Popular / Discount Badges */}
                 {isPro && (
                   <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-30">
-                    <span className="bg-gradient-to-r from-red-600 to-orange-500 text-white text-[11px] font-extrabold px-3 py-1 rounded-full shadow-lg shadow-red-500/40 uppercase tracking-wide">
+                    <span
+                      className="text-white text-[11px] font-extrabold px-3 py-1 rounded-full shadow-lg shadow-red-500/40 uppercase tracking-wide"
+                      style={{ background: "linear-gradient(135deg, #dc2626, #ea580c)" }}
+                    >
                       50% OFF
                     </span>
-                    <span className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[11px] font-extrabold px-3 py-1 rounded-full shadow-lg shadow-blue-500/40 uppercase tracking-wide">
+                    <span
+                      className="text-white text-[11px] font-extrabold px-3 py-1 rounded-full shadow-lg shadow-blue-500/40 uppercase tracking-wide"
+                      style={{ background: "linear-gradient(135deg, #2563eb, #4f46e5)" }}
+                    >
                       Most Popular
                     </span>
                   </div>
@@ -343,7 +375,10 @@ export default function PromoSecurePricing({ onPlanAction, onScrollToDemo }) {
                   {/* Savings hint for yearly */}
                   {isPro && isYearly && (
                     <div className="inline-block mb-2">
-                      <span className="text-xs font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-md">
+                      <span
+                        className="text-xs font-semibold text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-md"
+                        style={{ backgroundColor: "rgba(16, 185, 129, 0.15)" }}
+                      >
                         Save ₹{(plan.price * 12 - plan.yearlyPrice).toLocaleString("en-IN")} annually
                       </span>
                     </div>
@@ -355,19 +390,27 @@ export default function PromoSecurePricing({ onPlanAction, onScrollToDemo }) {
                 </CardHeader>
 
                 <CardContent className="p-6 sm:p-7 pt-2 flex flex-col justify-between flex-grow">
-                  {/* Action Button - 100% High Contrast & Tactile */}
+                  {/* Action Button - 100% Solid Contrast, No Default White Background */}
                   <button
                     type="button"
                     onClick={() => handlePlanAction(plan)}
+                    style={{
+                      backgroundColor: isPro ? "#2563eb" : "#202025",
+                      backgroundImage: isPro
+                        ? "linear-gradient(135deg, #2563eb 0%, #3b82f6 50%, #4f46e5 100%)"
+                        : "linear-gradient(180deg, #2a2a32 0%, #18181c 100%)",
+                      color: "#ffffff",
+                      border: isPro ? "1px solid rgba(147, 197, 253, 0.6)" : "1px solid #3f3f46",
+                    }}
                     className={cn(
-                      "w-full py-3.5 px-5 text-sm sm:text-base font-bold rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]",
+                      "w-full py-3.5 px-5 text-sm sm:text-base font-extrabold rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98] shadow-lg",
                       isPro
-                        ? "bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 text-white border border-blue-400/50 shadow-lg shadow-blue-600/50 hover:shadow-blue-500/70 hover:scale-[1.02]"
-                        : "bg-gradient-to-b from-neutral-800 to-neutral-900 text-white border border-neutral-700 hover:border-neutral-500 hover:bg-neutral-800 shadow-md shadow-black/50 hover:scale-[1.02]"
+                        ? "!text-white shadow-blue-600/50 hover:shadow-blue-500/70 hover:scale-[1.02]"
+                        : "!text-white hover:border-neutral-400 hover:scale-[1.02]"
                     )}
                   >
-                    <span>{plan.buttonText}</span>
-                    <HiArrowRight className="text-base" />
+                    <span className="!text-white font-bold tracking-wide">{plan.buttonText}</span>
+                    <HiArrowRight className="text-base !text-white flex-shrink-0" />
                   </button>
 
                   {/* Feature Checklist */}
@@ -385,9 +428,12 @@ export default function PromoSecurePricing({ onPlanAction, onScrollToDemo }) {
                             className={cn(
                               "h-4 w-4 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5",
                               isPro
-                                ? "bg-blue-500/20 text-blue-400 border border-blue-500/40"
-                                : "bg-neutral-800 text-neutral-400 border border-neutral-700"
+                                ? "text-blue-400 border border-blue-500/40"
+                                : "text-neutral-400 border border-neutral-700"
                             )}
+                            style={{
+                              backgroundColor: isPro ? "rgba(59, 130, 246, 0.2)" : "rgba(38, 38, 38, 0.8)",
+                            }}
                           >
                             <HiCheck className="text-[10px]" />
                           </span>
@@ -405,7 +451,10 @@ export default function PromoSecurePricing({ onPlanAction, onScrollToDemo }) {
 
       {/* ── Trust Security Note Footer ── */}
       <div className="text-center pb-12 pt-4 relative z-20 px-4">
-        <p className="inline-flex items-center gap-2 text-xs sm:text-sm text-neutral-400 bg-neutral-900/60 border border-neutral-800/80 px-4 py-2 rounded-full backdrop-blur-md">
+        <p
+          className="inline-flex items-center gap-2 text-xs sm:text-sm text-neutral-400 border border-neutral-800/80 px-4 py-2 rounded-full backdrop-blur-md"
+          style={{ backgroundColor: "rgba(18, 18, 18, 0.7)" }}
+        >
           <HiShieldCheck className="text-emerald-400 text-base" />
           <span>Enterprise Grade Privacy • Cancel Anytime • Instant Activation</span>
         </p>
