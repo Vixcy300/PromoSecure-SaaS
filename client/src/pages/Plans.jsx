@@ -125,10 +125,14 @@ const Plans = () => {
 
     return (
         <div className="plans-page">
-            {/* Back link */}
-            <div style={{ position: 'absolute', top: '1.25rem', left: '1.5rem', zIndex: 200 }}>
-                <Link to="/" className="back-link" style={{ color: 'rgba(255,255,255,0.7)', display: 'flex', alignItems: 'center', gap: '0.4rem', textDecoration: 'none', fontSize: '0.9rem' }}>
-                    <HiArrowLeft /> Back to Home
+            {/* Sleek Floating Back to Home Button */}
+            <div className="absolute top-4 sm:top-6 left-4 sm:left-8 z-[100]">
+                <Link
+                    to="/"
+                    className="inline-flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2 rounded-full bg-neutral-900/80 hover:bg-neutral-800 text-neutral-200 hover:text-white backdrop-blur-md border border-neutral-700/80 hover:border-neutral-500 text-xs sm:text-sm font-medium transition-all duration-200 shadow-xl shadow-black/50 hover:scale-[1.03] group"
+                >
+                    <HiArrowLeft className="text-sm sm:text-base text-blue-400 group-hover:-translate-x-1 transition-transform duration-200" />
+                    <span className="whitespace-nowrap font-medium">Back to Home</span>
                 </Link>
             </div>
 
