@@ -293,45 +293,43 @@ const LandingPage = () => {
                 <span>Product</span>
                 <HiChevronDown className={`drawer-chevron ${expandedMobileSection === 'product' ? 'open' : ''}`} />
               </button>
-              {expandedMobileSection === 'product' && (
-                <div className="drawer-subitems">
-                  <a href="#features" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
-                    <Eye size={18} className="drawer-icon" />
-                    <div>
-                      <div className="sublink-title">AI Face Blurring</div>
-                      <div className="sublink-desc">4-layer privacy protection</div>
-                    </div>
-                  </a>
-                  <a href="#features" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
-                    <Camera size={18} className="drawer-icon" />
-                    <div>
-                      <div className="sublink-title">Offline Camera</div>
-                      <div className="sublink-desc">Works without internet</div>
-                    </div>
-                  </a>
-                  <a href="#features" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
-                    <ShieldCheck size={18} className="drawer-icon" />
-                    <div>
-                      <div className="sublink-title">Fraud Detection</div>
-                      <div className="sublink-desc">Prevents duplicate uploads</div>
-                    </div>
-                  </a>
-                  <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
-                    <Cpu size={18} className="drawer-icon" />
-                    <div>
-                      <div className="sublink-title">How It Works</div>
-                      <div className="sublink-desc">Step-by-step verification</div>
-                    </div>
-                  </a>
-                  <a href="#features" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
-                    <BarChart size={18} className="drawer-icon" />
-                    <div>
-                      <div className="sublink-title">Analytics</div>
-                      <div className="sublink-desc">Track promoter performance</div>
-                    </div>
-                  </a>
-                </div>
-              )}
+              <div className={`drawer-subitems ${expandedMobileSection === 'product' ? 'open' : ''}`}>
+                <a href="#features" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                  <Eye size={18} className="drawer-icon" />
+                  <div>
+                    <div className="sublink-title">AI Face Blurring</div>
+                    <div className="sublink-desc">4-layer privacy protection</div>
+                  </div>
+                </a>
+                <a href="#features" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                  <Camera size={18} className="drawer-icon" />
+                  <div>
+                    <div className="sublink-title">Offline Camera</div>
+                    <div className="sublink-desc">Works without internet</div>
+                  </div>
+                </a>
+                <a href="#features" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                  <ShieldCheck size={18} className="drawer-icon" />
+                  <div>
+                    <div className="sublink-title">Fraud Detection</div>
+                    <div className="sublink-desc">Prevents duplicate uploads</div>
+                  </div>
+                </a>
+                <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                  <Cpu size={18} className="drawer-icon" />
+                  <div>
+                    <div className="sublink-title">How It Works</div>
+                    <div className="sublink-desc">Step-by-step verification</div>
+                  </div>
+                </a>
+                <a href="#features" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                  <BarChart size={18} className="drawer-icon" />
+                  <div>
+                    <div className="sublink-title">Analytics</div>
+                    <div className="sublink-desc">Track promoter performance</div>
+                  </div>
+                </a>
+              </div>
             </div>
 
             {/* Resources Section */}
@@ -343,31 +341,29 @@ const LandingPage = () => {
                 <span>Resources</span>
                 <HiChevronDown className={`drawer-chevron ${expandedMobileSection === 'resources' ? 'open' : ''}`} />
               </button>
-              {expandedMobileSection === 'resources' && (
-                <div className="drawer-subitems">
-                  <a href="/about" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
-                    <Users size={18} className="drawer-icon" />
-                    <div>
-                      <div className="sublink-title">About Us</div>
-                      <div className="sublink-desc">Learn about PromoSecure</div>
-                    </div>
-                  </a>
-                  <a href="/blog" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
-                    <FileText size={18} className="drawer-icon" />
-                    <div>
-                      <div className="sublink-title">Blog</div>
-                      <div className="sublink-desc">Latest news and updates</div>
-                    </div>
-                  </a>
-                  <a href="/help" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
-                    <BookOpen size={18} className="drawer-icon" />
-                    <div>
-                      <div className="sublink-title">Help Center</div>
-                      <div className="sublink-desc">Guides and support</div>
-                    </div>
-                  </a>
-                </div>
-              )}
+              <div className={`drawer-subitems ${expandedMobileSection === 'resources' ? 'open' : ''}`}>
+                <a href="/about" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                  <Users size={18} className="drawer-icon" />
+                  <div>
+                    <div className="sublink-title">About Us</div>
+                    <div className="sublink-desc">Learn about PromoSecure</div>
+                  </div>
+                </a>
+                <a href="/blog" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                  <FileText size={18} className="drawer-icon" />
+                  <div>
+                    <div className="sublink-title">Blog</div>
+                    <div className="sublink-desc">Latest news and updates</div>
+                  </div>
+                </a>
+                <a href="/help" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                  <BookOpen size={18} className="drawer-icon" />
+                  <div>
+                    <div className="sublink-title">Help Center</div>
+                    <div className="sublink-desc">Guides and support</div>
+                  </div>
+                </a>
+              </div>
             </div>
 
             {/* FAQ Direct */}
@@ -827,6 +823,16 @@ const LandingPage = () => {
           display: flex;
           flex-direction: column;
           gap: 0.5rem;
+          padding: 0 0 0 0.5rem;
+          max-height: 0;
+          opacity: 0;
+          overflow: hidden;
+          transition: max-height 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease, padding 0.3s ease;
+        }
+
+        .drawer-subitems.open {
+          max-height: 400px;
+          opacity: 1;
           padding: 0.5rem 0 0.5rem 0.5rem;
         }
 
