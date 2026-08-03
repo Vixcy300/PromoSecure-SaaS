@@ -179,7 +179,7 @@ const Terms = () => {
                 }
 
                 .terms-nav {
-                    background: white;
+                    background: var(--bg-card);
                     border-bottom: 1px solid var(--border-color);
                     padding: 1rem 0;
                     position: sticky;

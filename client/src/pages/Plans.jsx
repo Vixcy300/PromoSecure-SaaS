@@ -2,6 +2,8 @@ import { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { HiArrowLeft, HiCheck, HiSparkles, HiShieldCheck, HiSupport, HiLightningBolt, HiMail, HiUser, HiPhone, HiOfficeBuilding, HiX, HiCreditCard, HiLockClosed } from 'react-icons/hi';
 import toast from 'react-hot-toast';
+import { SquishyCard } from '../components/SquishyCard';
+import PaymentForm from '../components/PaymentForm';
 
 const Plans = () => {
     const navigate = useNavigate();
@@ -21,6 +23,7 @@ const Plans = () => {
         company: ''
     });
     const [submitting, setSubmitting] = useState(false);
+    const [paymentError, setPaymentError] = useState(null);
 
     const scrollToDemo = () => {
         demoRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -41,18 +44,18 @@ const Plans = () => {
     };
 
     const handleProSubmit = async (e) => {
-        e.preventDefault();
-        if (!proForm.name || !proForm.email) {
-            toast.error('Please fill in required fields');
-            return;
-        }
+        if (e && e.preventDefault) e.preventDefault();
         setSubmitting(true);
-        // Simulate payment processing
-        await new Promise(r => setTimeout(r, 2000));
-        toast.success('🎉 Pro account activated! Redirecting to login...');
+        setPaymentError(null);
+        // Simulate payment gateway processing attempt
+        await new Promise(r => setTimeout(r, 1800));
         setSubmitting(false);
-        setShowProModal(false);
-        setTimeout(() => navigate('/login'), 1500);
+        const errMsg = 'Payment Gateway Error: Payment API is expired. Please contact developers at vigneshigt@gmail.com to activate your subscription.';
+        setPaymentError(errMsg);
+        toast.error('⚠️ Payment API is expired. Contact devs: vigneshigt@gmail.com', {
+            duration: 8000,
+            id: 'payment-api-expired'
+        });
     };
 
     const plans = [
@@ -90,8 +93,11 @@ const Plans = () => {
                 'Custom branding',
                 'Export to Excel/PDF'
             ],
-            cta: 'Start Pro Now',
-            action: () => setShowProModal(true),
+            cta: 'Start Pro Plan',
+            action: () => {
+                setPaymentError(null);
+                setShowProModal(true);
+            },
             popular: true,
             discount: '50% OFF'
         },
@@ -138,43 +144,12 @@ const Plans = () => {
                 <div className="plans-container">
                     <div className="plans-grid">
                         {plans.map((plan, index) => (
-                            <div
-                                key={plan.name}
-                                className={`plan-card ${plan.popular ? 'popular' : ''}`}
-                                style={{ animationDelay: `${index * 0.1}s` }}
-                            >
-                                {plan.discount && (
-                                    <div className="plan-discount">{plan.discount}</div>
-                                )}
-                                {plan.popular && (
-                                    <div className="plan-badge">Most Popular</div>
-                                )}
-                                <div className="plan-header">
-                                    <h3>{plan.name}</h3>
-                                    <p className="plan-description">{plan.description}</p>
-                                    <div className="plan-price">
-                                        {plan.originalPrice && (
-                                            <span className="original-price">{plan.originalPrice}</span>
-                                        )}
-                                        <span className="current-price">{plan.price}</span>
-                                        {plan.period && <span className="price-period">/{plan.period}</span>}
-                                    </div>
-                                </div>
-                                <ul className="plan-features">
-                                    {plan.features.map((feature, i) => (
-                                        <li key={i}>
-                                            <HiCheck className="check-icon" />
-                                            {feature}
-                                        </li>
-                                    ))}
-                                </ul>
-                                <button
-                                    className={`plan-cta ${plan.popular ? 'primary' : 'secondary'}`}
-                                    onClick={plan.action}
-                                >
-                                    {plan.cta}
-                                </button>
-                            </div>
+                            <SquishyCard 
+                                key={plan.name} 
+                                plan={plan} 
+                                onAction={plan.action} 
+                                delay={index * 0.1} 
+                            />
                         ))}
                     </div>
                 </div>
@@ -332,65 +307,49 @@ const Plans = () => {
                             <span className="modal-price">₹1,249<span>/month</span></span>
                             <span className="modal-savings">You save ₹1,250/month!</span>
                         </div>
-                        <form className="pro-form" onSubmit={handleProSubmit}>
-                            <div className="form-group">
-                                <label><HiUser /> Full Name *</label>
-                                <input
-                                    type="text"
-                                    className="input"
-                                    placeholder="Your name"
-                                    value={proForm.name}
-                                    onChange={(e) => setProForm({ ...proForm, name: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label><HiMail /> Email *</label>
-                                <input
-                                    type="email"
-                                    className="input"
-                                    placeholder="you@company.com"
-                                    value={proForm.email}
-                                    onChange={(e) => setProForm({ ...proForm, email: e.target.value })}
-                                    required
-                                />
-                            </div>
-                            <div className="form-row">
-                                <div className="form-group">
-                                    <label><HiPhone /> Phone</label>
-                                    <input
-                                        type="tel"
-                                        className="input"
-                                        placeholder="+91 98765 43210"
-                                        value={proForm.phone}
-                                        onChange={(e) => setProForm({ ...proForm, phone: e.target.value })}
-                                    />
+
+                        {paymentError && (
+                            <div className="payment-error-alert" style={{
+                                background: '#fef2f2',
+                                border: '1px solid #f87171',
+                                borderRadius: '12px',
+                                padding: '1rem',
+                                marginBottom: '1.25rem',
+                                textAlign: 'left'
+                            }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#b91c1c', fontWeight: 700, fontSize: '0.9rem', marginBottom: '0.35rem' }}>
+                                    <span style={{ fontSize: '1.1rem' }}>⚠️</span> Payment Gateway API Expired
                                 </div>
-                                <div className="form-group">
-                                    <label><HiOfficeBuilding /> Company</label>
-                                    <input
-                                        type="text"
-                                        className="input"
-                                        placeholder="Your company"
-                                        value={proForm.company}
-                                        onChange={(e) => setProForm({ ...proForm, company: e.target.value })}
-                                    />
-                                </div>
+                                <p style={{ margin: '0 0 0.75rem', fontSize: '0.82rem', color: '#7f1d1d', lineHeight: 1.4 }}>
+                                    The payment gateway integration has expired. Please contact our development team at <strong style={{ color: '#991b1b' }}>vigneshigt@gmail.com</strong> to activate your subscription.
+                                </p>
+                                <a 
+                                    href="mailto:vigneshigt@gmail.com?subject=PromoSecure%20Pro%20Plan%20Activation" 
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.4rem',
+                                        fontSize: '0.82rem',
+                                        fontWeight: 700,
+                                        color: '#ffffff',
+                                        background: '#dc2626',
+                                        padding: '0.45rem 0.9rem',
+                                        borderRadius: '8px',
+                                        textDecoration: 'none',
+                                        boxShadow: '0 2px 6px rgba(220, 38, 38, 0.3)'
+                                    }}
+                                >
+                                    <HiMail /> Email Developer (vigneshigt@gmail.com)
+                                </a>
                             </div>
-                            <div className="payment-info">
-                                <HiCreditCard /> Payment will be processed securely
-                            </div>
-                            <button type="submit" className="btn btn-primary btn-lg pro-submit" disabled={submitting}>
-                                {submitting ? (
-                                    <>Processing...</>
-                                ) : (
-                                    <><HiLockClosed /> Pay ₹1,249 & Activate Pro</>
-                                )}
-                            </button>
-                            <p className="secure-note">
-                                <HiShieldCheck /> 256-bit SSL encryption • 30-day money back guarantee
-                            </p>
-                        </form>
+                        )}
+
+                        <PaymentForm 
+                            amount="₹1,249"
+                            onSubmit={handleProSubmit}
+                            onCancel={() => setShowProModal(false)}
+                            submitting={submitting}
+                        />
                     </div>
                 </div>
             )}
@@ -954,15 +913,44 @@ const Plans = () => {
                     }
                 }
 
-                @media (max-width: 900px) {
+                @media (max-width: 1024px) {
+                    .plans-grid {
+                        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                    }
+                }
+
+                @media (max-width: 768px) {
+                    .plans-header {
+                        padding: 1.5rem 1rem 3rem;
+                    }
+                    .back-link {
+                        position: relative;
+                        top: 0;
+                        left: 0;
+                        display: inline-flex;
+                        margin-bottom: 1rem;
+                    }
+                    .plans-header h1 {
+                        font-size: 1.85rem;
+                    }
+                    .plans-section {
+                        padding: 1.5rem 1rem;
+                    }
                     .plans-grid, .trust-grid, .faq-grid, .demo-content {
                         grid-template-columns: 1fr;
+                        gap: 1.5rem;
                     }
                     .plan-card.popular {
                         transform: none;
                     }
                     .form-row {
                         grid-template-columns: 1fr;
+                    }
+                    .pro-modal {
+                        width: 95%;
+                        padding: 1.5rem;
+                        max-height: 90vh;
+                        overflow-y: auto;
                     }
                 }
             `}</style>

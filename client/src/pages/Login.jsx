@@ -1,45 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { HiMail, HiLockClosed, HiUser, HiShieldCheck, HiArrowRight, HiCamera, HiEye, HiCheck, HiHome } from 'react-icons/hi';
+import { motion, AnimatePresence } from "framer-motion";
+import { CanvasRevealEffect } from '../components/CanvasRevealEffect';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login, user } = useAuth();
+
   const [isAdminRegister, setIsAdminRegister] = useState(false);
   const [adminExists, setAdminExists] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [loginMethod, setLoginMethod] = useState('otp');
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     name: '',
     confirmPassword: '',
-    otp: '',
     setupKey: ''
   });
-  const [loginMethod, setLoginMethod] = useState('otp'); // 'otp' or 'password'
-  const [otpSent, setOtpSent] = useState(false);
+
+  const [step, setStep] = useState("auth");
+  const [code, setCode] = useState(["", "", "", "", "", ""]);
+  const codeInputRefs = useRef([]);
   const [resendTimer, setResendTimer] = useState(0);
-  const [adminCheckDone, setAdminCheckDone] = useState(false);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
+
+  const [initialCanvasVisible, setInitialCanvasVisible] = useState(true);
+  const [reverseCanvasVisible, setReverseCanvasVisible] = useState(false);
 
   useEffect(() => {
-    // Non-blocking admin check - form shows immediately
     checkAdminExists();
-    if (user) {
-      redirectToDashboard(user.role);
-    }
+    if (user) redirectToDashboard(user.role);
 
-    // Timer countdown
     let interval;
     if (resendTimer > 0) {
-      interval = setInterval(() => {
-        setResendTimer((prev) => prev - 1);
-      }, 1000);
+      interval = setInterval(() => setResendTimer(p => p - 1), 1000);
     }
     return () => clearInterval(interval);
   }, [user, resendTimer]);
+
+  useEffect(() => {
+    if (step === "code") {
+      setTimeout(() => codeInputRefs.current[0]?.focus(), 500);
+    }
+  }, [step]);
 
   const checkAdminExists = async () => {
     try {
@@ -48,7 +56,6 @@ const Login = () => {
     } catch {
       setAdminExists(false);
     }
-    setAdminCheckDone(true);
   };
 
   const redirectToDashboard = (role) => {
@@ -56,30 +63,10 @@ const Login = () => {
     navigate(routes[role] || '/login');
   };
 
-  const handleSendOTP = async () => {
-    if (!formData.email) {
-      toast.error('Please enter your email address');
-      return;
-    }
-    setLoading(true);
-    try {
-      await api.post('/auth/send-otp', {
-        email: formData.email,
-        type: 'login'
-      });
-      setOtpSent(true);
-      setResendTimer(60);
-      toast.success('OTP sent to your email!');
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to send OTP');
-    }
-    setLoading(false);
-  };
-
-  const handleSubmit = async (e) => {
+  const handleAuthSubmit = async (e) => {
     e.preventDefault();
+    if (!formData.email) return;
     setLoading(true);
-
     try {
       if (isAdminRegister) {
         if (formData.password !== formData.confirmPassword) {
@@ -94,26 +81,23 @@ const Login = () => {
           setupKey: formData.setupKey
         });
         login(res.data.token, res.data.user);
-        toast.success('Admin account created successfully!');
-        redirectToDashboard(res.data.user.role);
+        toast.success('Admin account created!');
+        triggerSuccess();
       } else {
-        // Login Logic
-        if (loginMethod === 'otp') {
-          const res = await api.post('/auth/login-otp', {
-            email: formData.email,
-            otp: formData.otp,
-          });
-          login(res.data.token, res.data.user);
-        } else {
+        if (loginMethod === 'password') {
           const res = await api.post('/auth/login', {
             email: formData.email,
-            password: formData.password,
+            password: formData.password
           });
           login(res.data.token, res.data.user);
+          toast.success('Login successful!');
+          triggerSuccess();
+        } else {
+          await api.post('/auth/send-otp', { email: formData.email, type: 'login' });
+          setResendTimer(60);
+          toast.success('OTP sent to your email!');
+          setStep("code");
         }
-        toast.success(`Welcome back!`);
-        // User role redirection is handled by useEffect or explicit navigation if needed
-        // But login context updates user which triggers useEffect
       }
     } catch (error) {
       toast.error(error.response?.data?.message || 'Authentication failed');
@@ -121,590 +105,436 @@ const Login = () => {
     setLoading(false);
   };
 
-  const features = [
-    { icon: HiCamera, title: 'Photo Capture', desc: 'In-app camera with real-time preview' },
-    { icon: HiEye, title: 'AI Face Blur', desc: '4-layer privacy protection system' },
-    { icon: HiCheck, title: 'Smart Verification', desc: 'Duplicate detection & uniqueness check' },
-    { icon: HiShieldCheck, title: 'Enterprise Security', desc: 'JWT auth, rate limiting, encryption' },
-  ];
+  const handleCodeChange = async (index, value) => {
+    // Get only the last character entered (helps on Android/mobile auto-completes)
+    const char = value.slice(-1);
+    
+    // Only allow numbers
+    if (char && !/^\d$/.test(char)) {
+      return;
+    }
+
+    const newCode = [...code];
+    newCode[index] = char;
+    setCode(newCode);
+
+    if (char) {
+      if (index < 5) {
+        codeInputRefs.current[index + 1]?.focus();
+      } else {
+        // Last input filled, let's verify if all are filled
+        if (newCode.every(d => d !== "")) {
+          verifyOTP(newCode.join(''));
+        }
+      }
+    }
+  };
+
+  const verifyOTP = async (otpValue) => {
+    setLoading(true);
+    try {
+      // Corrected to use '/auth/login-otp' to fetch token & user data
+      const res = await api.post('/auth/login-otp', { email: formData.email, otp: otpValue });
+      login(res.data.token, res.data.user);
+      toast.success('Login successful!');
+      triggerSuccess();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Invalid OTP');
+      setCode(["", "", "", "", "", ""]);
+      codeInputRefs.current[0]?.focus();
+    }
+    setLoading(false);
+  };
+
+  const triggerSuccess = () => {
+    setReverseCanvasVisible(true);
+    setTimeout(() => setInitialCanvasVisible(false), 50);
+    setTimeout(() => setStep("success"), 2000);
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === "Backspace") {
+      if (!code[index] && index > 0) {
+        // Clear previous box and focus it
+        const newCode = [...code];
+        newCode[index - 1] = "";
+        setCode(newCode);
+        codeInputRefs.current[index - 1]?.focus();
+      } else if (code[index]) {
+        // Clear current box
+        const newCode = [...code];
+        newCode[index] = "";
+        setCode(newCode);
+      }
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').trim();
+    if (!/^\d{1,6}$/.test(pastedData)) return; // Allow up to 6 digits
+    
+    const pastedDigits = pastedData.slice(0, 6).split('');
+    const newCode = [...code];
+    
+    pastedDigits.forEach((digit, idx) => {
+      newCode[idx] = digit;
+    });
+    
+    setCode(newCode);
+    
+    // Focus next available slot
+    const nextFocusIndex = Math.min(pastedDigits.length, 5);
+    codeInputRefs.current[nextFocusIndex]?.focus();
+    
+    // If fully filled, verify immediately
+    if (newCode.every(d => d !== "")) {
+      verifyOTP(newCode.join(''));
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (resendTimer > 0) return;
+    try {
+      await api.post('/auth/send-otp', { email: formData.email, type: 'login' });
+      setResendTimer(60);
+      toast.success('OTP resent successfully');
+    } catch {
+      toast.error('Failed to resend OTP');
+    }
+  };
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        {/* Left Panel - Branding */}
-        <div className="login-hero">
-          <div className="hero-content">
-            <div className="hero-badge">
-              <span className="badge-dot"></span>
-              <span>Production Ready SaaS</span>
-            </div>
-
-            <h1 className="hero-title">
-              <span className="brand-gradient">PromoSecure</span>
-            </h1>
-
-            <p className="hero-subtitle">
-              Privacy-first promotional verification platform with AI-powered face blurring
-              and smart duplicate detection.
-            </p>
-
-            <div className="hero-features">
-              {features.map((feature, index) => (
-                <div key={index} className="hero-feature">
-                  <div className="feature-icon">
-                    <feature.icon />
-                  </div>
-                  <div className="feature-content">
-                    <span className="feature-title">{feature.title}</span>
-                    <span className="feature-desc">{feature.desc}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="hero-stats">
-              <div className="stat">
-                <span className="stat-value">100%</span>
-                <span className="stat-label">Privacy</span>
-              </div>
-              <div className="stat">
-                <span className="stat-value">4-Layer</span>
-                <span className="stat-label">Face Blur</span>
-              </div>
-              <div className="stat">
-                <span className="stat-value">Free</span>
-                <span className="stat-label">To Start</span>
-              </div>
-            </div>
+    <div style={{ display: 'flex', width: '100%', flexDirection: 'column', minHeight: '100vh', backgroundColor: '#000', position: 'relative' }}>
+      {/* Background Canvas Layer */}
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+        {initialCanvasVisible && (
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <CanvasRevealEffect
+              animationSpeed={3}
+              containerClassName="bg-black"
+              colors={[[255, 255, 255], [255, 255, 255]]}
+              dotSize={6}
+              reverse={false}
+            />
           </div>
+        )}
+        {reverseCanvasVisible && (
+          <div style={{ position: 'absolute', inset: 0 }}>
+            <CanvasRevealEffect
+              animationSpeed={4}
+              containerClassName="bg-black"
+              colors={[[255, 255, 255], [255, 255, 255]]}
+              dotSize={6}
+              reverse={true}
+            />
+          </div>
+        )}
+        <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at center, rgba(0,0,0,0.85) 0%, transparent 100%)' }} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '33%', background: 'linear-gradient(to bottom, #000, transparent)' }} />
+      </div>
 
-          <div className="hero-gradient"></div>
-        </div>
-
-        {/* Right Panel - Form */}
-        <div className="login-form-panel">
-          <div className="form-container">
-            <Link to="/" className="home-link">
-              <HiHome /> Back to Home
+      {/* Content */}
+      <div style={{ position: 'relative', zIndex: 10, display: 'flex', flexDirection: 'column', flex: 1 }}>
+        {/* Top Nav */}
+        <header style={{
+          position: 'fixed', top: '1.5rem', left: '50%', transform: 'translateX(-50%)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0.75rem 1.5rem', borderRadius: '9999px',
+          border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(15,15,15,0.6)',
+          backdropFilter: 'blur(12px)', zIndex: 50, gap: '2rem',
+          width: 'min(calc(100% - 2rem), 700px)'
+        }}>
+          <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', textDecoration: 'none', color: 'white', fontWeight: 700, fontSize: '1rem' }}>
+            <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'white', color: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.85rem' }}>P</span>
+            PromoSecure
+          </Link>
+          <nav style={{ display: 'flex', gap: '1.5rem' }}>
+            {[['/', 'Home'], ['/plans', 'Pricing'], ['/blog', 'Blog']].map(([href, label]) => (
+              <Link key={href} to={href} style={{ color: 'rgba(255,255,255,0.6)', textDecoration: 'none', fontSize: '0.875rem', transition: 'color 0.2s' }}
+                onMouseEnter={e => e.target.style.color = 'white'} onMouseLeave={e => e.target.style.color = 'rgba(255,255,255,0.6)'}>
+                {label}
+              </Link>
+            ))}
+          </nav>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <Link to="/plans" style={{ padding: '0.4rem 1rem', borderRadius: '9999px', border: '1px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.7)', textDecoration: 'none', fontSize: '0.8rem', transition: 'all 0.2s' }}>
+              Get Pro
             </Link>
-            <div className="form-header">
-              <div className="form-logo">🔒</div>
-              <h2>{isAdminRegister ? 'Create Admin Account' : 'Welcome Back'}</h2>
-              <p className="text-muted">
-                {isAdminRegister
-                  ? 'Set up your PromoSecure platform'
-                  : 'Sign in to continue to your dashboard'}
-              </p>
-            </div>
+          </div>
+        </header>
 
-            <form onSubmit={handleSubmit} className="login-form">
-              {isAdminRegister && (
-                <div className="input-group">
-                  <label>
-                    <HiUser className="label-icon" />
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="John Doe"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-              )}
+        {/* Main Form Area */}
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8rem 1rem 2rem' }}>
+          <div style={{ width: '100%', maxWidth: '22rem' }}>
+            <AnimatePresence mode="wait">
 
-              {isAdminRegister && (
-                <div className="input-group">
-                  <label>
-                    <HiShieldCheck className="label-icon" />
-                    Initial Setup Key
-                  </label>
-                  <input
-                    type="password"
-                    className="input"
-                    placeholder="Enter setup key from server environment"
-                    value={formData.setupKey}
-                    onChange={(e) => setFormData({ ...formData, setupKey: e.target.value })}
-                    required
-                  />
-                  <p className="text-xs text-muted" style={{ marginTop: '0.25rem' }}>
-                    Only authorized administrators with the server setup key can create the first admin account.
-                  </p>
-                </div>
-              )}
-
-              <div className="input-group">
-                <label>
-                  <HiMail className="label-icon" />
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  className="input"
-                  placeholder="you@company.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                />
-              </div>
-
-              {!isAdminRegister && loginMethod === 'password' && (
-                <div className="input-group">
-                  <label>
-                    <HiLockClosed className="label-icon" />
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    className="input"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    required
-                    minLength={8}
-                  />
-                </div>
-              )}
-
-              {/* Admin Register Password Fields */}
-              {isAdminRegister && (
-                <>
-                  <div className="input-group">
-                    <label>
-                      <HiLockClosed className="label-icon" />
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      className="input"
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required={isAdminRegister}
-                      minLength={8}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>
-                      <HiLockClosed className="label-icon" />
-                      Confirm Password
-                    </label>
-                    <input
-                      type="password"
-                      className="input"
-                      placeholder="••••••••"
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      required={isAdminRegister}
-                      minLength={8}
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* OTP Input */}
-              {!isAdminRegister && loginMethod === 'otp' && otpSent && (
-                <div className="input-group">
-                  <label>
-                    <HiShieldCheck className="label-icon" />
-                    Enter OTP
-                  </label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="123456"
-                    value={formData.otp}
-                    onChange={(e) => setFormData({ ...formData, otp: e.target.value })}
-                    required
-                    maxLength={6}
-                    style={{ letterSpacing: '0.5em', textAlign: 'center', fontSize: '1.2em' }}
-                  />
-                  <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
-                    {resendTimer > 0 ? (
-                      <span className="text-xs text-muted">Resend in {resendTimer}s</span>
-                    ) : (
-                      <button type="button" onClick={handleSendOTP} className="text-xs text-brand btn-ghost">
-                        Resend OTP
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {!isAdminRegister && loginMethod === 'otp' && !otpSent ? (
-                <button type="button" onClick={handleSendOTP} className="btn btn-primary btn-lg w-full" disabled={loading}>
-                  {loading ? 'Sending...' : 'Get OTP Code'}
-                </button>
-              ) : (
-                <button type="submit" className="btn btn-primary btn-lg w-full" disabled={loading}>
-                  {loading ? (
-                    <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }}></div>
-                  ) : (
-                    <>
-                      {isAdminRegister ? 'Create Platform' : 'Sign In'}
-                      <HiArrowRight />
-                    </>
-                  )}
-                </button>
-              )}
-
-              {!isAdminRegister && (
-                <div className="form-switch" style={{ borderTop: 'none', marginTop: '0.5rem', paddingTop: 0 }}>
-                  <button
-                    type="button"
-                    className="btn btn-ghost w-full text-sm"
-                    onClick={() => {
-                      setLoginMethod(loginMethod === 'otp' ? 'password' : 'otp');
-                      setOtpSent(false);
-                    }}
-                  >
-                    {loginMethod === 'otp' ? 'Login with Password' : 'Login with OTP'}
-                  </button>
-                </div>
-              )}
-            </form>
-
-            {!adminExists && (
-              <div className="form-switch">
-                <button
-                  className="btn btn-ghost w-full"
-                  onClick={() => setIsAdminRegister(!isAdminRegister)}
+              {/* ── STEP 1: Auth ── */}
+              {step === "auth" && (
+                <motion.div
+                  key="auth-step"
+                  initial={{ opacity: 0, x: -60 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -60 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  style={{ textAlign: 'center' }}
                 >
-                  {isAdminRegister
-                    ? 'Already have an account? Sign In'
-                    : 'First time? Create Admin Account'}
-                </button>
-              </div>
-            )}
+                  <div style={{ marginBottom: '2rem' }}>
+                    <h1 style={{ fontSize: '2.4rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'white', lineHeight: 1.1, margin: '0 0 0.5rem' }}>
+                      {isAdminRegister ? 'Create Admin' : 'Welcome Back'}
+                    </h1>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem', fontWeight: 300, margin: 0 }}>
+                      {isAdminRegister ? 'Setup your workspace' : 'Sign in to PromoSecure'}
+                    </p>
+                  </div>
 
-            <div className="form-footer">
-              <p className="text-xs text-muted text-center">
-                By continuing, you agree to our <Link to="/terms" style={{ color: 'var(--brand-primary)' }}>Terms of Service</Link> and <Link to="/privacy" style={{ color: 'var(--brand-primary)' }}>Privacy Policy</Link>.
-              </p>
-            </div>
+                  {/* Method Toggle (OTP vs Password) */}
+                  {!isAdminRegister && (
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.05)', borderRadius: '9999px', padding: '0.25rem' }}>
+                      {[['otp', 'Email OTP'], ['password', 'Password']].map(([m, label]) => (
+                        <button key={m} onClick={() => setLoginMethod(m)} style={{
+                          flex: 1, padding: '0.5rem', borderRadius: '9999px', border: 'none',
+                          background: loginMethod === m ? 'white' : 'transparent',
+                          color: loginMethod === m ? '#000' : 'rgba(255,255,255,0.5)',
+                          fontWeight: 600, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s'
+                        }}>{label}</button>
+                      ))}
+                    </div>
+                  )}
+
+                  <form onSubmit={handleAuthSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', textAlign: 'left' }}>
+                    {isAdminRegister && (
+                      <>
+                        <input type="text" placeholder="Full Name" value={formData.name}
+                          onChange={e => setFormData({ ...formData, name: e.target.value })}
+                          style={inputStyle} required />
+                        <input type="password" placeholder="Setup Key" value={formData.setupKey}
+                          onChange={e => setFormData({ ...formData, setupKey: e.target.value })}
+                          style={inputStyle} required />
+                      </>
+                    )}
+
+                    <div style={{ position: 'relative' }}>
+                      <input type="email" placeholder="your@email.com" value={formData.email}
+                        onChange={e => setFormData({ ...formData, email: e.target.value })}
+                        style={{ ...inputStyle, paddingRight: loginMethod === 'otp' && !isAdminRegister ? '3.5rem' : '1.25rem', textAlign: 'center' }}
+                        required />
+                      {loginMethod === 'otp' && !isAdminRegister && (
+                        <button type="submit" disabled={loading} style={{
+                          position: 'absolute', right: '0.375rem', top: '50%', transform: 'translateY(-50%)',
+                          width: '2.25rem', height: '2.25rem', borderRadius: '50%',
+                          background: 'rgba(255,255,255,0.12)', border: 'none', color: 'white',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          cursor: 'pointer', fontSize: '1rem', transition: 'background 0.2s'
+                        }}>
+                          {loading ? '…' : '→'}
+                        </button>
+                      )}
+                    </div>
+
+                    {(loginMethod === 'password' || isAdminRegister) && (
+                      <>
+                        <input type="password" placeholder="Password" value={formData.password}
+                          onChange={e => setFormData({ ...formData, password: e.target.value })}
+                          style={inputStyle} required />
+                        {isAdminRegister && (
+                          <input type="password" placeholder="Confirm Password" value={formData.confirmPassword}
+                            onChange={e => setFormData({ ...formData, confirmPassword: e.target.value })}
+                            style={inputStyle} required />
+                        )}
+                        <button type="submit" disabled={loading} style={{
+                          width: '100%', padding: '0.75rem', borderRadius: '9999px',
+                          background: 'white', color: '#000', fontWeight: 700,
+                          fontSize: '0.95rem', border: 'none', cursor: 'pointer',
+                          transition: 'opacity 0.2s', opacity: loading ? 0.7 : 1
+                        }}>
+                          {loading ? 'Processing...' : (isAdminRegister ? 'Create Account' : 'Sign In')}
+                        </button>
+                      </>
+                    )}
+                  </form>
+
+                  {/* Admin setup link */}
+                  {(!adminExists || isAdminRegister) && (
+                    <div style={{ marginTop: '1rem' }}>
+                      <button onClick={() => setIsAdminRegister(!isAdminRegister)}
+                        style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' }}>
+                        {isAdminRegister ? 'Back to Login' : 'First time? Setup Admin'}
+                      </button>
+                    </div>
+                  )}
+
+                  <p style={{ marginTop: '2rem', fontSize: '0.7rem', color: 'rgba(255,255,255,0.3)', lineHeight: 1.6 }}>
+                    By signing in, you agree to our{' '}
+                    <Link to="/terms" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'underline' }}>Terms</Link>,{' '}
+                    <Link to="/privacy" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'underline' }}>Privacy Policy</Link>, and{' '}
+                    <Link to="/plans" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'underline' }}>Usage Terms</Link>.
+                  </p>
+                </motion.div>
+              )}
+
+              {/* ── STEP 2: OTP Code ── */}
+              {step === "code" && (
+                <motion.div
+                  key="code-step"
+                  initial={{ opacity: 0, x: 80 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 80 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  style={{ textAlign: 'center' }}
+                >
+                  <div style={{ marginBottom: '2rem' }}>
+                    <h1 style={{ fontSize: '2.2rem', fontWeight: 800, letterSpacing: '-0.03em', color: 'white', lineHeight: 1.1, margin: '0 0 0.5rem' }}>
+                      Check your email
+                    </h1>
+                    <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.9rem', margin: 0 }}>
+                      We sent a 6-digit code to<br />
+                      <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 500 }}>{formData.email}</span>
+                    </p>
+                  </div>
+
+                  {/* OTP Input Row */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'rgba(255,255,255,0.05)', borderRadius: '9999px',
+                    border: '1px solid rgba(255,255,255,0.1)', padding: '0.5rem 1.25rem',
+                    marginBottom: '1.5rem'
+                  }}>
+                    {code.map((digit, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center' }}>
+                        <div style={{
+                          position: 'relative',
+                          width: '2.5rem',
+                          height: '3.5rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderBottom: focusedIndex === i ? '2px solid rgba(255,255,255,0.8)' : '2px solid transparent',
+                          transition: 'border-color 0.25s ease'
+                        }}>
+                          <input
+                            ref={el => { codeInputRefs.current[i] = el; }}
+                            type="text" inputMode="numeric" pattern="[0-9]*" maxLength={1}
+                            value={digit}
+                            onChange={e => handleCodeChange(i, e.target.value)}
+                            onKeyDown={e => handleKeyDown(i, e)}
+                            onPaste={handlePaste}
+                            onFocus={() => setFocusedIndex(i)}
+                            onBlur={() => setFocusedIndex(-1)}
+                            disabled={loading}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              textAlign: 'center',
+                              fontSize: '1.4rem',
+                              background: 'transparent',
+                              color: 'white',
+                              border: 'none',
+                              outline: 'none',
+                              caretColor: 'white',
+                              fontWeight: 700,
+                              boxSizing: 'border-box'
+                            }}
+                          />
+                          {!digit && (
+                            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                              <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '1.4rem' }}>○</span>
+                            </div>
+                          )}
+                        </div>
+                        {i < 5 && <span style={{ color: 'rgba(255,255,255,0.15)', fontSize: '1.2rem', margin: '0 0.15rem' }}>|</span>}
+                      </div>
+                    ))}
+                  </div>
+
+                  <button onClick={handleResendOTP} style={{
+                    background: 'none', border: 'none', marginBottom: '1.5rem',
+                    color: resendTimer > 0 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.5)',
+                    cursor: resendTimer > 0 ? 'default' : 'pointer', fontSize: '0.85rem',
+                    transition: 'color 0.2s'
+                  }}>
+                    {resendTimer > 0 ? `Resend code in ${resendTimer}s` : 'Resend code'}
+                  </button>
+
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button onClick={() => { setStep("auth"); setCode(["","","","","",""]); }}
+                      disabled={loading}
+                      style={{ flex: '0 0 30%', padding: '0.75rem', borderRadius: '9999px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'white', fontWeight: 600, cursor: 'pointer', transition: 'background 0.2s' }}>
+                      Back
+                    </button>
+                    <button
+                      disabled={!code.every(d => d !== "") || loading}
+                      style={{
+                        flex: 1, padding: '0.75rem', borderRadius: '9999px', border: 'none',
+                        background: code.every(d => d !== "") ? 'white' : 'rgba(255,255,255,0.08)',
+                        color: code.every(d => d !== "") ? '#000' : 'rgba(255,255,255,0.3)',
+                        fontWeight: 700, cursor: code.every(d => d !== "") ? 'pointer' : 'not-allowed',
+                        transition: 'all 0.3s'
+                      }}>
+                      {loading ? 'Verifying...' : 'Continue'}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* ── STEP 3: Success ── */}
+              {step === "success" && (
+                <motion.div
+                  key="success-step"
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
+                  style={{ textAlign: 'center' }}
+                >
+                  <motion.div
+                    initial={{ scale: 0.6, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 0.6, delay: 0.4, type: 'spring' }}
+                    style={{ marginBottom: '2rem' }}
+                  >
+                    <div style={{
+                      width: '5rem', height: '5rem', borderRadius: '50%',
+                      background: 'linear-gradient(135deg, white, rgba(255,255,255,0.7))',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      margin: '0 auto 1.5rem'
+                    }}>
+                      <svg style={{ width: '2.5rem', height: '2.5rem', color: '#000' }} viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <h1 style={{ fontSize: '2.5rem', fontWeight: 800, color: 'white', letterSpacing: '-0.03em', margin: '0 0 0.5rem' }}>You're in!</h1>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '1.1rem', fontWeight: 300, margin: 0 }}>Welcome to PromoSecure</p>
+                  </motion.div>
+
+                  <motion.button
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
+                    onClick={() => redirectToDashboard(user?.role)}
+                    style={{ width: '100%', padding: '0.875rem', borderRadius: '9999px', background: 'white', color: '#000', fontWeight: 700, fontSize: '1rem', border: 'none', cursor: 'pointer', transition: 'opacity 0.2s' }}
+                  >
+                    Continue to Dashboard →
+                  </motion.button>
+                </motion.div>
+              )}
+
+            </AnimatePresence>
           </div>
         </div>
       </div>
-
-      <style>{`
-        .login-page {
-          min-height: 100vh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1rem;
-        }
-
-        .login-container {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          width: 100%;
-          max-width: 1200px;
-          min-height: 700px;
-          background: var(--bg-secondary);
-          border-radius: var(--radius-2xl);
-          overflow: hidden;
-          border: 1px solid var(--border-color);
-          box-shadow: var(--shadow-lg);
-        }
-
-        /* Hero Panel */
-        .login-hero {
-          position: relative;
-          padding: 3rem;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          overflow: hidden;
-          background: linear-gradient(135deg, var(--bg-tertiary), var(--bg-elevated));
-        }
-
-        .hero-gradient {
-          position: absolute;
-          top: -50%;
-          right: -50%;
-          width: 100%;
-          height: 100%;
-          background: radial-gradient(circle, rgba(0, 102, 204, 0.08), transparent 60%);
-          pointer-events: none;
-        }
-
-        .hero-content {
-          position: relative;
-          z-index: 1;
-        }
-
-        .hero-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          background: var(--primary-50);
-          border: 1px solid var(--primary-200);
-          border-radius: var(--radius-full);
-          font-size: 0.8rem;
-          font-weight: 600;
-          color: var(--brand-primary);
-          margin-bottom: 1.5rem;
-        }
-
-        .badge-dot {
-          width: 8px;
-          height: 8px;
-          background: var(--success);
-          border-radius: 50%;
-          animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-
-        .hero-title {
-          font-size: clamp(2rem, 5vw, 3rem);
-          font-weight: 800;
-          margin-bottom: 1rem;
-          line-height: 1.1;
-        }
-
-        .brand-gradient {
-          color: var(--brand-primary);
-        }
-
-        .hero-subtitle {
-          font-size: 1.1rem;
-          color: var(--text-secondary);
-          line-height: 1.7;
-          margin-bottom: 2rem;
-          max-width: 400px;
-        }
-
-        .hero-features {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          margin-bottom: 2rem;
-        }
-
-        .hero-feature {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-        }
-
-        .feature-icon {
-          width: 44px;
-          height: 44px;
-          background: var(--bg-card);
-          border-radius: var(--radius-lg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--brand-primary);
-          font-size: 1.25rem;
-          flex-shrink: 0;
-        }
-
-        .feature-content {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .feature-title {
-          font-weight: 600;
-          font-size: 0.95rem;
-        }
-
-        .feature-desc {
-          font-size: 0.8rem;
-          color: var(--text-muted);
-        }
-
-        .hero-stats {
-          display: flex;
-          gap: 2rem;
-          padding-top: 2rem;
-          border-top: 1px solid var(--border-color);
-        }
-
-        .stat {
-          text-align: center;
-        }
-
-        .stat-value {
-          display: block;
-          font-size: 1.5rem;
-          font-weight: 800;
-          color: var(--brand-primary);
-        }
-
-        .stat-label {
-          font-size: 0.8rem;
-          color: var(--text-muted);
-        }
-
-        /* Form Panel */
-        .login-form-panel {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 3rem;
-          background: var(--bg-primary);
-        }
-
-        .form-container {
-          width: 100%;
-          max-width: 400px;
-        }
-
-        .form-header {
-          text-align: center;
-          margin-bottom: 2rem;
-        }
-
-        .form-logo {
-          font-size: 3rem;
-          margin-bottom: 1rem;
-        }
-
-        .form-header h2 {
-          margin-bottom: 0.5rem;
-        }
-
-        .login-form {
-          display: flex;
-          flex-direction: column;
-          gap: 1.25rem;
-        }
-
-        .input-group label {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .label-icon {
-          color: var(--text-muted);
-        }
-
-        .form-switch {
-          margin-top: 1.5rem;
-          padding-top: 1.5rem;
-          border-top: 1px solid var(--border-color);
-        }
-
-        .home-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: var(--text-muted);
-          font-size: 0.9rem;
-          margin-bottom: 1.5rem;
-          transition: color var(--transition-fast);
-        }
-
-        .home-link:hover {
-          color: var(--brand-primary);
-        }
-
-        .form-footer {
-          margin-top: 2rem;
-        }
-
-        /* Mobile Responsive */
-        @media (max-width: 1024px) {
-          .login-container {
-            grid-template-columns: 1fr;
-            max-width: 500px;
-            min-height: auto;
-          }
-
-          .login-hero {
-            display: none;
-          }
-
-          .login-form-panel {
-            padding: 2rem;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .login-page {
-            padding: 0;
-            align-items: flex-start;
-          }
-
-          .login-container {
-            border-radius: 0;
-            min-height: 100vh;
-            max-width: 100%;
-            border: none;
-            box-shadow: none;
-          }
-
-          .login-form-panel {
-            padding: 1.5rem;
-            padding-top: max(2rem, env(safe-area-inset-top, 2rem));
-            padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
-          }
-
-          .form-container {
-            max-width: 100%;
-          }
-
-          .form-header h2 {
-            font-size: 1.5rem;
-          }
-
-          .form-logo {
-            font-size: 2.5rem;
-          }
-
-          .login-form {
-            gap: 1rem;
-          }
-
-          .login-form .input {
-            min-height: 48px;
-            font-size: 16px !important;
-            border-radius: var(--radius-lg);
-          }
-
-          .btn-lg {
-            min-height: 48px;
-            font-size: 1rem;
-            border-radius: var(--radius-lg);
-          }
-
-          .input-group label {
-            font-size: 0.85rem;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .login-form-panel {
-            padding: 1rem;
-            padding-top: max(1.5rem, env(safe-area-inset-top, 1.5rem));
-          }
-
-          .form-header {
-            margin-bottom: 1.5rem;
-          }
-
-          .form-footer {
-            margin-top: 1.5rem;
-          }
-
-          .form-footer p {
-            font-size: 0.75rem;
-          }
-        }
-      `}</style>
     </div>
   );
+};
+
+const inputStyle = {
+  width: '100%',
+  background: 'rgba(255,255,255,0.06)',
+  border: '1px solid rgba(255,255,255,0.12)',
+  color: 'white',
+  borderRadius: '9999px',
+  padding: '0.75rem 1.25rem',
+  outline: 'none',
+  fontSize: '0.95rem',
+  transition: 'border-color 0.2s',
+  boxSizing: 'border-box',
 };
 
 export default Login;

@@ -432,33 +432,20 @@ The security is mathematically guaranteed.
             <Footer />
 
             <style>{`
-                /* Ultra-Premium MNC Aesthetic (Linear / Vercel Vibe) */
-                @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-
-                * { box-sizing: border-box; margin: 0; padding: 0; }
-                
-                body {
-                    background-color: #000;
-                    color: #EDEDED;
-                    font-family: 'Inter', -apple-system, sans-serif;
-                    -webkit-font-smoothing: antialiased;
-                }
-
                 .layout-root {
                     min-height: 100vh;
                     display: flex;
                     flex-direction: column;
-                    background: #000;
+                    background: var(--bg-primary);
+                    color: var(--text-primary);
                 }
-
-                ::selection { background: rgba(255,255,255,0.2); }
 
                 /* Top Navigation */
                 .top-nav {
-                    border-bottom: 1px solid rgba(255,255,255,0.08);
+                    border-bottom: 1px solid var(--border-color);
                     position: sticky;
                     top: 0;
-                    background: rgba(0,0,0,0.8);
+                    background: var(--bg-glass);
                     backdrop-filter: blur(12px);
                     z-index: 100;
                 }
@@ -476,23 +463,23 @@ The security is mathematically guaranteed.
                     align-items: center;
                     gap: 12px;
                     text-decoration: none;
-                    color: #fff;
+                    color: var(--text-primary);
                     font-weight: 600;
                     font-size: 15px;
                 }
                 .brand-logo {
                     width: 24px; height: 24px;
-                    background: #fff; color: #000;
+                    background: var(--brand-primary); color: white;
                     border-radius: 4px;
                     display: flex; align-items: center; justify-content: center;
                     font-weight: 800; font-size: 12px;
                 }
                 .nav-back {
                     display: flex; align-items: center; gap: 6px;
-                    color: #888; text-decoration: none; font-size: 14px;
+                    color: var(--text-secondary); text-decoration: none; font-size: 14px;
                     transition: color 0.2s;
                 }
-                .nav-back:hover { color: #fff; }
+                .nav-back:hover { color: var(--brand-primary); }
 
                 /* Index Layout */
                 .index-layout {
@@ -507,12 +494,12 @@ The security is mathematically guaranteed.
                     font-size: 56px;
                     font-weight: 700;
                     letter-spacing: -0.04em;
-                    color: #fff;
+                    color: var(--text-primary);
                     margin-bottom: 16px;
                 }
                 .index-header p {
                     font-size: 20px;
-                    color: #888;
+                    color: var(--text-muted);
                     max-width: 600px;
                     line-height: 1.5;
                 }
@@ -526,8 +513,8 @@ The security is mathematically guaranteed.
                 }
                 .cat-btn {
                     background: transparent;
-                    border: 1px solid rgba(255,255,255,0.1);
-                    color: #888;
+                    border: 1px solid var(--border-color);
+                    color: var(--text-secondary);
                     padding: 8px 16px;
                     border-radius: 99px;
                     font-size: 14px;
@@ -536,8 +523,8 @@ The security is mathematically guaranteed.
                     transition: all 0.2s;
                     white-space: nowrap;
                 }
-                .cat-btn:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
-                .cat-btn.active { background: #fff; color: #000; border-color: #fff; }
+                .cat-btn:hover { color: var(--text-primary); border-color: var(--border-hover); }
+                .cat-btn.active { background: var(--brand-primary); color: white; border-color: var(--brand-primary); }
 
                 /* Cards */
                 .featured-card {
@@ -546,13 +533,12 @@ The security is mathematically guaranteed.
                     gap: 48px;
                     margin-bottom: 80px;
                     cursor: pointer;
-                    group;
                 }
                 .featured-card:hover .feat-img img { transform: scale(1.02); }
                 .feat-img {
                     border-radius: 12px;
                     overflow: hidden;
-                    border: 1px solid rgba(255,255,255,0.08);
+                    border: 1px solid var(--border-color);
                     aspect-ratio: 16/10;
                 }
                 .feat-img img {
@@ -560,10 +546,10 @@ The security is mathematically guaranteed.
                     transition: transform 0.6s ease;
                 }
                 .feat-content { display: flex; flex-direction: column; justify-content: center; }
-                .feat-meta { color: #888; font-size: 14px; margin-bottom: 16px; }
-                .feat-content h2 { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 16px; color: #fff; }
-                .feat-content p { color: #A1A1AA; font-size: 16px; line-height: 1.6; margin-bottom: 24px; }
-                .feat-read { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 14px; font-weight: 500; }
+                .feat-meta { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
+                .feat-content h2 { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; margin-bottom: 16px; color: var(--text-primary); }
+                .feat-content p { color: var(--text-secondary); font-size: 16px; line-height: 1.6; margin-bottom: 24px; }
+                .feat-read { display: flex; align-items: center; gap: 8px; color: var(--brand-primary); font-size: 14px; font-weight: 500; }
 
                 .post-grid {
                     display: grid;
@@ -573,12 +559,12 @@ The security is mathematically guaranteed.
                 .post-card { cursor: pointer; }
                 .post-card:hover .card-img img { transform: scale(1.03); }
                 .card-img {
-                    border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08);
+                    border-radius: 8px; overflow: hidden; border: 1px solid var(--border-color);
                     aspect-ratio: 16/10; margin-bottom: 16px;
                 }
                 .card-img img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
-                .card-meta { color: #888; font-size: 13px; margin-bottom: 8px; }
-                .card-content h3 { font-size: 18px; font-weight: 500; line-height: 1.4; color: #EAEAEA; }
+                .card-meta { color: var(--text-muted); font-size: 13px; margin-bottom: 8px; }
+                .card-content h3 { font-size: 18px; font-weight: 500; line-height: 1.4; color: var(--text-primary); }
 
                 /* Article Layout */
                 .article-layout {
@@ -588,63 +574,61 @@ The security is mathematically guaranteed.
                     width: 100%;
                 }
                 .article-header { margin-bottom: 48px; }
-                .article-meta { display: flex; gap: 12px; color: #888; font-size: 14px; margin-bottom: 24px; }
-                .article-title { font-size: 40px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 24px; color: #fff; }
-                .article-author { display: flex; align-items: center; gap: 12px; color: #A1A1AA; font-size: 15px; }
+                .article-meta { display: flex; gap: 12px; color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
+                .article-title { font-size: 40px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 24px; color: var(--text-primary); }
+                .article-author { display: flex; align-items: center; gap: 12px; color: var(--text-secondary); font-size: 15px; }
 
-                .article-hero-img { margin-bottom: 48px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
+                .article-hero-img { margin-bottom: 48px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); }
                 .article-hero-img img { width: 100%; height: auto; display: block; }
 
                 /* Prose Content */
-                .article-body { color: #B4B4B4; font-size: 17px; line-height: 1.7; }
-                .prose-h2 { color: #fff; font-size: 24px; font-weight: 600; margin: 48px 0 24px; letter-spacing: -0.01em; }
-                .prose-h3 { color: #EAEAEA; font-size: 20px; font-weight: 500; margin: 32px 0 16px; }
+                .article-body { color: var(--text-secondary); font-size: 17px; line-height: 1.7; }
+                .prose-h2 { color: var(--text-primary); font-size: 24px; font-weight: 600; margin: 48px 0 24px; letter-spacing: -0.01em; }
+                .prose-h3 { color: var(--text-primary); font-size: 20px; font-weight: 500; margin: 32px 0 16px; }
                 .prose-p { margin-bottom: 24px; }
                 .prose-ul { margin-bottom: 24px; padding-left: 24px; list-style-type: disc; }
                 .prose-ul li { margin-bottom: 8px; }
-                .prose-p strong, .prose-ul strong { color: #fff; font-weight: 600; }
-                .prose-p code, .prose-ul code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 14px; color: #EAEAEA; }
-                .prose-pre { background: #111; border: 1px solid rgba(255,255,255,0.08); padding: 20px; border-radius: 8px; margin-bottom: 24px; overflow-x: auto; }
-                .prose-pre code { font-family: monospace; font-size: 14px; color: #A1A1AA; }
+                .prose-p strong, .prose-ul strong { color: var(--text-primary); font-weight: 600; }
+                .prose-p code, .prose-ul code { background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 14px; color: var(--brand-primary); }
+                .prose-pre { background: var(--bg-tertiary); border: 1px solid var(--border-color); padding: 20px; border-radius: 8px; margin-bottom: 24px; overflow-x: auto; }
+                .prose-pre code { font-family: monospace; font-size: 14px; color: var(--text-primary); }
 
-                .divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 64px 0; }
+                .divider { border: none; border-top: 1px solid var(--border-color); margin: 64px 0; }
 
                 /* Comments */
                 .comments-module { margin-bottom: 64px; }
-                .comments-title { font-size: 20px; color: #fff; font-weight: 500; margin-bottom: 32px; }
+                .comments-title { font-size: 20px; color: var(--text-primary); font-weight: 500; margin-bottom: 32px; }
                 
-                .comment-item { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+                .comment-item { margin-bottom: 32px; padding-bottom: 32px; border-bottom: 1px solid var(--border-color); }
                 .comment-header { display: flex; justify-content: space-between; margin-bottom: 8px; }
-                .comment-header strong { color: #EAEAEA; font-weight: 500; font-size: 15px; }
-                .comment-date { color: #666; font-size: 13px; }
-                .comment-text { color: #A1A1AA; font-size: 15px; line-height: 1.6; }
-                .empty-state { color: #666; font-size: 15px; margin-bottom: 48px; }
+                .comment-header strong { color: var(--text-primary); font-weight: 500; font-size: 15px; }
+                .comment-date { color: var(--text-muted); font-size: 13px; }
+                .comment-text { color: var(--text-secondary); font-size: 15px; line-height: 1.6; }
+                .empty-state { color: var(--text-muted); font-size: 15px; margin-bottom: 48px; }
 
-                .comment-form { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); padding: 24px; border-radius: 12px; }
-                .comment-form h4 { color: #fff; font-size: 16px; font-weight: 500; margin-bottom: 24px; }
+                .comment-form { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 24px; border-radius: 12px; }
+                .comment-form h4 { color: var(--text-primary); font-size: 16px; font-weight: 500; margin-bottom: 24px; }
                 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
                 
                 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-                .captcha-group { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; padding: 0 16px; }
-                .captcha-group span { color: #888; font-size: 14px; white-space: nowrap; }
-                .captcha-group input { border: none !important; padding: 12px 0 !important; background: transparent !important; }
+                .captcha-group { display: flex; align-items: center; gap: 12px; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 0 16px; }
+                .captcha-group span { color: var(--text-muted); font-size: 14px; white-space: nowrap; }
+                .captcha-group input { border: none !important; padding: 12px 0 !important; background: transparent !important; color: var(--text-primary) !important; }
                 
                 .comment-form input, .comment-form textarea {
-                    width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
-                    color: #fff; padding: 12px 16px; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 14px; transition: border-color 0.2s;
+                    width: 100%; background: var(--bg-primary); border: 1px solid var(--border-color);
+                    color: var(--text-primary); padding: 12px 16px; border-radius: 6px; font-family: 'Inter', sans-serif; font-size: 14px; transition: border-color 0.2s;
                 }
-                .comment-form input:focus, .comment-form textarea:focus { outline: none; border-color: rgba(255,255,255,0.2); }
+                .comment-form input:focus, .comment-form textarea:focus { outline: none; border-color: var(--brand-primary); }
                 .form-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
-                .btn-submit { background: #fff; color: #000; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
+                .btn-submit { background: var(--brand-primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-weight: 500; cursor: pointer; transition: opacity 0.2s; }
                 .btn-submit:hover { opacity: 0.9; }
 
                 .btn-back-bottom {
                     display: flex; align-items: center; gap: 8px; background: none; border: none;
-                    color: #888; font-size: 15px; cursor: pointer; transition: color 0.2s;
+                    color: var(--text-secondary); font-size: 15px; cursor: pointer; transition: color 0.2s;
                 }
-                .btn-back-bottom:hover { color: #fff; }
-
-                /* Footer */
+                .btn-back-bottom:hover { color: var(--brand-primary); }
 
                 @media (max-width: 768px) {
                     .index-header h1 { font-size: 40px; }

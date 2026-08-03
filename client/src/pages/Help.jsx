@@ -322,13 +322,15 @@ const Help = () => {
 
         .app-badge {
           display: inline-block;
-          padding: 0.5rem 1rem;
-          background: var(--brand-gradient);
-          color: white;
+          padding: 0.5rem 1.25rem;
+          background: var(--brand-gradient, linear-gradient(135deg, #0066CC 0%, #1976d2 100%));
+          color: #ffffff !important;
           border-radius: var(--radius-full);
           font-size: 0.85rem;
-          font-weight: 600;
+          font-weight: 700;
+          letter-spacing: 0.3px;
           margin-bottom: 1rem;
+          box-shadow: 0 4px 12px rgba(0, 102, 204, 0.25);
         }
 
         .about-app-card h2 {

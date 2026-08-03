@@ -7,7 +7,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    
+
     <!-- Primary Meta Tags -->
     <title>PromoSecure | Enterprise-Grade Privacy-First Promotional Verification</title>
     <meta name="title" content="PromoSecure | Enterprise-Grade Privacy-First Promotional Verification" />
@@ -35,7 +35,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><div style="padding:40px;font-family:monospace;font-size:18px;background:#fff;color:#333;min-height:100vh">Loading PromoSecure...</div></div>
+    <script>
+      // Catch ALL errors BEFORE module scripts run
+      window.onerror = function(msg, src, line, col, err) {
+        document.body.innerHTML = '<div style="padding:2rem;background:#ffebee;color:#b71c1c;font-family:monospace;min-height:100vh"><h2>JavaScript Error:</h2><p><b>' + msg + '</b></p><p>File: ' + src + ':' + line + ':' + col + '</p><pre style="background:white;padding:1rem;white-space:pre-wrap">' + (err ? err.stack : 'No stack available') + '</pre></div>';
+        return false;
+      };
+      window.addEventListener('unhandledrejection', function(e) {
+        document.body.innerHTML += '<div style="padding:2rem;background:#fff3e0;color:#e65100;font-family:monospace"><h2>Promise Rejection:</h2><p>' + e.reason + '</p><pre style="background:white;padding:1rem;white-space:pre-wrap">' + (e.reason && e.reason.stack ? e.reason.stack : 'No stack') + '</pre></div>';
+      });
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

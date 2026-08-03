@@ -1,9 +1,7 @@
-/* ============================================
-   PromoSecure v3.0 - Professional SaaS Theme
-   Industry-Standard Blue Color Scheme
-   ============================================ */
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind components;
+@tailwind utilities;
 
 /* ============================================
    CSS Variables - Professional Corporate Theme
@@ -66,11 +64,14 @@
   --border-color: #e0e0e0;
   --border-hover: #bdbdbd;
 
-  /* Brand - Solid Corporate Blue (NO GRADIENTS) */
+  /* Brand - Solid Corporate Blue & Gradient */
   --brand-primary: #0066CC;
   --brand-secondary: #005bb5;
   --brand-hover: #0052a3;
   --brand-light: #e8f4fd;
+  --brand-gradient: linear-gradient(135deg, #0066CC 0%, #1976d2 100%);
+  --brand-gradient-hover: linear-gradient(135deg, #005bb5 0%, #1565c0 100%);
+  --shadow-glow: 0 4px 20px rgba(0, 102, 204, 0.25);
 
   --success: #2e7d32;
   --success-bg: #e8f5e9;
@@ -1491,12 +1492,25 @@ html {
   --border-color: #27272a;
   --border-hover: #3f3f46;
 
-  --brand-gradient-subtle: linear-gradient(135deg, rgba(13, 148, 136, 0.15) 0%, rgba(20, 184, 166, 0.05) 100%);
+  /* Primary Tints for Dark Mode */
+  --primary-50: rgba(0, 102, 204, 0.15);
+  --primary-100: rgba(0, 102, 204, 0.25);
+  --brand-light: rgba(0, 102, 204, 0.15);
+
+  --success-bg: rgba(46, 125, 50, 0.2);
+  --warning-bg: rgba(237, 108, 2, 0.2);
+  --error-bg: rgba(211, 47, 47, 0.2);
+  --info-bg: rgba(2, 136, 209, 0.2);
+
+  --bg-glass: rgba(24, 24, 27, 0.85);
+  --bg-glass-hover: rgba(39, 39, 42, 0.9);
+
+  --brand-gradient-subtle: linear-gradient(135deg, rgba(0, 102, 204, 0.2) 0%, rgba(25, 118, 210, 0.08) 100%);
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.5);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-  --shadow-glow: 0 0 40px rgba(13, 148, 136, 0.1);
+  --shadow-glow: 0 0 40px rgba(0, 102, 204, 0.2);
 }
 
 /* Dark Mode Transitions */

@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import {
     HiSun,
@@ -72,11 +73,23 @@ const socialLinks = [
 ];
 
 const Footer = () => {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const [currentTheme, setCurrentTheme] = useState(() => {
+        return document.documentElement.getAttribute('data-theme') || localStorage.getItem('theme') || 'light';
+    });
+
+    useEffect(() => {
+        const observer = new MutationObserver(() => {
+            const theme = document.documentElement.getAttribute('data-theme') || 'light';
+            setCurrentTheme(theme);
+        });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+        return () => observer.disconnect();
+    }, []);
 
     const toggleTheme = (mode) => {
         document.documentElement.setAttribute('data-theme', mode);
         localStorage.setItem('theme', mode);
+        setCurrentTheme(mode);
     };
 
     return (
@@ -143,7 +156,7 @@ const Footer = () => {
                 <div className="ps-theme-pill">
                     <button
                         onClick={() => toggleTheme('light')}
-                        className="ps-theme-btn ps-theme-light"
+                        className={`ps-theme-btn ps-theme-light ${currentTheme === 'light' ? 'active' : ''}`}
                         aria-label="Light mode"
                     >
                         <HiSun />
@@ -159,7 +172,7 @@ const Footer = () => {
 
                     <button
                         onClick={() => toggleTheme('dark')}
-                        className="ps-theme-btn ps-theme-dark"
+                        className={`ps-theme-btn ps-theme-dark ${currentTheme === 'dark' ? 'active' : ''}`}
                         aria-label="Dark mode"
                     >
                         <HiMoon />
@@ -325,10 +338,13 @@ const Footer = () => {
                     color: var(--text-primary, #212121);
                 }
 
-                .ps-theme-light {
-                    background: var(--bg-tertiary, #f5f5f5);
+                .ps-theme-btn.active {
+                    background: var(--brand-primary, #0066cc) !important;
                     border-radius: 9999px;
-                    color: var(--text-primary, #212121);
+                    color: white !important;
+                }
+
+                .ps-theme-light {
                     margin-right: 0.25rem;
                 }
 

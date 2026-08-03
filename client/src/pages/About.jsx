@@ -192,7 +192,7 @@ const About = () => {
                 }
 
                 .about-nav {
-                    background: white;
+                    background: var(--bg-card);
                     border-bottom: 1px solid var(--border-color);
                     padding: 1rem 0;
                     position: sticky;
@@ -218,7 +218,13 @@ const About = () => {
                 }
 
                 .logo-icon { font-size: 1.5rem; }
-                .logo-text { background: var(--brand-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+                .logo-text { 
+                    background: var(--brand-gradient, linear-gradient(135deg, #0066CC 0%, #1976d2 100%)); 
+                    -webkit-background-clip: text; 
+                    -webkit-text-fill-color: transparent; 
+                    color: var(--brand-primary, #0066CC);
+                    font-weight: 800;
+                }
 
                 .about-container {
                     max-width: 900px;
@@ -234,18 +240,21 @@ const About = () => {
                 .about-badge {
                     display: inline-block;
                     padding: 0.375rem 1rem;
-                    background: var(--primary-50);
-                    color: var(--primary-600);
+                    background: var(--primary-50, #e8f4fd);
+                    color: var(--primary-600, #0066CC);
                     font-size: 0.8rem;
-                    font-weight: 600;
+                    font-weight: 700;
                     border-radius: var(--radius-full);
                     text-transform: uppercase;
+                    letter-spacing: 0.5px;
                     margin-bottom: 1rem;
                 }
 
                 .about-header h1 {
                     font-size: 2.5rem;
-                    background: var(--brand-gradient);
+                    font-weight: 800;
+                    color: var(--brand-primary, #0066CC);
+                    background: var(--brand-gradient, linear-gradient(135deg, #0066CC 0%, #1976d2 100%));
                     -webkit-background-clip: text;
                     -webkit-text-fill-color: transparent;
                     margin-bottom: 0.5rem;

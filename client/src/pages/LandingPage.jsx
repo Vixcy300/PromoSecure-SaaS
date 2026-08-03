@@ -19,14 +19,29 @@ import {
   HiArrowRight,
   HiMail,
   HiPhone,
-  HiGlobe
+  HiGlobe,
+  HiMenu,
+  HiX
 } from 'react-icons/hi';
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const [openFaq, setOpenFaq] = useState(null);
   const [isVisible, setIsVisible] = useState({});
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [expandedMobileSection, setExpandedMobileSection] = useState(null);
   const observerRefs = useRef([]);
+
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [mobileMenuOpen]);
 
   const NAV_ITEMS = [
     {
@@ -226,18 +241,177 @@ const LandingPage = () => {
       {/* Navigation */}
       <nav className="landing-nav">
         <div className="nav-container">
-          <div className="nav-logo hover-pop">
+          <div className="nav-logo hover-pop" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ cursor: 'pointer' }}>
             <span className="logo-text">PromoSecure</span>
           </div>
-          <div className="nav-links">
+          <div className="nav-links desktop-nav">
             <DropdownNavigation navItems={NAV_ITEMS} />
           </div>
-          <div className="nav-actions">
+          <div className="nav-actions desktop-nav">
             <button className="btn btn-ghost" onClick={() => navigate('/login')}>Sign In</button>
             <button className="btn btn-primary" onClick={() => navigate('/login')}>Get Started</button>
           </div>
+          <button 
+            className="mobile-hamburger-btn" 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle Menu"
+          >
+            {mobileMenuOpen ? <HiX size={24} /> : <HiMenu size={24} />}
+          </button>
         </div>
       </nav>
+
+      {/* Mobile Drawer Overlay */}
+      <div 
+        className={`mobile-drawer-overlay ${mobileMenuOpen ? 'active' : ''}`}
+        onClick={() => setMobileMenuOpen(false)}
+      />
+
+      {/* Mobile Sidebar Drawer */}
+      <aside className={`mobile-sidebar-drawer ${mobileMenuOpen ? 'open' : ''}`} aria-label="Mobile Navigation">
+        <div className="drawer-header">
+          <div className="nav-logo">
+            <span className="logo-text">PromoSecure</span>
+          </div>
+          <button 
+            className="drawer-close-btn"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-label="Close navigation"
+          >
+            <HiX size={20} />
+          </button>
+        </div>
+
+        <div className="drawer-content">
+          <div className="drawer-nav-list">
+            {/* Product Section */}
+            <div className="drawer-group">
+              <button 
+                className="drawer-group-btn"
+                onClick={() => setExpandedMobileSection(expandedMobileSection === 'product' ? null : 'product')}
+              >
+                <span>Product</span>
+                <HiChevronDown className={`drawer-chevron ${expandedMobileSection === 'product' ? 'open' : ''}`} />
+              </button>
+              {expandedMobileSection === 'product' && (
+                <div className="drawer-subitems">
+                  <a href="#features" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                    <Eye size={18} className="drawer-icon" />
+                    <div>
+                      <div className="sublink-title">AI Face Blurring</div>
+                      <div className="sublink-desc">4-layer privacy protection</div>
+                    </div>
+                  </a>
+                  <a href="#features" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                    <Camera size={18} className="drawer-icon" />
+                    <div>
+                      <div className="sublink-title">Offline Camera</div>
+                      <div className="sublink-desc">Works without internet</div>
+                    </div>
+                  </a>
+                  <a href="#features" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                    <ShieldCheck size={18} className="drawer-icon" />
+                    <div>
+                      <div className="sublink-title">Fraud Detection</div>
+                      <div className="sublink-desc">Prevents duplicate uploads</div>
+                    </div>
+                  </a>
+                  <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                    <Cpu size={18} className="drawer-icon" />
+                    <div>
+                      <div className="sublink-title">How It Works</div>
+                      <div className="sublink-desc">Step-by-step verification</div>
+                    </div>
+                  </a>
+                  <a href="#features" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                    <BarChart size={18} className="drawer-icon" />
+                    <div>
+                      <div className="sublink-title">Analytics</div>
+                      <div className="sublink-desc">Track promoter performance</div>
+                    </div>
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Resources Section */}
+            <div className="drawer-group">
+              <button 
+                className="drawer-group-btn"
+                onClick={() => setExpandedMobileSection(expandedMobileSection === 'resources' ? null : 'resources')}
+              >
+                <span>Resources</span>
+                <HiChevronDown className={`drawer-chevron ${expandedMobileSection === 'resources' ? 'open' : ''}`} />
+              </button>
+              {expandedMobileSection === 'resources' && (
+                <div className="drawer-subitems">
+                  <a href="/about" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                    <Users size={18} className="drawer-icon" />
+                    <div>
+                      <div className="sublink-title">About Us</div>
+                      <div className="sublink-desc">Learn about PromoSecure</div>
+                    </div>
+                  </a>
+                  <a href="/blog" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                    <FileText size={18} className="drawer-icon" />
+                    <div>
+                      <div className="sublink-title">Blog</div>
+                      <div className="sublink-desc">Latest news and updates</div>
+                    </div>
+                  </a>
+                  <a href="/help" onClick={() => setMobileMenuOpen(false)} className="drawer-sublink">
+                    <BookOpen size={18} className="drawer-icon" />
+                    <div>
+                      <div className="sublink-title">Help Center</div>
+                      <div className="sublink-desc">Guides and support</div>
+                    </div>
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* FAQ Direct */}
+            <a 
+              href="#faq" 
+              className="drawer-direct-link"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              FAQ
+            </a>
+
+            {/* Contact Direct */}
+            <a 
+              href="#contact" 
+              className="drawer-direct-link"
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              Contact
+            </a>
+
+            {/* 🔥 50% Off Plan Highlighted Card */}
+            <div className="drawer-offer-card">
+              <a 
+                href="/plans" 
+                className="drawer-offer-link"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                <div className="drawer-offer-badge">🔥 50% Off Plan</div>
+                <div className="drawer-offer-title">Upgrade to Pro</div>
+                <div className="drawer-offer-desc">Get unlimited photos, verification & priority support →</div>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="drawer-footer">
+          <button className="btn btn-secondary w-full" onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}>
+            Sign In
+          </button>
+          <button className="btn btn-primary w-full" onClick={() => { setMobileMenuOpen(false); navigate('/login'); }}>
+            Get Started
+          </button>
+        </div>
+      </aside>
 
       {/* Hero Section */}
       <section className="hero-section">
@@ -517,6 +691,246 @@ const LandingPage = () => {
         .nav-actions {
           display: flex;
           gap: 0.75rem;
+        }
+
+        /* Mobile hamburger button */
+        .mobile-hamburger-btn {
+          display: none;
+          background: transparent;
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 0.45rem;
+          color: var(--text-primary);
+          cursor: pointer;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+
+        .mobile-hamburger-btn:hover {
+          background: var(--bg-secondary);
+          color: var(--brand-primary);
+        }
+
+        /* Mobile Drawer Overlay */
+        .mobile-drawer-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(4px);
+          z-index: 1050;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .mobile-drawer-overlay.active {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        /* Mobile Sidebar Drawer */
+        .mobile-sidebar-drawer {
+          position: fixed;
+          top: 0;
+          right: 0;
+          bottom: 0;
+          width: 320px;
+          max-width: 85vw;
+          background: var(--bg-card);
+          z-index: 1100;
+          box-shadow: -8px 0 30px rgba(0, 0, 0, 0.2);
+          display: flex;
+          flex-direction: column;
+          transform: translateX(100%);
+          transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .mobile-sidebar-drawer.open {
+          transform: translateX(0);
+        }
+
+        .drawer-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1.25rem 1.5rem;
+          border-bottom: 1px solid var(--border-color);
+        }
+
+        .drawer-close-btn {
+          background: var(--bg-secondary);
+          border: 1px solid var(--border-color);
+          border-radius: 8px;
+          padding: 0.4rem;
+          color: var(--text-secondary);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+        }
+
+        .drawer-close-btn:hover {
+          color: var(--text-primary);
+          background: var(--border-color);
+        }
+
+        .drawer-content {
+          flex: 1;
+          overflow-y: auto;
+          padding: 1.25rem;
+        }
+
+        .drawer-nav-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .drawer-group {
+          border-bottom: 1px solid var(--border-color);
+          padding-bottom: 0.5rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .drawer-group-btn {
+          width: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem 0.5rem;
+          background: transparent;
+          border: none;
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          cursor: pointer;
+          border-radius: 8px;
+          transition: background 0.2s;
+        }
+
+        .drawer-group-btn:hover {
+          background: var(--bg-secondary);
+          color: var(--brand-primary);
+        }
+
+        .drawer-chevron {
+          transition: transform 0.25s ease;
+        }
+
+        .drawer-chevron.open {
+          transform: rotate(180deg);
+        }
+
+        .drawer-subitems {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          padding: 0.5rem 0 0.5rem 0.5rem;
+        }
+
+        .drawer-sublink {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding: 0.6rem 0.75rem;
+          border-radius: 8px;
+          text-decoration: none;
+          transition: all 0.2s ease;
+          background: var(--bg-secondary);
+        }
+
+        .drawer-sublink:hover {
+          background: rgba(0, 102, 204, 0.08);
+        }
+
+        .drawer-icon {
+          color: var(--brand-primary);
+          margin-top: 0.15rem;
+          flex-shrink: 0;
+        }
+
+        .sublink-title {
+          font-size: 0.88rem;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 0.15rem;
+        }
+
+        .sublink-desc {
+          font-size: 0.76rem;
+          color: var(--text-muted);
+          line-height: 1.3;
+        }
+
+        .drawer-direct-link {
+          display: block;
+          padding: 0.75rem 0.5rem;
+          font-size: 1rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          text-decoration: none;
+          border-radius: 8px;
+          transition: background 0.2s, color 0.2s;
+        }
+
+        .drawer-direct-link:hover {
+          background: var(--bg-secondary);
+          color: var(--brand-primary);
+        }
+
+        .drawer-offer-card {
+          margin-top: 0.75rem;
+          margin-bottom: 0.5rem;
+        }
+
+        .drawer-offer-link {
+          display: block;
+          padding: 1rem;
+          border-radius: 12px;
+          background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(249, 115, 22, 0.1));
+          border: 1px solid rgba(239, 68, 68, 0.3);
+          text-decoration: none;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .drawer-offer-link:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .drawer-offer-badge {
+          display: inline-block;
+          font-size: 0.75rem;
+          font-weight: 800;
+          color: #dc2626;
+          background: #fee2e2;
+          padding: 0.2rem 0.5rem;
+          border-radius: 6px;
+          margin-bottom: 0.35rem;
+        }
+
+        .drawer-offer-title {
+          font-size: 0.95rem;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 0.2rem;
+        }
+
+        .drawer-offer-desc {
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+          line-height: 1.4;
+        }
+
+        .drawer-footer {
+          padding: 1.25rem 1.5rem;
+          border-top: 1px solid var(--border-color);
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          background: var(--bg-card);
         }
 
         /* Hero Section */
@@ -1079,34 +1493,64 @@ const LandingPage = () => {
           }
         }
 
-        @media (max-width: 768px) {
-          .nav-links {
-            display: none;
+        @media (max-width: 900px) {
+          .desktop-nav {
+            display: none !important;
+          }
+
+          .mobile-hamburger-btn {
+            display: inline-flex !important;
+          }
+
+          .nav-container {
+            padding: 0.85rem 1.25rem;
           }
 
           .hero-section {
-            padding: 8rem 1.5rem 4rem;
+            padding: 6.5rem 1.25rem 3.5rem;
           }
 
           .hero-title {
-            font-size: 2rem;
+            font-size: 2.1rem;
+            line-height: 1.25;
+          }
+
+          .hero-subtitle {
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
           }
 
           .hero-cta {
             flex-direction: column;
+            width: 100%;
+            max-width: 360px;
+            margin: 0 auto 2.5rem;
+          }
+
+          .hero-cta .btn {
+            width: 100%;
           }
 
           .hero-stats {
-            gap: 2rem;
+            gap: 1.5rem;
             flex-wrap: wrap;
+            justify-content: center;
           }
 
           .features-grid,
           .steps-container {
             grid-template-columns: 1fr;
           }
+        }
 
-          /* Footer responsive now handled in Footer.jsx */
+        @media (max-width: 480px) {
+          .hero-title {
+            font-size: 1.8rem;
+          }
+
+          .hero-stat {
+            min-width: 120px;
+          }
         }
       `}</style>
     </div >
