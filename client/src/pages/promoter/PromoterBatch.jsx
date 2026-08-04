@@ -6,6 +6,7 @@ import api from '../../services/api';
 import toast from 'react-hot-toast';
 import CameraCapture from '../../components/CameraCapture';
 import { saveOfflinePhoto, getOfflinePhotos, deleteOfflinePhoto, getOfflineBatches } from '../../utils/db';
+import { preloadFaceDetection } from '../../ai/FaceDetection';
 
 const PromoterBatch = () => {
     const { id } = useParams();
@@ -28,6 +29,7 @@ const PromoterBatch = () => {
         window.addEventListener('offline', handleOffline);
 
         fetchBatch();
+        preloadFaceDetection();
         return () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);

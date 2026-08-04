@@ -192,7 +192,7 @@ export default function PromoSecurePricing({ onPlanAction, onScrollToDemo }) {
         animationNum={4}
         timelineRef={pricingRef}
         customVariants={revealVariants}
-        className="absolute top-0 left-0 right-0 h-96 w-full overflow-hidden [mask-image:radial-gradient(50%_50%,white,transparent)] pointer-events-none z-0"
+        className="absolute top-0 left-0 right-0 h-96 w-full overflow-hidden [mask-image:radial-gradient(ellipse_at_center,white,transparent)] pointer-events-none z-0"
       >
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff2c_1px,transparent_1px),linear-gradient(to_bottom,#3a3a3a01_1px,transparent_1px)] bg-[size:70px_80px]" />
         <Sparkles
@@ -200,7 +200,7 @@ export default function PromoSecurePricing({ onPlanAction, onScrollToDemo }) {
           direction="bottom"
           speed={0.9}
           color="#FFFFFF"
-          className="absolute inset-x-0 bottom-0 h-full w-full [mask-image:radial-gradient(50%_50%,white,transparent_85%)]"
+          className="absolute inset-x-0 bottom-0 h-full w-full [mask-image:radial-gradient(ellipse_at_center,white,transparent_85%)]"
         />
       </TimelineContent>
 

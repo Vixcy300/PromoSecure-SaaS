@@ -1,35 +1,54 @@
-import * as tf from '@tensorflow/tfjs';
-import * as cocoSsd from '@tensorflow-models/coco-ssd';
+/**
+ * Non-blocking Brand & Promotional Object Recognition
+ * Uses COCO-SSD with fail-safe timeout
+ */
 
 let model = null;
+let isLoading = false;
 
 export const initBrandModel = async () => {
-    if (!model) {
+    if (model) return model;
+    if (isLoading) return null;
+
+    try {
+        isLoading = true;
+        const tf = await import('@tensorflow/tfjs');
+        const cocoSsd = await import('@tensorflow-models/coco-ssd');
         await tf.ready();
-        model = await cocoSsd.load();
+        model = await cocoSsd.load({ base: 'mobilenet_v2' });
+        isLoading = false;
+        return model;
+    } catch (error) {
+        console.warn('Brand recognition model unavailable (offline or disabled):', error.message);
+        isLoading = false;
+        return null;
     }
-    return model;
 };
 
 export const detectPromotionalItems = async (imageElement) => {
     try {
-        const net = await initBrandModel();
-        const predictions = await net.detect(imageElement);
-        
-        // Filter out "person" because we already detect faces.
-        // We are looking for objects that represent the "brand" or "product"
-        // e.g., "bottle", "cup", "laptop", "cell phone", "book"
-        const objectsOnly = predictions.filter(pred => pred.class !== 'person');
-        
+        // Fast race with 600ms timeout so camera is never blocked
+        const detectionPromise = (async () => {
+            const net = await initBrandModel();
+            if (!net) return [];
+            const predictions = await net.detect(imageElement);
+            // Filter out 'person' since faces are handled separately
+            return predictions
+                .filter(pred => pred.class !== 'person' && pred.score > 0.45)
+                .map(p => ({
+                    label: p.class,
+                    confidence: Math.round(p.score * 100),
+                }));
+        })();
+
+        const timeoutPromise = new Promise(resolve => setTimeout(() => resolve([]), 700));
+        const detectedObjects = await Promise.race([detectionPromise, timeoutPromise]);
+
         return {
             success: true,
-            detectedObjects: objectsOnly.map(p => ({
-                label: p.class,
-                confidence: Math.round(p.score * 100)
-            }))
+            detectedObjects: detectedObjects || [],
         };
     } catch (error) {
-        console.error('Brand Recognition Error:', error);
-        return { success: false, error: error.message };
+        return { success: false, detectedObjects: [] };
     }
 };

@@ -5,6 +5,7 @@ import { HiPlus, HiCamera, HiPaperAirplane, HiTrash, HiX, HiBriefcase, HiCloudUp
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 import { saveOfflineBatch, getOfflineBatches, deleteOfflineBatch, cacheData, getCachedData } from '../../utils/db';
+import { preloadFaceDetection } from '../../ai/FaceDetection';
 
 const PromoterDashboard = () => {
     const navigate = useNavigate();
@@ -37,6 +38,7 @@ const PromoterDashboard = () => {
 
         fetchBatches();
         fetchClients();
+        preloadFaceDetection();
 
         return () => {
             window.removeEventListener('online', handleOnline);
