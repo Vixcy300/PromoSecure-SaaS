@@ -125,10 +125,11 @@ const batchSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Index for faster queries
-batchSchema.index({ promoter: 1, status: 1 });
-batchSchema.index({ manager: 1, status: 1 });
-batchSchema.index({ client: 1 });
+// Fast compound query indexes for sub-millisecond querying
+batchSchema.index({ promoter: 1, status: 1, createdAt: -1 });
+batchSchema.index({ manager: 1, status: 1, createdAt: -1 });
+batchSchema.index({ status: 1, createdAt: -1 });
+batchSchema.index({ client: 1, createdAt: -1 });
 batchSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Batch', batchSchema);

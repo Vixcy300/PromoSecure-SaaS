@@ -188,7 +188,8 @@ router.get('/', authorize('admin', 'manager'), async (req, res) => {
         const users = await User.find(query)
             .select('-password')
             .populate('createdBy', 'name email companyName')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
 
         res.json({
             success: true,
@@ -526,7 +527,8 @@ router.get('/promoters/intelligence', authorize('admin'), async (req, res) => {
         const promoters = await User.find({ role: 'promoter' })
             .select('-password')
             .populate('createdBy', 'name email companyName licenseTier')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
 
         const promoterIds = promoters.map(p => p._id);
 
@@ -597,7 +599,7 @@ router.get('/promoters/intelligence', authorize('admin'), async (req, res) => {
             const isOnline = p.lastActive ? (new Date() - new Date(p.lastActive)) < 15 * 60 * 1000 : false;
 
             return {
-                ...p.toObject(),
+                ...(p.toObject ? p.toObject() : p),
                 stats: {
                     ...stat,
                     approvalRatio,

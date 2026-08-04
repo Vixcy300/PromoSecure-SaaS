@@ -66,7 +66,8 @@ router.get('/', async (req, res) => {
             .populate('promoter', 'name email')
             .populate('manager', 'name email companyName')
             .populate('client', 'name logo')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
 
         res.json({
             success: true,
@@ -526,7 +527,8 @@ router.get('/admin/master-feed', authorize('admin'), async (req, res) => {
                 .populate('adminOverride.admin', 'name email')
                 .sort({ createdAt: -1 })
                 .skip(skip)
-                .limit(Number(limit)),
+                .limit(Number(limit))
+                .lean(),
             Batch.countDocuments(query)
         ]);
 

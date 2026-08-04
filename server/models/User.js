@@ -141,4 +141,10 @@ userSchema.methods.getPublicProfile = function () {
     };
 };
 
+// High-performance database indexing for instant query resolution
+userSchema.index({ role: 1, createdBy: 1 });
+userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ createdBy: 1 });
+userSchema.index({ role: 1, createdAt: -1 });
+
 module.exports = mongoose.model('User', userSchema);

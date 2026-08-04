@@ -24,7 +24,8 @@ import {
     HiXCircle, 
     HiExclamation, 
     HiSwitchHorizontal, 
-    HiRefresh 
+    HiRefresh,
+    HiClock
 } from 'react-icons/hi';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -39,7 +40,6 @@ const AdminManagers = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [tierFilter, setTierFilter] = useState('all');
     const [statusFilter, setStatusFilter] = useState('all');
-    const [selectedManagerIds, setSelectedManagerIds] = useState([]);
 
     // Modals & Drawers
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -211,22 +211,11 @@ const AdminManagers = () => {
             await api.put(`/users/${manager._id}/toggle`);
             toast.success(`Manager ${manager.isActive !== false ? 'deactivated' : 'activated'}`);
             fetchManagers();
+            if (selectedDossier && selectedDossier.manager._id === manager._id) {
+                openDossier(manager);
+            }
         } catch (error) {
             toast.error('Failed to update status');
-        }
-    };
-
-    // Delete Manager
-    const handleDelete = async (manager) => {
-        if (!window.confirm(`Delete manager ${manager.name}? Promoters under this manager will need reassignment.`)) {
-            return;
-        }
-        try {
-            await api.delete(`/users/${manager._id}`);
-            toast.success('Manager deleted successfully');
-            fetchManagers();
-        } catch (error) {
-            toast.error(error.response?.data?.message || 'Failed to delete manager');
         }
     };
 
@@ -710,16 +699,68 @@ const AdminManagers = () => {
             )}
 
             {/* ════════════════════════════════════════════════════════════════
-                 MANAGER DOSSIER DRAWER
+                 REASSIGN PROMOTER MODAL
+               ════════════════════════════════════════════════════════════════ */}
+            {showReassignModal && promoterToReassign && (
+                <div className="high-z-overlay" onClick={() => setShowReassignModal(false)}>
+                    <div className="popup-dialog" onClick={(e) => e.stopPropagation()}>
+                        <div className="popup-header">
+                            <div className="flex items-center gap-2">
+                                <HiSwitchHorizontal style={{ color: '#0d9488', fontSize: '1.25rem' }} />
+                                <h3>Reassign Field Promoter</h3>
+                            </div>
+                            <button className="close-x-btn" onClick={() => setShowReassignModal(false)}>
+                                <HiX />
+                            </button>
+                        </div>
+                        <form onSubmit={handleReassignPromoter} className="dialog-body">
+                            <p className="dialog-desc">
+                                Transfer <strong>{promoterToReassign.name}</strong> from <strong>{selectedDossier?.manager?.name || 'Current Manager'}</strong> to a new manager:
+                            </p>
+
+                            <div className="dialog-field">
+                                <label>Destination Managing Agency *</label>
+                                <select
+                                    required
+                                    className="dialog-select"
+                                    value={targetManagerId}
+                                    onChange={(e) => setTargetManagerId(e.target.value)}
+                                >
+                                    <option value="">Select Destination Agency...</option>
+                                    {managers
+                                        .filter((m) => m._id !== selectedDossier?.manager?._id)
+                                        .map((m) => (
+                                            <option key={m._id} value={m._id}>
+                                                {m.name} — {m.companyName || 'Agency'} (Capacity: {m.promoterCount || 0}/{m.promoterLimit || 5})
+                                            </option>
+                                        ))}
+                                </select>
+                            </div>
+
+                            <div className="dialog-footer">
+                                <button type="button" className="btn-cancel" onClick={() => setShowReassignModal(false)}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className="btn-confirm-primary">
+                                    Confirm Transfer
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ════════════════════════════════════════════════════════════════
+                 MANAGER DOSSIER DRAWER (FULL ENTERPRISE DEEP PROFILE)
                ════════════════════════════════════════════════════════════════ */}
             {showDossierDrawer && (
                 <div className="dossier-drawer-overlay" onClick={() => setShowDossierDrawer(false)}>
                     <div className="dossier-drawer-content" onClick={(e) => e.stopPropagation()}>
                         <div className="dossier-header">
                             <div className="dossier-header-title">
-                                <span className="dossier-tag">🏢 MANAGER DOSSIER</span>
+                                <span className="dossier-tag">🏢 ENTERPRISE MANAGER PROFILE</span>
                                 <h2>{selectedDossier?.manager?.name || 'Loading Dossier...'}</h2>
-                                <p>{selectedDossier?.manager?.companyName || 'Registered Enterprise'}</p>
+                                <p>{selectedDossier?.manager?.companyName || 'Registered Enterprise'} • {selectedDossier?.manager?.email}</p>
                             </div>
                             <button className="close-x-btn" onClick={() => setShowDossierDrawer(false)}>
                                 <HiX size={22} />
@@ -753,6 +794,12 @@ const AdminManagers = () => {
                                     >
                                         Clients & Campaigns ({selectedDossier.clients?.length || 0})
                                     </button>
+                                    <button
+                                        className={`dossier-tab-btn ${activeDossierTab === 'audit' ? 'active' : ''}`}
+                                        onClick={() => setActiveDossierTab('audit')}
+                                    >
+                                        AI Audit Stream
+                                    </button>
                                 </div>
 
                                 {/* Overview Tab */}
@@ -761,37 +808,73 @@ const AdminManagers = () => {
                                         <div className="dossier-kpi-grid">
                                             <div className="kpi-card">
                                                 <span className="kpi-lbl">Total Batches Submitted</span>
-                                                <strong className="kpi-val">{selectedDossier.batchMetrics?.totalBatches || 0}</strong>
+                                                <strong className="kpi-val">{selectedDossier.metrics?.totalBatches || 0}</strong>
+                                                <span className="kpi-sub">{selectedDossier.metrics?.totalPhotos || 0} Photos</span>
                                             </div>
                                             <div className="kpi-card">
                                                 <span className="kpi-lbl">Batch Pass Rate</span>
                                                 <strong className="kpi-val" style={{ color: '#16a34a' }}>
-                                                    {selectedDossier.batchMetrics?.passRate || '100%'}
+                                                    {selectedDossier.metrics?.passRate || '100%'}
                                                 </strong>
+                                                <span className="kpi-sub">
+                                                    {selectedDossier.metrics?.statusMap?.approved || 0} approved / {selectedDossier.metrics?.statusMap?.rejected || 0} rejected
+                                                </span>
                                             </div>
                                             <div className="kpi-card">
-                                                <span className="kpi-lbl">AI Fraud Catch Rate</span>
+                                                <span className="kpi-lbl">AI Duplicates Caught</span>
                                                 <strong className="kpi-val" style={{ color: '#dc2626' }}>
-                                                    {selectedDossier.batchMetrics?.fraudAttemptsCaught || 0} Flagged
+                                                    {selectedDossier.metrics?.totalDuplicatesCaught || 0} Flagged
                                                 </strong>
+                                                <span className="kpi-sub">Perceptual Hash</span>
+                                            </div>
+                                            <div className="kpi-card">
+                                                <span className="kpi-lbl">Faces GDPR Protected</span>
+                                                <strong className="kpi-val" style={{ color: '#0d9488' }}>
+                                                    {selectedDossier.metrics?.totalFacesProtected || 0}
+                                                </strong>
+                                                <span className="kpi-sub">Biometrics Redacted</span>
                                             </div>
                                         </div>
 
                                         <div className="dossier-detail-card">
-                                            <h4 className="card-sec-title">Enterprise License & Quotas</h4>
+                                            <h4 className="card-sec-title">Company & Enterprise Profile</h4>
+                                            <div className="dossier-spec-row">
+                                                <span>Company Name:</span>
+                                                <strong>{selectedDossier.manager.companyName || 'Not specified'}</strong>
+                                            </div>
+                                            <div className="dossier-spec-row">
+                                                <span>Work Email:</span>
+                                                <strong>{selectedDossier.manager.email}</strong>
+                                            </div>
+                                            <div className="dossier-spec-row">
+                                                <span>Phone Number:</span>
+                                                <strong>{selectedDossier.manager.phone || 'Not provided'}</strong>
+                                            </div>
+                                            <div className="dossier-spec-row">
+                                                <span>Office Address:</span>
+                                                <strong>{selectedDossier.manager.address || 'Not registered'}</strong>
+                                            </div>
+                                            <div className="dossier-spec-row">
+                                                <span>Tax ID / Business Registration:</span>
+                                                <strong>{selectedDossier.manager.taxId || 'Not registered'}</strong>
+                                            </div>
                                             <div className="dossier-spec-row">
                                                 <span>License Tier:</span>
-                                                <strong className={`tier-badge ${selectedDossier.manager.licenseTier || 'starter'}`}>
-                                                    {(selectedDossier.manager.licenseTier || 'starter').toUpperCase()}
+                                                <strong className={`tier-badge ${selectedDossier.licenseTier}`}>
+                                                    {selectedDossier.licenseTier.toUpperCase()}
                                                 </strong>
                                             </div>
                                             <div className="dossier-spec-row">
                                                 <span>Promoter Capacity:</span>
-                                                <strong>{selectedDossier.promoters?.length || 0} / {selectedDossier.manager.promoterLimit || 5}</strong>
+                                                <strong>{selectedDossier.promotersCreated} / {selectedDossier.promoterLimit} promoters</strong>
                                             </div>
                                             <div className="dossier-spec-row">
                                                 <span>Monthly AI Scan Quota:</span>
-                                                <strong>{selectedDossier.manager.aiScanQuota || 100} scans</strong>
+                                                <strong>{selectedDossier.aiScanQuota.toLocaleString()} scans / mo</strong>
+                                            </div>
+                                            <div className="dossier-spec-row">
+                                                <span>Storage Allocation:</span>
+                                                <strong>{selectedDossier.storageQuotaMB} MB</strong>
                                             </div>
                                             <div className="dossier-spec-row">
                                                 <span>Account Status:</span>
@@ -799,6 +882,42 @@ const AdminManagers = () => {
                                                     {selectedDossier.manager.isActive !== false ? 'Active' : 'Suspended'}
                                                 </strong>
                                             </div>
+                                        </div>
+
+                                        {selectedDossier.manager.adminNotes && (
+                                            <div className="dossier-detail-card" style={{ marginTop: '14px' }}>
+                                                <h4 className="card-sec-title">Administrator Notes</h4>
+                                                <p className="admin-notes-text">{selectedDossier.manager.adminNotes}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Quick Actions inside Dossier */}
+                                        <div className="dossier-actions-strip">
+                                            <button
+                                                className="btn-dossier-action btn-impersonate"
+                                                onClick={() => handleImpersonate(selectedDossier.manager)}
+                                            >
+                                                <HiLogin /> Login as Manager
+                                            </button>
+                                            <button
+                                                className="btn-dossier-action"
+                                                onClick={() => { setEditingManager({ ...selectedDossier.manager }); setShowQuotaModal(true); }}
+                                            >
+                                                <HiPencil /> Edit Quotas
+                                            </button>
+                                            <button
+                                                className="btn-dossier-action"
+                                                onClick={() => { setResettingManager(selectedDossier.manager); setNewPassword(''); setShowPasswordResetModal(true); }}
+                                            >
+                                                <HiKey /> Reset Password
+                                            </button>
+                                            <button
+                                                className={`btn-dossier-action ${selectedDossier.manager.isActive !== false ? 'btn-deactivate' : 'btn-activate'}`}
+                                                onClick={() => handleToggle(selectedDossier.manager)}
+                                            >
+                                                {selectedDossier.manager.isActive !== false ? <HiBan /> : <HiCheck />}
+                                                {selectedDossier.manager.isActive !== false ? 'Suspend Account' : 'Activate Account'}
+                                            </button>
                                         </div>
                                     </div>
                                 )}
@@ -808,18 +927,29 @@ const AdminManagers = () => {
                                     <div className="tab-pane">
                                         <div className="promoters-dossier-list">
                                             {selectedDossier.promoters?.length === 0 ? (
-                                                <p className="no-data-msg">No promoters currently registered under this manager.</p>
+                                                <p className="no-data-msg">No field promoters currently assigned to this manager.</p>
                                             ) : (
                                                 selectedDossier.promoters.map((p) => (
                                                     <div key={p._id} className="promoter-dossier-row">
-                                                        <div>
-                                                            <strong>{p.name}</strong>
-                                                            <div className="sub-text">{p.email}</div>
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`status-dot ${p.isOnline ? 'online' : 'offline'}`} title={p.isOnline ? 'Online Now' : 'Offline'}></div>
+                                                            <div>
+                                                                <strong>{p.name}</strong>
+                                                                <div className="sub-text">{p.email}</div>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className={`status-pill ${p.isActive !== false ? 'active' : 'suspended'}`}>
-                                                                {p.isActive !== false ? 'Active' : 'Inactive'}
-                                                            </span>
+                                                        <div className="flex items-center gap-4">
+                                                            <div className="text-right">
+                                                                <span className="block text-xs font-semibold text-gray-500">{p.stats?.totalBatches || 0} Batches</span>
+                                                                <span className="text-xs text-teal-600 font-bold">{p.stats?.approvalRatio || 100}% Pass</span>
+                                                            </div>
+                                                            <button
+                                                                className="btn-reassign-small"
+                                                                onClick={() => { setPromoterToReassign(p); setTargetManagerId(''); setShowReassignModal(true); }}
+                                                                title="Transfer Promoter to Another Manager"
+                                                            >
+                                                                <HiSwitchHorizontal /> Reassign
+                                                            </button>
                                                         </div>
                                                     </div>
                                                 ))
@@ -828,18 +958,65 @@ const AdminManagers = () => {
                                     </div>
                                 )}
 
-                                {/* Campaigns Tab */}
+                                {/* Campaigns & Clients Tab */}
                                 {activeDossierTab === 'campaigns' && (
                                     <div className="tab-pane">
                                         <div className="campaigns-dossier-list">
                                             {selectedDossier.clients?.length === 0 ? (
-                                                <p className="no-data-msg">No brand clients registered under this manager.</p>
+                                                <p className="no-data-msg">No brand clients registered under this agency.</p>
                                             ) : (
                                                 selectedDossier.clients.map((c) => (
                                                     <div key={c._id} className="campaign-dossier-row">
                                                         <div>
                                                             <strong>{c.name}</strong>
-                                                            <div className="sub-text">{c.industry || 'General Client'} • {c.contactEmail}</div>
+                                                            <div className="sub-text">{c.industry || 'Brand Client'} • Contact: {c.contactPerson || 'N/A'} ({c.contactEmail})</div>
+                                                            {c.phone && <div className="sub-text">📞 {c.phone}</div>}
+                                                        </div>
+                                                        <div className="campaign-count-pill">
+                                                            {c.campaigns?.length || 0} Campaigns
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* AI Audit Stream Tab */}
+                                {activeDossierTab === 'audit' && (
+                                    <div className="tab-pane">
+                                        <div className="fraud-summary-banner">
+                                            <div className="flex items-center gap-2">
+                                                <HiShieldCheck size={20} style={{ color: '#0d9488' }} />
+                                                <div>
+                                                    <strong>AI Integrity & Fraud Catch Summary</strong>
+                                                    <div className="text-xs text-gray-600">
+                                                        {selectedDossier.metrics?.totalDuplicatesCaught || 0} duplicate fraud attempts blocked. Zero-Knowledge Geofence active.
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <h4 className="card-sec-title" style={{ marginTop: '16px' }}>Recent Agency Batches</h4>
+                                        <div className="recent-batches-list">
+                                            {selectedDossier.recentBatches?.length === 0 ? (
+                                                <p className="no-data-msg">No batches uploaded yet by this agency.</p>
+                                            ) : (
+                                                selectedDossier.recentBatches.map((b) => (
+                                                    <div key={b._id} className="recent-batch-row">
+                                                        <div>
+                                                            <strong>{b.title}</strong>
+                                                            <div className="sub-text">
+                                                                📍 {b.location || 'Location Not Specified'} • {b.photoCount || 0} Photos
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-xs font-bold text-teal-600">
+                                                                {b.aiSummary?.verificationScore || 100}% Integrity
+                                                            </span>
+                                                            <span className={`status-pill ${b.status}`}>
+                                                                {b.status.toUpperCase()}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 ))
@@ -1125,9 +1302,7 @@ const AdminManagers = () => {
                     font-weight: 600;
                 }
 
-                .cap-pct {
-                    color: var(--text-secondary);
-                }
+                .cap-pct { color: var(--text-secondary); }
 
                 .cap-track {
                     height: 6px;
@@ -1142,9 +1317,7 @@ const AdminManagers = () => {
                     border-radius: 4px;
                 }
 
-                .cap-fill.danger {
-                    background: #dc2626;
-                }
+                .cap-fill.danger { background: #dc2626; }
 
                 .quota-cell {
                     display: flex;
@@ -1166,6 +1339,10 @@ const AdminManagers = () => {
                 }
                 .status-pill.active { background: #f0fdf4; color: #16a34a; }
                 .status-pill.suspended { background: #fef2f2; color: #dc2626; }
+                .status-pill.approved { background: #f0fdf4; color: #16a34a; }
+                .status-pill.pending { background: #fffbeb; color: #b45309; }
+                .status-pill.rejected { background: #fef2f2; color: #dc2626; }
+                .status-pill.draft { background: #f1f5f9; color: #475569; }
 
                 .actions-cell {
                     display: flex;
@@ -1221,9 +1398,7 @@ const AdminManagers = () => {
                     overflow: hidden;
                 }
 
-                .popup-dialog.lg {
-                    width: min(680px, 95vw);
-                }
+                .popup-dialog.lg { width: min(680px, 95vw); }
 
                 .popup-header {
                     padding: 14px 18px;
@@ -1343,7 +1518,7 @@ const AdminManagers = () => {
                 .dossier-drawer-content {
                     background: var(--bg-secondary);
                     border-left: 1px solid var(--border-color);
-                    width: min(580px, 95vw);
+                    width: min(640px, 95vw);
                     height: 100%;
                     display: flex;
                     flex-direction: column;
@@ -1398,6 +1573,7 @@ const AdminManagers = () => {
                     gap: 6px;
                     border-bottom: 1px solid var(--border-color);
                     padding-bottom: 8px;
+                    flex-wrap: wrap;
                 }
 
                 .dossier-tab-btn {
@@ -1418,29 +1594,37 @@ const AdminManagers = () => {
 
                 .dossier-kpi-grid {
                     display: grid;
-                    grid-template-columns: repeat(3, 1fr);
-                    gap: 10px;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 12px;
                     margin-bottom: 16px;
                 }
 
                 .kpi-card {
                     background: var(--bg-primary);
                     border: 1px solid var(--border-color);
-                    border-radius: 8px;
-                    padding: 12px;
-                    text-align: center;
+                    border-radius: 10px;
+                    padding: 14px;
+                    display: flex;
+                    flex-direction: column;
                 }
 
                 .kpi-lbl {
-                    display: block;
-                    font-size: 0.7rem;
+                    font-size: 0.72rem;
                     color: var(--text-secondary);
-                    margin-bottom: 4px;
+                    font-weight: 700;
+                    text-transform: uppercase;
                 }
 
                 .kpi-val {
-                    font-size: 1.25rem;
-                    font-weight: 700;
+                    font-size: 1.4rem;
+                    font-weight: 800;
+                    color: var(--text-primary);
+                    margin: 4px 0 2px 0;
+                }
+
+                .kpi-sub {
+                    font-size: 0.75rem;
+                    color: var(--text-secondary);
                 }
 
                 .dossier-detail-card {
@@ -1451,7 +1635,7 @@ const AdminManagers = () => {
                 }
 
                 .card-sec-title {
-                    font-size: 0.9rem;
+                    font-size: 0.92rem;
                     font-weight: 700;
                     margin: 0 0 12px 0;
                 }
@@ -1465,15 +1649,99 @@ const AdminManagers = () => {
                     font-size: 0.88rem;
                 }
 
-                .promoter-dossier-row, .campaign-dossier-row {
+                .admin-notes-text {
+                    font-size: 0.88rem;
+                    color: var(--text-secondary);
+                    line-height: 1.5;
+                    margin: 0;
+                    font-style: italic;
+                }
+
+                .dossier-actions-strip {
+                    display: flex;
+                    gap: 8px;
+                    margin-top: 18px;
+                    padding-top: 14px;
+                    border-top: 1px solid var(--border-color);
+                    flex-wrap: wrap;
+                }
+
+                .btn-dossier-action {
+                    padding: 7px 12px;
+                    border-radius: 6px;
+                    border: 1px solid var(--border-color);
+                    background: var(--bg-primary);
+                    color: var(--text-primary);
+                    font-size: 0.82rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 5px;
+                }
+
+                .btn-dossier-action.btn-impersonate {
+                    background: #0284c7;
+                    color: #ffffff;
+                    border-color: #0284c7;
+                }
+
+                .promoter-dossier-row, .campaign-dossier-row, .recent-batch-row {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    padding: 12px;
+                    padding: 12px 14px;
                     background: var(--bg-primary);
                     border: 1px solid var(--border-color);
                     border-radius: 8px;
                     margin-bottom: 8px;
+                }
+
+                .status-dot {
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    flex-shrink: 0;
+                }
+                .status-dot.online { background: #16a34a; box-shadow: 0 0 8px #16a34a; }
+                .status-dot.offline { background: #94a3b8; }
+
+                .btn-reassign-small {
+                    background: #eff6ff;
+                    border: 1px solid #bfdbfe;
+                    color: #1d4ed8;
+                    padding: 5px 10px;
+                    border-radius: 6px;
+                    font-size: 0.78rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                }
+
+                .campaign-count-pill {
+                    background: #f1f5f9;
+                    color: #475569;
+                    font-size: 0.78rem;
+                    font-weight: 700;
+                    padding: 3px 8px;
+                    border-radius: 6px;
+                }
+
+                .fraud-summary-banner {
+                    background: #f0fdf4;
+                    border: 1px solid #bbf7d0;
+                    padding: 12px 14px;
+                    border-radius: 8px;
+                    color: #166534;
+                }
+
+                .no-data-msg {
+                    color: var(--text-secondary);
+                    font-size: 0.88rem;
+                    text-align: center;
+                    padding: 24px 0;
                 }
             `}</style>
         </div>
