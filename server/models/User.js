@@ -35,17 +35,49 @@ const userSchema = new mongoose.Schema({
     // For managers: how many promoters they can create
     promoterLimit: {
         type: Number,
-        default: 0
+        default: 5
     },
     // For managers: count of promoters created
     promotersCreated: {
         type: Number,
         default: 0
     },
-    // Company name (for managers)
+    // Company & Enterprise Profile (for managers)
     companyName: {
         type: String,
         trim: true,
+        default: ''
+    },
+    phone: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    address: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    taxId: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    licenseTier: {
+        type: String,
+        enum: ['starter', 'pro', 'enterprise'],
+        default: 'pro'
+    },
+    aiScanQuota: {
+        type: Number,
+        default: 1000 // Scans per month
+    },
+    storageQuotaMB: {
+        type: Number,
+        default: 5120 // 5 GB
+    },
+    adminNotes: {
+        type: String,
         default: ''
     },
     isActive: {
@@ -61,6 +93,10 @@ const userSchema = new mongoose.Schema({
     lastLogin: {
         type: Date,
         default: null
+    },
+    lastActive: {
+        type: Date,
+        default: Date.now
     }
 }, {
     timestamps: true
@@ -81,7 +117,7 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
     return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Get user's full info for JWT
+// Get user's full info for JWT / responses
 userSchema.methods.getPublicProfile = function () {
     return {
         id: this._id,
@@ -89,9 +125,19 @@ userSchema.methods.getPublicProfile = function () {
         name: this.name,
         role: this.role,
         companyName: this.companyName,
+        phone: this.phone,
+        address: this.address,
+        taxId: this.taxId,
+        licenseTier: this.licenseTier || 'pro',
         promoterLimit: this.promoterLimit,
         promotersCreated: this.promotersCreated,
-        createdBy: this.createdBy
+        aiScanQuota: this.aiScanQuota || 1000,
+        storageQuotaMB: this.storageQuotaMB || 5120,
+        adminNotes: this.adminNotes || '',
+        isActive: this.isActive,
+        lastLogin: this.lastLogin,
+        createdBy: this.createdBy,
+        createdAt: this.createdAt
     };
 };
 

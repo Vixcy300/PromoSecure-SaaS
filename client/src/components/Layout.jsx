@@ -22,7 +22,7 @@ import {
 } from 'react-icons/hi';
 
 const Layout = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, isImpersonating, stopImpersonation } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -207,6 +207,19 @@ const Layout = () => {
       </aside>
 
       <main className="main-content">
+        {isImpersonating && (
+          <div className="impersonation-banner">
+            <div className="impersonation-text">
+              <span className="pulse-warning">⚠️</span>
+              <span>
+                <strong>Super Admin Impersonation Mode:</strong> Currently viewing platform as <strong>{user?.name}</strong> ({user?.companyName || user?.role})
+              </span>
+            </div>
+            <button className="exit-impersonation-btn" onClick={stopImpersonation}>
+              Exit & Return to Super Admin
+            </button>
+          </div>
+        )}
         <Outlet />
       </main>
 
@@ -214,6 +227,49 @@ const Layout = () => {
         .layout {
           display: flex;
           min-height: 100vh;
+        }
+
+        .impersonation-banner {
+          background: linear-gradient(135deg, #d97706, #b45309);
+          color: #ffffff;
+          padding: 10px 20px;
+          border-radius: 12px;
+          margin-bottom: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          box-shadow: 0 4px 14px rgba(217, 119, 6, 0.25);
+          font-size: 0.92rem;
+          flex-wrap: wrap;
+        }
+
+        .impersonation-text {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .pulse-warning {
+          font-size: 1.1rem;
+          animation: pulse 1.5s infinite;
+        }
+
+        .exit-impersonation-btn {
+          background: #ffffff;
+          color: #92400e;
+          border: none;
+          padding: 6px 14px;
+          border-radius: 8px;
+          font-weight: 700;
+          font-size: 0.85rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .exit-impersonation-btn:hover {
+          background: #fef3c7;
+          transform: translateY(-1px);
         }
 
         /* Mobile Header */

@@ -1,10 +1,20 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Batch = require('../models/Batch');
+const Client = require('../models/Client');
 const OTP = require('../models/OTP');
 const { protect, authorize } = require('../middleware/auth');
 
 const router = express.Router();
+
+// Generate JWT Token
+const generateToken = (id, extra = {}) => {
+    return jwt.sign({ id, ...extra }, process.env.JWT_SECRET, {
+        expiresIn: process.env.JWT_EXPIRE || '7d'
+    });
+};
 
 // All routes require authentication
 router.use(protect);
@@ -14,35 +24,37 @@ router.use(protect);
 // @access  Admin only
 router.post('/manager', authorize('admin'), async (req, res) => {
     try {
-        const { email, password, name, companyName, promoterLimit, otp } = req.body;
+        const { email, password, name, companyName, phone, address, taxId, licenseTier, promoterLimit, aiScanQuota, storageQuotaMB, adminNotes, otp } = req.body;
 
-        // Verify OTP
-        const otpRecord = await OTP.findOne({ email });
-        if (!otpRecord) {
-            return res.status(400).json({
-                success: false,
-                message: 'OTP expired or not found'
-            });
-        }
-
-        if (otpRecord.otp !== otp) {
-            otpRecord.attempts += 1;
-            await otpRecord.save();
-
-            if (otpRecord.attempts >= 3) {
-                await OTP.deleteOne({ _id: otpRecord._id });
+        // Verify OTP if provided (or allow admin direct creation)
+        if (otp) {
+            const otpRecord = await OTP.findOne({ email });
+            if (!otpRecord) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Too many failed attempts. OTP invalidated.'
+                    message: 'OTP expired or not found'
                 });
             }
 
-            return res.status(400).json({
-                success: false,
-                message: `Invalid OTP. ${3 - otpRecord.attempts} attempts remaining.`
-            });
+            if (otpRecord.otp !== otp) {
+                otpRecord.attempts += 1;
+                await otpRecord.save();
+
+                if (otpRecord.attempts >= 3) {
+                    await OTP.deleteOne({ _id: otpRecord._id });
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Too many failed attempts. OTP invalidated.'
+                    });
+                }
+
+                return res.status(400).json({
+                    success: false,
+                    message: `Invalid OTP. ${3 - otpRecord.attempts} attempts remaining.`
+                });
+            }
+            await otpRecord.deleteOne();
         }
-        await otpRecord.deleteOne();
 
         const user = await User.create({
             email,
@@ -50,7 +62,14 @@ router.post('/manager', authorize('admin'), async (req, res) => {
             name,
             role: 'manager',
             companyName: companyName || '',
-            promoterLimit: promoterLimit || 5,
+            phone: phone || '',
+            address: address || '',
+            taxId: taxId || '',
+            licenseTier: licenseTier || 'pro',
+            promoterLimit: promoterLimit ? Number(promoterLimit) : 5,
+            aiScanQuota: aiScanQuota ? Number(aiScanQuota) : 1000,
+            storageQuotaMB: storageQuotaMB ? Number(storageQuotaMB) : 5120,
+            adminNotes: adminNotes || '',
             createdBy: req.user._id
         });
 
@@ -154,14 +173,12 @@ router.get('/', authorize('admin', 'manager'), async (req, res) => {
         let query = {};
 
         if (req.user.role === 'admin') {
-            // Admin can see all managers and their promoters
             if (req.query.role) {
                 query.role = req.query.role;
             } else {
-                query.role = { $in: ['manager', 'promoter'] };
+                query.role = { $in: ['manager', 'promoter', 'client'] };
             }
         } else if (req.user.role === 'manager') {
-            // Manager can only see their promoters
             query = {
                 role: 'promoter',
                 createdBy: req.user._id
@@ -170,13 +187,375 @@ router.get('/', authorize('admin', 'manager'), async (req, res) => {
 
         const users = await User.find(query)
             .select('-password')
-            .populate('createdBy', 'name email')
+            .populate('createdBy', 'name email companyName')
             .sort({ createdAt: -1 });
 
         res.json({
             success: true,
             count: users.length,
             users
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// @route   GET /api/users/manager/:id/dossier
+// @desc    Comprehensive Manager Dossier for Super Admin
+// @access  Admin only
+router.get('/manager/:id/dossier', authorize('admin'), async (req, res) => {
+    try {
+        const manager = await User.findById(req.params.id).select('-password');
+        if (!manager || manager.role !== 'manager') {
+            return res.status(404).json({
+                success: false,
+                message: 'Manager not found'
+            });
+        }
+
+        // 1. Fetch all Promoters belonging to this manager
+        const promoters = await User.find({ createdBy: manager._id, role: 'promoter' })
+            .select('-password')
+            .sort({ createdAt: -1 });
+
+        const promoterIds = promoters.map(p => p._id);
+
+        // 2. Fetch all Clients owned by this manager
+        const clients = await Client.find({ manager: manager._id }).sort({ createdAt: -1 });
+
+        // 3. Aggregate Batches stats for this manager
+        const batchCounts = await Batch.aggregate([
+            { $match: { manager: manager._id } },
+            {
+                $group: {
+                    _id: '$status',
+                    count: { $sum: 1 },
+                    photos: { $sum: '$photoCount' },
+                    duplicates: { $sum: '$aiSummary.duplicatesFound' },
+                    facesDetected: { $sum: '$aiSummary.totalFacesDetected' }
+                }
+            }
+        ]);
+
+        let totalBatches = 0;
+        let totalPhotos = 0;
+        let totalDuplicates = 0;
+        let totalFaces = 0;
+        const statusMap = { draft: 0, pending: 0, approved: 0, rejected: 0 };
+
+        batchCounts.forEach(b => {
+            if (statusMap[b._id] !== undefined) {
+                statusMap[b._id] = b.count;
+            }
+            totalBatches += b.count;
+            totalPhotos += (b.photos || 0);
+            totalDuplicates += (b.duplicates || 0);
+            totalFaces += (b.facesDetected || 0);
+        });
+
+        // 4. Calculate Pass Rate & Fraud Prevention stats
+        const passRate = totalBatches > 0 
+            ? Math.round((statusMap.approved / totalBatches) * 100) 
+            : 100;
+
+        // 5. Promoter activity stats (attach batch counts to each promoter)
+        const promoterBatchStats = await Batch.aggregate([
+            { $match: { promoter: { $in: promoterIds } } },
+            {
+                $group: {
+                    _id: '$promoter',
+                    totalBatches: { $sum: 1 },
+                    approvedBatches: {
+                        $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] }
+                    },
+                    photos: { $sum: '$photoCount' }
+                }
+            }
+        ]);
+
+        const promoterStatsLookup = {};
+        promoterBatchStats.forEach(pbs => {
+            promoterStatsLookup[pbs._id.toString()] = pbs;
+        });
+
+        const promotersWithStats = promoters.map(p => {
+            const pObj = p.toObject();
+            const stat = promoterStatsLookup[p._id.toString()] || { totalBatches: 0, approvedBatches: 0, photos: 0 };
+            return {
+                ...pObj,
+                stats: stat,
+                isOnline: p.lastActive ? (new Date() - new Date(p.lastActive)) < 15 * 60 * 1000 : false
+            };
+        });
+
+        // 6. Recent Batches (last 5)
+        const recentBatches = await Batch.find({ manager: manager._id })
+            .populate('promoter', 'name email')
+            .populate('client', 'name')
+            .sort({ createdAt: -1 })
+            .limit(5);
+
+        res.json({
+            success: true,
+            dossier: {
+                manager,
+                licenseTier: manager.licenseTier || 'pro',
+                promoterLimit: manager.promoterLimit || 5,
+                promotersCreated: promoters.length,
+                aiScanQuota: manager.aiScanQuota || 1000,
+                storageQuotaMB: manager.storageQuotaMB || 5120,
+                metrics: {
+                    totalBatches,
+                    totalPhotos,
+                    statusMap,
+                    passRate,
+                    totalDuplicatesCaught: totalDuplicates,
+                    totalFacesProtected: totalFaces
+                },
+                promoters: promotersWithStats,
+                clients,
+                recentBatches
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// @route   PUT /api/users/manager/:id/quota
+// @desc    Update manager's complete quota, tier, and enterprise profile
+// @access  Admin only
+router.put('/manager/:id/quota', authorize('admin'), async (req, res) => {
+    try {
+        const {
+            promoterLimit,
+            licenseTier,
+            aiScanQuota,
+            storageQuotaMB,
+            companyName,
+            name,
+            phone,
+            address,
+            taxId,
+            adminNotes,
+            isActive
+        } = req.body;
+
+        const manager = await User.findById(req.params.id);
+        if (!manager || manager.role !== 'manager') {
+            return res.status(404).json({
+                success: false,
+                message: 'Manager not found'
+            });
+        }
+
+        if (promoterLimit !== undefined) manager.promoterLimit = Number(promoterLimit);
+        if (licenseTier !== undefined) manager.licenseTier = licenseTier;
+        if (aiScanQuota !== undefined) manager.aiScanQuota = Number(aiScanQuota);
+        if (storageQuotaMB !== undefined) manager.storageQuotaMB = Number(storageQuotaMB);
+        if (companyName !== undefined) manager.companyName = companyName;
+        if (name !== undefined) manager.name = name;
+        if (phone !== undefined) manager.phone = phone;
+        if (address !== undefined) manager.address = address;
+        if (taxId !== undefined) manager.taxId = taxId;
+        if (adminNotes !== undefined) manager.adminNotes = adminNotes;
+        if (isActive !== undefined) manager.isActive = isActive;
+
+        await manager.save();
+
+        res.json({
+            success: true,
+            user: manager.getPublicProfile(),
+            message: 'Manager quotas and profile updated successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// @route   POST /api/users/manager/:id/reset-password
+// @desc    Admin Emergency Password Reset Override (no OTP required)
+// @access  Admin only
+router.post('/manager/:id/reset-password', authorize('admin'), async (req, res) => {
+    try {
+        const { newPassword } = req.body;
+
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 6 characters long'
+            });
+        }
+
+        const user = await User.findById(req.params.id);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: `Password for ${user.email} was successfully reset by Super Admin`
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// @route   POST /api/users/impersonate/:id
+// @desc    Admin Impersonate / "Log in as Manager"
+// @access  Admin only
+router.post('/impersonate/:id', authorize('admin'), async (req, res) => {
+    try {
+        const targetUser = await User.findById(req.params.id);
+        if (!targetUser) {
+            return res.status(404).json({
+                success: false,
+                message: 'Target user not found'
+            });
+        }
+
+        // Generate token with original admin ID stored for safe return
+        const impersonationToken = generateToken(targetUser._id, {
+            isImpersonated: true,
+            originalAdminId: req.user._id.toString(),
+            originalAdminName: req.user.name
+        });
+
+        res.json({
+            success: true,
+            token: impersonationToken,
+            user: targetUser.getPublicProfile(),
+            message: `Now impersonating ${targetUser.name} (${targetUser.role})`
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// @route   POST /api/users/bulk-action
+// @desc    Bulk actions on managers or promoters
+// @access  Admin only
+router.post('/bulk-action', authorize('admin'), async (req, res) => {
+    try {
+        const { userIds, action, value } = req.body;
+
+        if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide an array of user IDs'
+            });
+        }
+
+        if (action === 'activate') {
+            await User.updateMany({ _id: { $in: userIds } }, { isActive: true });
+        } else if (action === 'deactivate') {
+            // Prevent deactivating super admin
+            await User.updateMany({ _id: { $in: userIds }, role: { $ne: 'admin' } }, { isActive: false });
+        } else if (action === 'set_promoter_limit') {
+            const limit = Number(value);
+            if (isNaN(limit) || limit < 0) {
+                return res.status(400).json({ success: false, message: 'Invalid promoter limit' });
+            }
+            await User.updateMany({ _id: { $in: userIds }, role: 'manager' }, { promoterLimit: limit });
+        } else if (action === 'set_tier') {
+            if (!['starter', 'pro', 'enterprise'].includes(value)) {
+                return res.status(400).json({ success: false, message: 'Invalid tier' });
+            }
+            await User.updateMany({ _id: { $in: userIds }, role: 'manager' }, { licenseTier: value });
+        } else if (action === 'reassign_promoters') {
+            const newManagerId = value;
+            const newManager = await User.findById(newManagerId);
+            if (!newManager || newManager.role !== 'manager') {
+                return res.status(400).json({ success: false, message: 'Destination manager not found' });
+            }
+
+            await User.updateMany(
+                { _id: { $in: userIds }, role: 'promoter' },
+                { createdBy: newManager._id }
+            );
+
+            // Recalculate promoter counts
+            const count = await User.countDocuments({ createdBy: newManager._id, role: 'promoter' });
+            newManager.promotersCreated = count;
+            await newManager.save();
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Unknown bulk action'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: `Bulk action '${action}' applied to ${userIds.length} accounts successfully`
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// @route   PUT /api/users/promoter/:id/reassign
+// @desc    Reassign single promoter to a different manager
+// @access  Admin only
+router.put('/promoter/:id/reassign', authorize('admin'), async (req, res) => {
+    try {
+        const { targetManagerId } = req.body;
+
+        const promoter = await User.findById(req.params.id);
+        if (!promoter || promoter.role !== 'promoter') {
+            return res.status(404).json({
+                success: false,
+                message: 'Promoter not found'
+            });
+        }
+
+        const targetManager = await User.findById(targetManagerId);
+        if (!targetManager || targetManager.role !== 'manager') {
+            return res.status(404).json({
+                success: false,
+                message: 'Target manager not found'
+            });
+        }
+
+        const oldManagerId = promoter.createdBy;
+        promoter.createdBy = targetManager._id;
+        await promoter.save();
+
+        // Update counts for both managers
+        if (oldManagerId) {
+            const oldCount = await User.countDocuments({ createdBy: oldManagerId, role: 'promoter' });
+            await User.findByIdAndUpdate(oldManagerId, { promotersCreated: oldCount });
+        }
+        const newCount = await User.countDocuments({ createdBy: targetManager._id, role: 'promoter' });
+        await User.findByIdAndUpdate(targetManager._id, { promotersCreated: newCount });
+
+        res.json({
+            success: true,
+            message: `Promoter ${promoter.name} reassigned to ${targetManager.name} (${targetManager.companyName})`
         });
     } catch (error) {
         res.status(500).json({
@@ -281,8 +660,8 @@ router.get('/stats', authorize('admin'), async (req, res) => {
 });
 
 // @route   GET /api/users/:id
-// @desc    Get a single user by ID (for fetching manager details)
-// @access  Authenticated users (promoters can only view their manager)
+// @desc    Get a single user by ID
+// @access  Authenticated users
 router.get('/:id', async (req, res) => {
     try {
         const user = await User.findById(req.params.id).select('-password');
@@ -294,7 +673,6 @@ router.get('/:id', async (req, res) => {
             });
         }
 
-        // Permission check: promoters can only view their own manager
         if (req.user.role === 'promoter') {
             if (req.user.createdBy.toString() !== req.params.id) {
                 return res.status(403).json({
@@ -306,13 +684,7 @@ router.get('/:id', async (req, res) => {
 
         res.json({
             success: true,
-            user: {
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                role: user.role,
-                companyName: user.companyName
-            }
+            user: user.getPublicProfile()
         });
     } catch (error) {
         res.status(500).json({
@@ -354,7 +726,7 @@ router.put('/:id/limit', authorize('admin'), async (req, res) => {
 
 // @route   PUT /api/users/:id/toggle
 // @desc    Toggle user active status
-// @access  Admin/Manager (for their promoters)
+// @access  Admin/Manager
 router.put('/:id/toggle', authorize('admin', 'manager'), async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
@@ -366,7 +738,6 @@ router.put('/:id/toggle', authorize('admin', 'manager'), async (req, res) => {
             });
         }
 
-        // Managers can only toggle their own promoters
         if (req.user.role === 'manager') {
             if (user.role !== 'promoter' || user.createdBy.toString() !== req.user._id.toString()) {
                 return res.status(403).json({
@@ -376,7 +747,6 @@ router.put('/:id/toggle', authorize('admin', 'manager'), async (req, res) => {
             }
         }
 
-        // Admin cannot deactivate themselves
         if (req.user._id.toString() === user._id.toString()) {
             return res.status(400).json({
                 success: false,
