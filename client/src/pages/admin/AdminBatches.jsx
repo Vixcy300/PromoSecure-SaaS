@@ -6,7 +6,6 @@ import {
     HiX,
     HiEye,
     HiShieldCheck,
-    HiSparkles,
     HiRefresh,
     HiCheckCircle,
     HiClock,
@@ -15,7 +14,9 @@ import {
     HiAdjustments,
     HiChevronLeft,
     HiChevronRight,
-    HiLockClosed
+    HiLockClosed,
+    HiLocationMarker,
+    HiExternalLink
 } from 'react-icons/hi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -54,6 +55,7 @@ const AdminBatches = () => {
     const [overrideBatch, setOverrideBatch] = useState(null);
     const [overrideAction, setOverrideAction] = useState('approved');
     const [overrideNote, setOverrideNote] = useState('');
+    const [overrideSubmitting, setOverrideSubmitting] = useState(false);
 
     // Compliance Certificate Modal
     const [showCertModal, setShowCertModal] = useState(false);
@@ -128,20 +130,28 @@ const AdminBatches = () => {
     // Execute Super-Override
     const handleExecuteOverride = async (e) => {
         e.preventDefault();
-        if (!overrideBatch || !overrideNote.trim()) return;
+        if (!overrideBatch || !overrideNote.trim()) {
+            toast.error('Please enter an audit note (min 5 characters)');
+            return;
+        }
         try {
+            setOverrideSubmitting(true);
             const res = await api.post(`/batches/admin/${overrideBatch._id}/override`, {
                 action: overrideAction,
                 note: overrideNote,
             });
-            toast.success(res.data.message || 'Batch override applied');
+            toast.success(res.data.message || 'Batch override applied successfully');
             setShowOverrideModal(false);
             fetchMasterFeed();
             if (inspectorBatch && inspectorBatch._id === overrideBatch._id) {
-                openInspector(overrideBatch);
+                // Refresh currently open inspector
+                const refreshRes = await api.get(`/batches/admin/${overrideBatch._id}/audit-detail`);
+                setInspectorBatch(refreshRes.data.batch);
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'Override failed');
+        } finally {
+            setOverrideSubmitting(false);
         }
     };
 
@@ -165,69 +175,88 @@ const AdminBatches = () => {
     };
 
     return (
-        <div className="admin-batches-container">
+        <div className="admin-batches-page">
             {/* Page Header */}
-            <div className="page-header">
+            <div className="page-header-row">
                 <div>
-                    <h1 className="page-title">Global Batches & AI Audit Stream</h1>
-                    <p className="page-subtitle">
-                        Platform-wide master stream of photo submissions with privacy-first AI verification telemetry, ZK geofence proofs, and super-overrides.
+                    <h1 className="page-main-title">Global Batches & AI Audit Stream</h1>
+                    <p className="page-sub-text">
+                        Enterprise audit trail of photo submissions, AI privacy enforcement, and Super Admin overrides.
                     </p>
                 </div>
             </div>
 
-            {/* Metrics Ribbon */}
-            <div className="metrics-strip">
-                <div className="metric-chip">
-                    <HiPhotograph className="metric-icon" style={{ color: '#0284c7' }} />
-                    <div>
-                        <span className="metric-num">{counts.total}</span>
-                        <span className="metric-lbl">Total Batches ({counts.totalPhotos} Photos)</span>
+            {/* Metrics Cards */}
+            <div className="stat-cards-grid">
+                <div className="stat-card">
+                    <div className="stat-card-inner">
+                        <div className="stat-icon-wrap" style={{ color: '#2563eb', background: '#eff6ff' }}>
+                            <HiPhotograph />
+                        </div>
+                        <div>
+                            <span className="stat-val">{counts.total}</span>
+                            <span className="stat-lbl">Total Batches ({counts.totalPhotos} Photos)</span>
+                        </div>
                     </div>
                 </div>
-                <div className="metric-chip">
-                    <HiCheckCircle className="metric-icon" style={{ color: '#10b981' }} />
-                    <div>
-                        <span className="metric-num">{counts.approved}</span>
-                        <span className="metric-lbl">Approved Submissions</span>
+
+                <div className="stat-card">
+                    <div className="stat-card-inner">
+                        <div className="stat-icon-wrap" style={{ color: '#16a34a', background: '#f0fdf4' }}>
+                            <HiCheckCircle />
+                        </div>
+                        <div>
+                            <span className="stat-val">{counts.approved}</span>
+                            <span className="stat-lbl">Approved Submissions</span>
+                        </div>
                     </div>
                 </div>
-                <div className="metric-chip">
-                    <HiClock className="metric-icon" style={{ color: '#f59e0b' }} />
-                    <div>
-                        <span className="metric-num">{counts.pending}</span>
-                        <span className="metric-lbl">Pending Review</span>
+
+                <div className="stat-card">
+                    <div className="stat-card-inner">
+                        <div className="stat-icon-wrap" style={{ color: '#d97706', background: '#fffbeb' }}>
+                            <HiClock />
+                        </div>
+                        <div>
+                            <span className="stat-val">{counts.pending}</span>
+                            <span className="stat-lbl">Pending Review</span>
+                        </div>
                     </div>
                 </div>
-                <div className="metric-chip">
-                    <HiShieldCheck className="metric-icon" style={{ color: '#ef4444' }} />
-                    <div>
-                        <span className="metric-num">{counts.duplicatesFlagged}</span>
-                        <span className="metric-lbl">AI Fraud Flags Caught</span>
+
+                <div className="stat-card">
+                    <div className="stat-card-inner">
+                        <div className="stat-icon-wrap" style={{ color: '#dc2626', background: '#fef2f2' }}>
+                            <HiShieldCheck />
+                        </div>
+                        <div>
+                            <span className="stat-val">{counts.duplicatesFlagged}</span>
+                            <span className="stat-lbl">AI Fraud Flags Caught</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            {/* Filter & Search Bar */}
-            <div className="controls-card">
-                <form onSubmit={handleSearchSubmit} className="search-filter-row">
-                    <div className="search-box">
-                        <HiSearch className="search-icon" />
+            {/* Filter Toolbar */}
+            <div className="filter-toolbar">
+                <form onSubmit={handleSearchSubmit} className="filter-form">
+                    <div className="search-input-wrap">
+                        <HiSearch className="search-icon-svg" />
                         <input
                             type="text"
-                            placeholder="Search by batch title, location, promoter, manager, or client..."
+                            placeholder="Search by title, location, promoter, manager, or client..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                         {search && (
-                            <button type="button" className="clear-search" onClick={() => { setSearch(''); fetchMasterFeed(); }}>
+                            <button type="button" className="clear-btn" onClick={() => { setSearch(''); fetchMasterFeed(); }}>
                                 <HiX />
                             </button>
                         )}
                     </div>
 
-                    <div className="filter-group">
-                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                    <div className="selects-row">
+                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="clean-select">
                             <option value="all">All Statuses</option>
                             <option value="pending">Pending Review</option>
                             <option value="approved">Approved</option>
@@ -235,7 +264,7 @@ const AdminBatches = () => {
                             <option value="draft">Draft</option>
                         </select>
 
-                        <select value={managerFilter} onChange={(e) => setManagerFilter(e.target.value)}>
+                        <select value={managerFilter} onChange={(e) => setManagerFilter(e.target.value)} className="clean-select">
                             <option value="all">All Managers & Agencies</option>
                             {managers.map((m) => (
                                 <option key={m._id} value={m._id}>
@@ -244,46 +273,46 @@ const AdminBatches = () => {
                             ))}
                         </select>
 
-                        <label className="checkbox-toggle">
+                        <label className="flagged-toggle">
                             <input
                                 type="checkbox"
                                 checked={flaggedOnly}
                                 onChange={(e) => setFlaggedOnly(e.target.checked)}
                             />
-                            <span>⚠️ Flagged Only</span>
+                            <span>Flagged Only</span>
                         </label>
 
-                        <button type="button" className="btn btn-ghost refresh-btn" onClick={fetchMasterFeed} title="Refresh Stream">
-                            <HiRefresh size={18} />
+                        <button type="button" className="refresh-icon-btn" onClick={fetchMasterFeed} title="Refresh Feed">
+                            <HiRefresh />
                         </button>
                     </div>
                 </form>
             </div>
 
-            {/* Master Batch Stream Table */}
-            <div className="table-card">
+            {/* Stream Table */}
+            <div className="table-wrapper-card">
                 {loading ? (
-                    <div className="table-loader">
-                        <Spinner size={36} color="#0d9488" />
+                    <div className="loading-state">
+                        <Spinner size={32} color="#0f766e" />
                     </div>
                 ) : batches.length === 0 ? (
-                    <div className="empty-state">
-                        <HiPhotograph size={48} style={{ color: '#94a3b8' }} />
-                        <h3>No batches match your filter criteria</h3>
-                        <p>Try clearing your search query or selecting a different status.</p>
+                    <div className="empty-feed">
+                        <HiPhotograph size={44} style={{ color: '#94a3b8', marginBottom: '10px' }} />
+                        <h3>No batches found</h3>
+                        <p>No photo batches match the selected criteria.</p>
                     </div>
                 ) : (
                     <div className="table-responsive">
-                        <table className="batches-table">
+                        <table className="clean-table">
                             <thead>
                                 <tr>
-                                    <th>Batch Title & Location</th>
-                                    <th>Agency & Manager</th>
-                                    <th>Promoter</th>
-                                    <th>Photos / Faces</th>
-                                    <th>AI Integrity</th>
-                                    <th>Status</th>
-                                    <th style={{ textAlign: 'right' }}>Super Admin Audit Actions</th>
+                                    <th>BATCH TITLE & LOCATION</th>
+                                    <th>MANAGING AGENCY</th>
+                                    <th>PROMOTER</th>
+                                    <th>PHOTOS</th>
+                                    <th>AI INTEGRITY</th>
+                                    <th>STATUS</th>
+                                    <th style={{ textAlign: 'right' }}>ACTIONS</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -293,95 +322,89 @@ const AdminBatches = () => {
                                     const isOverridden = batch.adminOverride?.isOverridden;
 
                                     return (
-                                        <tr key={batch._id} className={duplicates > 0 ? 'fraud-flagged-row' : ''}>
+                                        <tr key={batch._id} className={duplicates > 0 ? 'highlight-warn-row' : ''}>
                                             <td>
-                                                <div className="batch-title-cell">
-                                                    <strong 
-                                                        className="batch-link"
+                                                <div className="batch-cell">
+                                                    <span 
+                                                        className="batch-title-clickable"
                                                         onClick={() => openInspector(batch)}
-                                                        title="Launch AI Audit Inspector"
                                                     >
                                                         {batch.title}
-                                                    </strong>
-                                                    <div className="batch-sub-meta">
-                                                        <span>📍 {batch.location || 'Location Not Specified'}</span>
+                                                    </span>
+                                                    <div className="batch-location-sub">
+                                                        <HiLocationMarker style={{ color: '#64748b' }} />
+                                                        <span>{batch.location || 'Location Not Specified'}</span>
                                                         {batch.client && (
-                                                            <span className="client-tag">
-                                                                🏷️ {batch.client.name}
+                                                            <span className="client-badge">
+                                                                {batch.client.name}
                                                             </span>
                                                         )}
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="agency-cell">
+                                                <div className="text-col">
                                                     <strong>{batch.manager?.name || 'Unassigned'}</strong>
-                                                    <span className="agency-company">
-                                                        🏢 {batch.manager?.companyName || 'Registered Agency'}
-                                                    </span>
+                                                    <span className="sub-text">{batch.manager?.companyName || 'Agency'}</span>
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="promoter-cell">
+                                                <div className="text-col">
                                                     <span>{batch.promoter?.name || 'Unknown'}</span>
-                                                    <span className="promoter-email">{batch.promoter?.email}</span>
+                                                    <span className="sub-text">{batch.promoter?.email}</span>
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="photos-metric">
-                                                    <strong>📸 {batch.photoCount} Photos</strong>
-                                                    <span className="faces-sub">
-                                                        👤 {batch.aiSummary?.totalFacesDetected || 0} Faces Protected
+                                                <div className="text-col">
+                                                    <strong>{batch.photoCount} Photos</strong>
+                                                    <span className="sub-text" style={{ color: '#0d9488' }}>
+                                                        {batch.aiSummary?.totalFacesDetected || 0} Faces Anonymized
                                                     </span>
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="integrity-badge-cell">
-                                                    <div className={`score-badge ${score >= 90 ? 'high' : 'warn'}`}>
-                                                        <HiSparkles size={13} />
-                                                        <strong>{score}%</strong>
-                                                    </div>
+                                                <div className="integrity-col">
+                                                    <span className={`score-pill ${score >= 90 ? 'high' : 'warn'}`}>
+                                                        {score}%
+                                                    </span>
                                                     {duplicates > 0 && (
-                                                        <span className="duplicate-alert-tag">
-                                                            ⚠️ {duplicates} Duplicate(s)
+                                                        <span className="flag-pill">
+                                                            {duplicates} Flagged
                                                         </span>
                                                     )}
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="status-cell">
-                                                    <span className={`status-pill ${batch.status}`}>
+                                                <div className="status-col">
+                                                    <span className={`status-tag ${batch.status}`}>
                                                         {batch.status.toUpperCase()}
                                                     </span>
                                                     {isOverridden && (
-                                                        <span className="override-indicator" title={`Overridden by ${batch.adminOverride.adminName}`}>
-                                                            ⚡ OVERRIDDEN
+                                                        <span className="overridden-tag">
+                                                            OVERRIDDEN
                                                         </span>
                                                     )}
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="action-buttons-cell">
+                                                <div className="actions-cell">
                                                     <button
-                                                        className="action-btn inspector"
+                                                        className="btn-action btn-inspect"
                                                         onClick={() => openInspector(batch)}
-                                                        title="Open AI Audit Inspector"
                                                     >
-                                                        <HiEye size={15} /> AI Audit
+                                                        <HiEye /> Audit
                                                     </button>
                                                     <button
-                                                        className="action-btn cert"
+                                                        className="btn-action btn-cert"
                                                         onClick={() => openCertificate(batch)}
-                                                        title="Compliance Certificate"
                                                     >
-                                                        <HiDocumentReport size={15} /> Cert
+                                                        <HiDocumentReport /> Cert
                                                     </button>
                                                     <button
-                                                        className="action-btn override"
+                                                        className="btn-action btn-override"
                                                         onClick={() => openOverride(batch)}
-                                                        title="Super Admin Force Override"
                                                     >
-                                                        <HiAdjustments size={15} /> Override
+                                                        <HiAdjustments /> Override
                                                     </button>
                                                 </div>
                                             </td>
@@ -397,162 +420,172 @@ const AdminBatches = () => {
             {/* ════════════════════════════════════════════════════════════════
                  GDPR PRIVACY-SECURED AI INSPECTOR MODAL
                ════════════════════════════════════════════════════════════════ */}
-            {showInspector && (
-                <div className="modal-overlay full-bleed" onClick={() => setShowInspector(false)}>
-                    <div className="inspector-modal-content" onClick={(e) => e.stopPropagation()}>
+            {showInspector && inspectorBatch && (
+                <div className="modal-backdrop-layer" onClick={() => setShowInspector(false)}>
+                    <div className="inspector-window" onClick={(e) => e.stopPropagation()}>
                         {/* Header */}
-                        <div className="inspector-header">
-                            <div>
-                                <div className="inspector-badge-row">
-                                    <span className="inspector-badge">
-                                        <HiShieldCheck size={16} /> GDPR PRIVACY-SECURED AI AUDIT
+                        <div className="inspector-top-bar">
+                            <div className="inspector-title-area">
+                                <div className="tag-line">
+                                    <span className="privacy-active-tag">
+                                        <HiLockClosed size={13} /> Zero-Knowledge Privacy Active
                                     </span>
-                                    {inspectorBatch && (
-                                        <span className={`inspector-status-pill ${inspectorBatch.status}`}>
-                                            {inspectorBatch.status.toUpperCase()}
-                                        </span>
-                                    )}
+                                    <span className={`status-tag ${inspectorBatch.status}`}>
+                                        {inspectorBatch.status.toUpperCase()}
+                                    </span>
                                 </div>
-                                <h2 className="inspector-title">{inspectorBatch?.title || 'Inspecting Batch'}</h2>
-                                <p className="inspector-subtitle">
-                                    Promoter: {inspectorBatch?.promoter?.name} • Manager: {inspectorBatch?.manager?.name} ({inspectorBatch?.manager?.companyName})
+                                <h2 className="modal-heading-text">{inspectorBatch.title}</h2>
+                                <p className="modal-sub-details">
+                                    Promoter: <strong>{inspectorBatch.promoter?.name}</strong> • Managing Agency: <strong>{inspectorBatch.manager?.name} ({inspectorBatch.manager?.companyName || 'Agency'})</strong>
                                 </p>
                             </div>
-                            <div className="inspector-header-controls">
-                                <div className="privacy-pill-badge">
-                                    <HiLockClosed size={14} /> Zero-Knowledge Privacy Active
-                                </div>
-                                <button className="close-btn" onClick={() => setShowInspector(false)}>
-                                    <HiX size={22} />
-                                </button>
-                            </div>
+                            <button className="close-x-btn" onClick={() => setShowInspector(false)}>
+                                <HiX size={20} />
+                            </button>
                         </div>
 
-                        {/* Privacy Guarantee Banner */}
-                        <div className="privacy-guarantee-strip">
-                            <HiLockClosed className="privacy-lock-icon" />
-                            <span>
-                                <strong>Strict Privacy Protocol:</strong> Raw biometric facial images are permanently irrecoverable and unviewable by any administrator, manager, or client. You are inspecting the verified GDPR-anonymized submission with AI cryptographic integrity signatures.
-                            </span>
+                        {/* Location & Privacy Banner */}
+                        <div className="inspector-info-banner">
+                            <div className="banner-item">
+                                <HiLocationMarker className="banner-icon" />
+                                <div>
+                                    <span className="banner-label">Execution Location</span>
+                                    <strong className="banner-value">{inspectorBatch.location || 'Field Location Verified'}</strong>
+                                    {inspectorBatch.gpsCoordinates?.lat && (
+                                        <a 
+                                            href={`https://maps.google.com/?q=${inspectorBatch.gpsCoordinates.lat},${inspectorBatch.gpsCoordinates.lng}`}
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="gps-link"
+                                        >
+                                            GPS: {inspectorBatch.gpsCoordinates.lat.toFixed(4)}, {inspectorBatch.gpsCoordinates.lng.toFixed(4)} <HiExternalLink />
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="banner-privacy-notice">
+                                <HiShieldCheck size={18} style={{ color: '#0d9488', flexShrink: 0 }} />
+                                <span>
+                                    <strong>GDPR Protocol:</strong> Raw biometric facial images are permanently destroyed upon capture. You are inspecting the verified GDPR-anonymized submission with AI integrity proofs.
+                                </span>
+                            </div>
                         </div>
 
                         {inspectorLoading ? (
-                            <div className="inspector-loading">
-                                <Spinner size={44} color="#0d9488" />
-                                <p>Extracting cryptographic face bounding boxes, ZK proofs, and perceptual hashes...</p>
+                            <div className="inspector-loader-wrap">
+                                <Spinner size={36} color="#0d9488" />
+                                <p>Loading inspection telemetry...</p>
                             </div>
                         ) : inspectorPhotos.length === 0 ? (
-                            <div className="empty-inspector">
-                                <HiPhotograph size={48} />
-                                <p>No photos attached to this batch submission.</p>
+                            <div className="inspector-empty-wrap">
+                                <HiPhotograph size={44} style={{ color: '#94a3b8' }} />
+                                <p>No photos uploaded for this batch.</p>
                             </div>
                         ) : (
-                            <div className="inspector-body">
-                                {/* Photo Viewer Panel */}
-                                <div className="inspector-photo-stage">
+                            <div className="inspector-split-layout">
+                                {/* Photo Stage */}
+                                <div className="photo-stage-area">
                                     {inspectorPhotos[selectedPhotoIndex] && (
-                                        <div className="single-photo-view">
-                                            <div className="photo-view-badge">
-                                                🛡️ GDPR Anonymized Proof Asset #{selectedPhotoIndex + 1}
+                                        <div className="main-photo-frame">
+                                            <div className="photo-header-pill">
+                                                GDPR Anonymized Proof Asset #{selectedPhotoIndex + 1} of {inspectorPhotos.length}
                                             </div>
                                             <img
                                                 src={inspectorPhotos[selectedPhotoIndex].blurredImage}
-                                                alt="GDPR Redacted Protected Asset"
+                                                alt="GDPR Anonymized Field Proof"
                                             />
                                         </div>
                                     )}
 
-                                    {/* Carousel Navigator */}
-                                    <div className="carousel-nav-bar">
+                                    {/* Thumbnail Navigation */}
+                                    <div className="photo-nav-strip">
                                         <button
-                                            className="nav-btn"
+                                            className="nav-arrow-btn"
                                             disabled={selectedPhotoIndex === 0}
                                             onClick={() => setSelectedPhotoIndex(prev => prev - 1)}
                                         >
-                                            <HiChevronLeft size={20} /> Previous
+                                            <HiChevronLeft /> Previous
                                         </button>
-                                        <div className="thumbnails-strip">
+                                        <div className="thumb-reel">
                                             {inspectorPhotos.map((photo, idx) => (
                                                 <div
                                                     key={photo._id || idx}
-                                                    className={`thumb-box ${idx === selectedPhotoIndex ? 'active' : ''}`}
+                                                    className={`thumb-card ${idx === selectedPhotoIndex ? 'current' : ''}`}
                                                     onClick={() => setSelectedPhotoIndex(idx)}
                                                 >
                                                     <img src={photo.blurredImage} alt={`Thumb ${idx + 1}`} />
-                                                    <span className="thumb-idx">{idx + 1}</span>
+                                                    <span className="thumb-num">{idx + 1}</span>
                                                 </div>
                                             ))}
                                         </div>
                                         <button
-                                            className="nav-btn"
+                                            className="nav-arrow-btn"
                                             disabled={selectedPhotoIndex === inspectorPhotos.length - 1}
                                             onClick={() => setSelectedPhotoIndex(prev => prev + 1)}
                                         >
-                                            Next <HiChevronRight size={20} />
+                                            Next <HiChevronRight />
                                         </button>
                                     </div>
                                 </div>
 
-                                {/* Deep Telemetry & AI Inspection Sidebar */}
-                                <div className="inspector-telemetry-sidebar">
-                                    <h4 className="sidebar-heading">
-                                        <HiShieldCheck size={18} /> AI Verification Telemetry
-                                    </h4>
+                                {/* Telemetry & Action Panel */}
+                                <div className="telemetry-side-panel">
+                                    <h4 className="side-title">AI Verification Telemetry</h4>
 
                                     {inspectorPhotos[selectedPhotoIndex] && (
-                                        <div className="telemetry-cards-stack">
-                                            <div className="telemetry-item">
-                                                <span className="t-label">Faces Protected & Anonymized</span>
-                                                <strong className="t-val">
-                                                    👤 {inspectorPhotos[selectedPhotoIndex].aiMetadata?.facesDetected || 0} Individual(s)
+                                        <div className="telemetry-items-list">
+                                            <div className="tel-card">
+                                                <span className="tel-title">Faces Protected</span>
+                                                <strong className="tel-val">
+                                                    {inspectorPhotos[selectedPhotoIndex].aiMetadata?.facesDetected || 0} Individual(s)
                                                 </strong>
                                             </div>
 
-                                            <div className="telemetry-item">
-                                                <span className="t-label">Uniqueness Status</span>
+                                            <div className="tel-card">
+                                                <span className="tel-title">Uniqueness Verification</span>
                                                 <strong
-                                                    className="t-val"
-                                                    style={{ color: inspectorPhotos[selectedPhotoIndex].aiMetadata?.isUnique ? '#10b981' : '#ef4444' }}
+                                                    className="tel-val"
+                                                    style={{ color: inspectorPhotos[selectedPhotoIndex].aiMetadata?.isUnique ? '#16a34a' : '#dc2626' }}
                                                 >
-                                                    {inspectorPhotos[selectedPhotoIndex].aiMetadata?.isUnique ? '✓ Unique Verified' : '⚠️ Duplicate Flagged'}
+                                                    {inspectorPhotos[selectedPhotoIndex].aiMetadata?.isUnique ? '✓ Verified Unique' : '⚠️ Duplicate Flagged'}
                                                 </strong>
                                             </div>
 
-                                            <div className="telemetry-item">
-                                                <span className="t-label">Perceptual dHash Signature</span>
-                                                <code className="t-code">
+                                            <div className="tel-card">
+                                                <span className="tel-title">Perceptual dHash Signature</span>
+                                                <code className="tel-code">
                                                     {inspectorPhotos[selectedPhotoIndex].aiMetadata?.imageHash || '0x9a8f4c2e1b7d5e6a'}
                                                 </code>
                                             </div>
 
-                                            <div className="telemetry-item">
-                                                <span className="t-label">Zero-Knowledge Geofence Proof</span>
-                                                <code className="t-code">
+                                            <div className="tel-card">
+                                                <span className="tel-title">Zero-Knowledge Geofence Proof</span>
+                                                <code className="tel-code">
                                                     {inspectorPhotos[selectedPhotoIndex].zoneProof || `ZK-ZONE-${inspectorBatch._id.toString().slice(-6).toUpperCase()}`}
                                                 </code>
                                             </div>
 
-                                            <div className="telemetry-item">
-                                                <span className="t-label">Captured Timestamp</span>
-                                                <span className="t-val">
+                                            <div className="tel-card">
+                                                <span className="tel-title">Capture Timestamp</span>
+                                                <span className="tel-val-sub">
                                                     {new Date(inspectorPhotos[selectedPhotoIndex].capturedAt || Date.now()).toLocaleString()}
                                                 </span>
                                             </div>
                                         </div>
                                     )}
 
-                                    <div className="inspector-actions-group">
+                                    <div className="side-actions-box">
                                         <button
-                                            className="btn btn-primary"
+                                            className="btn-primary-action"
                                             onClick={() => openOverride(inspectorBatch)}
                                         >
-                                            <HiAdjustments size={16} /> Admin Super Override
+                                            <HiAdjustments /> Admin Super Override
                                         </button>
                                         <button
-                                            className="btn btn-secondary"
+                                            className="btn-secondary-action"
                                             onClick={() => openCertificate(inspectorBatch)}
                                         >
-                                            <HiDocumentReport size={16} /> Official Certificate
+                                            <HiDocumentReport /> Official Compliance Cert
                                         </button>
                                     </div>
                                 </div>
@@ -563,27 +596,31 @@ const AdminBatches = () => {
             )}
 
             {/* ════════════════════════════════════════════════════════════════
-                 SUPER ADMIN OVERRIDE MODAL
+                 SUPER ADMIN OVERRIDE MODAL (HIGH Z-INDEX)
                ════════════════════════════════════════════════════════════════ */}
             {showOverrideModal && overrideBatch && (
-                <div className="modal-overlay" onClick={() => setShowOverrideModal(false)}>
-                    <div className="modal-content sm" onClick={(e) => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h3><HiAdjustments /> Super Admin Override</h3>
-                            <button className="close-btn" onClick={() => setShowOverrideModal(false)}>
+                <div className="high-z-overlay" onClick={() => setShowOverrideModal(false)}>
+                    <div className="popup-dialog" onClick={(e) => e.stopPropagation()}>
+                        <div className="popup-header">
+                            <div className="flex items-center gap-2">
+                                <HiAdjustments style={{ color: '#7c3aed', fontSize: '1.25rem' }} />
+                                <h3>Super Admin Force Override</h3>
+                            </div>
+                            <button className="close-x-btn" onClick={() => setShowOverrideModal(false)}>
                                 <HiX />
                             </button>
                         </div>
-                        <form onSubmit={handleExecuteOverride} className="admin-form">
-                            <p className="modal-description">
-                                Force-update batch status for <strong>{overrideBatch.title}</strong>:
+                        <form onSubmit={handleExecuteOverride} className="dialog-body">
+                            <p className="dialog-desc">
+                                Override approval status for <strong>{overrideBatch.title}</strong>:
                             </p>
 
-                            <div className="form-group">
-                                <label>Target Action *</label>
+                            <div className="dialog-field">
+                                <label>Target Status *</label>
                                 <select
                                     value={overrideAction}
                                     onChange={(e) => setOverrideAction(e.target.value)}
+                                    className="dialog-select"
                                 >
                                     <option value="approved">Force Approve Batch</option>
                                     <option value="rejected">Force Reject Batch</option>
@@ -591,23 +628,33 @@ const AdminBatches = () => {
                                 </select>
                             </div>
 
-                            <div className="form-group">
+                            <div className="dialog-field">
                                 <label>Mandatory Super Admin Audit Note *</label>
                                 <textarea
                                     required
                                     rows={4}
-                                    placeholder="Explain why you are overriding this batch (min 5 characters)..."
+                                    className="dialog-textarea"
+                                    placeholder="Enter detailed audit justification for this override (min 5 characters)..."
                                     value={overrideNote}
                                     onChange={(e) => setOverrideNote(e.target.value)}
                                 />
                             </div>
 
-                            <div className="modal-actions">
-                                <button type="button" className="btn btn-secondary" onClick={() => setShowOverrideModal(false)}>
+                            <div className="dialog-footer">
+                                <button
+                                    type="button"
+                                    className="btn-cancel"
+                                    onClick={() => setShowOverrideModal(false)}
+                                    disabled={overrideSubmitting}
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn btn-primary">
-                                    Confirm Override
+                                <button
+                                    type="submit"
+                                    className="btn-confirm-override"
+                                    disabled={overrideSubmitting}
+                                >
+                                    {overrideSubmitting ? 'Applying...' : 'Confirm Override'}
                                 </button>
                             </div>
                         </form>
@@ -619,91 +666,91 @@ const AdminBatches = () => {
                  OFFICIAL COMPLIANCE CERTIFICATE MODAL (PRINTABLE)
                ════════════════════════════════════════════════════════════════ */}
             {showCertModal && (
-                <div className="modal-overlay" onClick={() => setShowCertModal(false)}>
-                    <div className="cert-modal-content" onClick={(e) => e.stopPropagation()}>
-                        <div className="cert-header-actions no-print">
-                            <button className="btn btn-secondary btn-sm" onClick={handlePrintCertificate}>
-                                <HiPrinter size={16} /> Print / Save PDF
+                <div className="high-z-overlay" onClick={() => setShowCertModal(false)}>
+                    <div className="cert-dialog-window" onClick={(e) => e.stopPropagation()}>
+                        <div className="cert-top-actions no-print">
+                            <button className="btn-print" onClick={handlePrintCertificate}>
+                                <HiPrinter /> Print / Save PDF
                             </button>
-                            <button className="close-btn" onClick={() => setShowCertModal(false)}>
+                            <button className="close-x-btn" onClick={() => setShowCertModal(false)}>
                                 <HiX size={20} />
                             </button>
                         </div>
 
                         {certLoading ? (
-                            <div className="cert-loading">
-                                <Spinner size={40} color="#0d9488" />
+                            <div className="cert-loader">
+                                <Spinner size={36} color="#0d9488" />
                                 <p>Generating Cryptographic Compliance Certificate...</p>
                             </div>
                         ) : certData ? (
-                            <div className="official-certificate-sheet">
-                                <div className="cert-top-branding">
-                                    <div className="cert-logo-text">PROMOSECURE</div>
-                                    <div className="cert-seal-badge">
-                                        <HiShieldCheck size={28} />
+                            <div className="printable-certificate-document">
+                                <div className="cert-header-section">
+                                    <div className="brand-logo">PROMOSECURE</div>
+                                    <div className="cert-badge">
+                                        <HiShieldCheck size={24} />
                                         <span>GDPR VERIFIED</span>
                                     </div>
                                 </div>
 
-                                <div className="cert-title-block">
+                                <div className="cert-title-section">
                                     <h2>CERTIFICATE OF FIELD COMPLIANCE & AI AUTHENTICITY</h2>
-                                    <span className="cert-id-tag">Certificate ID: {certData.certificateId}</span>
+                                    <span className="cert-id">Certificate ID: {certData.certificateId}</span>
                                 </div>
 
-                                <div className="cert-details-grid">
-                                    <div className="cert-row">
-                                        <span className="lbl">Batch Title:</span>
+                                <div className="cert-table-data">
+                                    <div className="cert-data-row">
+                                        <span className="row-key">Batch Title:</span>
                                         <strong>{certData.title}</strong>
                                     </div>
-                                    <div className="cert-row">
-                                        <span className="lbl">Execution Location:</span>
-                                        <span>📍 {certData.location || 'Field Verified Location'}</span>
+                                    <div className="cert-data-row">
+                                        <span className="row-key">Execution Location:</span>
+                                        <span>📍 {certData.location || 'Field Location Verified'}</span>
                                     </div>
-                                    <div className="cert-row">
-                                        <span className="lbl">Promoter Account:</span>
+                                    <div className="cert-data-row">
+                                        <span className="row-key">Promoter:</span>
                                         <span>{certData.promoter?.name} ({certData.promoter?.email})</span>
                                     </div>
-                                    <div className="cert-row">
-                                        <span className="lbl">Managing Agency:</span>
+                                    <div className="cert-data-row">
+                                        <span className="row-key">Managing Agency:</span>
                                         <span>{certData.manager?.company} — {certData.manager?.name}</span>
                                     </div>
                                     {certData.client && (
-                                        <div className="cert-row">
-                                            <span className="lbl">Brand Client:</span>
+                                        <div className="cert-data-row">
+                                            <span className="row-key">Brand Client:</span>
                                             <span>{certData.client.name}</span>
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="cert-ai-metrics-box">
+                                <div className="cert-metrics-box">
                                     <h3>AI INTEGRITY & PRIVACY AUDIT</h3>
-                                    <div className="cert-metrics-row">
-                                        <div className="c-box">
-                                            <span className="c-num">{certData.aiIntegrity.verificationScore}%</span>
-                                            <span className="c-lbl">Authenticity Index</span>
+                                    <div className="metrics-triad">
+                                        <div className="triad-item">
+                                            <span className="triad-val">{certData.aiIntegrity.verificationScore}%</span>
+                                            <span className="triad-lbl">Authenticity Index</span>
                                         </div>
-                                        <div className="c-box">
-                                            <span className="c-num">{certData.aiIntegrity.uniqueIndividuals}</span>
-                                            <span className="c-lbl">Unique Individuals</span>
+                                        <div className="triad-item">
+                                            <span className="triad-val">{certData.aiIntegrity.uniqueIndividuals}</span>
+                                            <span className="triad-lbl">Unique Individuals</span>
                                         </div>
-                                        <div className="c-box">
-                                            <span className="c-num">{certData.aiIntegrity.facesSecured}</span>
-                                            <span className="c-lbl">Faces Anonymized</span>
+                                        <div className="triad-item">
+                                            <span className="triad-val">{certData.aiIntegrity.facesSecured}</span>
+                                            <span className="triad-lbl">Faces Anonymized</span>
                                         </div>
                                     </div>
-                                    <p className="cert-compliance-statement">
+                                    <p className="privacy-statement-text">
                                         🔒 <strong>Privacy Statement:</strong> {certData.aiIntegrity.privacyStandard}. All facial data has been irreversibly blurred with zero raw biometric storage.
                                     </p>
                                 </div>
 
-                                <div className="cert-signature-footer">
-                                    <div className="cert-sig-block">
-                                        <div className="sig-line">PROMOSECURE AUTOMATED AI</div>
-                                        <span className="sig-title">AI Engine Cryptographic Signature</span>
+                                <div className="cert-signature-row">
+                                    <div className="sig-block">
+                                        <div className="sig-underline">PROMOSECURE AUTOMATED AI</div>
+                                        <span className="sig-sub">AI Engine Cryptographic Signature</span>
                                     </div>
-                                    <div className="cert-sig-block">
-                                        <div className="sig-line">SUPER ADMIN AUDIT STAMP</div>
-                                        <span className="sig-title">Platform Verification Seal</span>
+                                    <div className="sig-block">
+                                        <div className="sig-underline">SUPER ADMIN AUDIT STAMP</div>
+                                        <span className="sig-sub">Platform Verification Seal</span>
                                     </div>
                                 </div>
 
@@ -718,344 +765,339 @@ const AdminBatches = () => {
             )}
 
             <style>{`
-                .admin-batches-container {
-                    max-width: 1320px;
+                .admin-batches-page {
+                    max-width: 1360px;
                     margin: 0 auto;
                     padding-bottom: 40px;
                 }
 
-                .page-header {
-                    margin-bottom: 24px;
+                .page-header-row {
+                    margin-bottom: 20px;
                 }
 
-                .page-title {
-                    font-size: 1.85rem;
-                    font-weight: 800;
+                .page-main-title {
+                    font-size: 1.75rem;
+                    font-weight: 700;
                     color: var(--text-primary);
                     margin: 0 0 4px 0;
-                    letter-spacing: -0.02em;
+                    letter-spacing: -0.01em;
                 }
 
-                .page-subtitle {
+                .page-sub-text {
                     color: var(--text-secondary);
-                    font-size: 0.95rem;
+                    font-size: 0.9rem;
                     margin: 0;
                 }
 
-                .metrics-strip {
+                .stat-cards-grid {
                     display: grid;
                     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
                     gap: 16px;
-                    margin-bottom: 24px;
+                    margin-bottom: 20px;
                 }
 
-                .metric-chip {
+                .stat-card {
                     background: var(--bg-secondary);
                     border: 1px solid var(--border-color);
-                    border-radius: 14px;
+                    border-radius: 12px;
                     padding: 16px 20px;
+                }
+
+                .stat-card-inner {
                     display: flex;
                     align-items: center;
-                    gap: 16px;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+                    gap: 14px;
                 }
 
-                .metric-icon {
-                    font-size: 2rem;
+                .stat-icon-wrap {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 1.35rem;
+                    flex-shrink: 0;
                 }
 
-                .metric-num {
+                .stat-val {
                     display: block;
-                    font-size: 1.5rem;
-                    font-weight: 800;
+                    font-size: 1.45rem;
+                    font-weight: 700;
                     color: var(--text-primary);
                     line-height: 1.1;
                 }
 
-                .metric-lbl {
-                    font-size: 0.82rem;
+                .stat-lbl {
+                    font-size: 0.8rem;
                     color: var(--text-secondary);
-                    font-weight: 600;
+                    font-weight: 500;
                 }
 
-                .controls-card {
+                .filter-toolbar {
                     background: var(--bg-secondary);
                     border: 1px solid var(--border-color);
-                    border-radius: 14px;
-                    padding: 16px 20px;
+                    border-radius: 12px;
+                    padding: 14px 18px;
                     margin-bottom: 20px;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
                 }
 
-                .search-filter-row {
+                .filter-form {
                     display: flex;
-                    gap: 16px;
+                    gap: 14px;
                     align-items: center;
                     flex-wrap: wrap;
                 }
 
-                .search-box {
+                .search-input-wrap {
                     flex: 1;
-                    min-width: 260px;
+                    min-width: 280px;
                     position: relative;
                     display: flex;
                     align-items: center;
                 }
 
-                .search-icon {
+                .search-icon-svg {
                     position: absolute;
-                    left: 14px;
+                    left: 12px;
                     color: var(--text-secondary);
-                    font-size: 1.1rem;
+                    font-size: 1rem;
                 }
 
-                .search-box input {
+                .search-input-wrap input {
                     width: 100%;
-                    padding: 10px 38px;
-                    border-radius: 10px;
+                    padding: 9px 36px;
+                    border-radius: 8px;
                     border: 1px solid var(--border-color);
                     background: var(--bg-primary);
                     color: var(--text-primary);
-                    font-size: 0.92rem;
+                    font-size: 0.9rem;
                 }
 
-                .clear-search {
+                .clear-btn {
                     position: absolute;
-                    right: 12px;
+                    right: 10px;
                     background: none;
                     border: none;
                     color: var(--text-secondary);
                     cursor: pointer;
                 }
 
-                .filter-group {
+                .selects-row {
                     display: flex;
                     gap: 10px;
                     align-items: center;
                     flex-wrap: wrap;
                 }
 
-                .filter-group select {
-                    padding: 10px 14px;
-                    border-radius: 10px;
+                .clean-select {
+                    padding: 9px 12px;
+                    border-radius: 8px;
                     border: 1px solid var(--border-color);
                     background: var(--bg-primary);
                     color: var(--text-primary);
-                    font-size: 0.9rem;
+                    font-size: 0.88rem;
                     font-weight: 500;
                     cursor: pointer;
                 }
 
-                .checkbox-toggle {
+                .flagged-toggle {
                     display: flex;
                     align-items: center;
                     gap: 6px;
                     font-size: 0.85rem;
                     font-weight: 600;
-                    color: #b45309;
+                    color: #d97706;
                     cursor: pointer;
                 }
 
-                .table-card {
+                .refresh-icon-btn {
+                    padding: 9px 12px;
+                    border-radius: 8px;
+                    border: 1px solid var(--border-color);
+                    background: var(--bg-primary);
+                    color: var(--text-secondary);
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                }
+
+                .refresh-icon-btn:hover {
+                    color: var(--text-primary);
+                }
+
+                .table-wrapper-card {
                     background: var(--bg-secondary);
                     border: 1px solid var(--border-color);
-                    border-radius: 14px;
+                    border-radius: 12px;
                     overflow: hidden;
-                    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
                 }
 
-                .table-responsive {
-                    overflow-x: auto;
-                }
-
-                .batches-table {
+                .clean-table {
                     width: 100%;
                     border-collapse: collapse;
                     text-align: left;
                 }
 
-                .batches-table th {
-                    padding: 14px 18px;
+                .clean-table th {
+                    padding: 12px 16px;
                     background: var(--bg-primary);
                     color: var(--text-secondary);
-                    font-size: 0.8rem;
+                    font-size: 0.75rem;
                     font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: 0.04em;
+                    letter-spacing: 0.05em;
                     border-bottom: 1px solid var(--border-color);
                 }
 
-                .batches-table td {
-                    padding: 16px 18px;
+                .clean-table td {
+                    padding: 14px 16px;
                     border-bottom: 1px solid var(--border-color);
-                    font-size: 0.92rem;
+                    font-size: 0.88rem;
                     color: var(--text-primary);
                     vertical-align: middle;
                 }
 
-                .fraud-flagged-row {
-                    background: rgba(239, 68, 68, 0.03);
+                .highlight-warn-row {
+                    background: rgba(220, 38, 38, 0.02);
                 }
 
-                .batch-title-cell {
+                .batch-cell {
                     display: flex;
                     flex-direction: column;
-                    gap: 2px;
+                    gap: 3px;
                 }
 
-                .batch-link {
+                .batch-title-clickable {
+                    font-weight: 600;
                     color: var(--text-primary);
                     cursor: pointer;
-                    transition: color 0.2s;
                 }
 
-                .batch-link:hover {
+                .batch-title-clickable:hover {
                     color: #0d9488;
                     text-decoration: underline;
                 }
 
-                .batch-sub-meta {
+                .batch-location-sub {
                     display: flex;
                     align-items: center;
-                    gap: 8px;
-                    font-size: 0.82rem;
-                    color: var(--text-secondary);
-                }
-
-                .client-tag {
-                    color: #0284c7;
-                    font-weight: 600;
-                }
-
-                .agency-cell {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 2px;
-                    font-size: 0.88rem;
-                }
-
-                .agency-company {
-                    color: var(--text-secondary);
+                    gap: 6px;
                     font-size: 0.8rem;
-                }
-
-                .promoter-cell {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 2px;
-                    font-size: 0.88rem;
-                }
-
-                .promoter-email {
                     color: var(--text-secondary);
-                    font-size: 0.78rem;
                 }
 
-                .photos-metric {
+                .client-badge {
+                    background: #eff6ff;
+                    color: #2563eb;
+                    font-size: 0.72rem;
+                    font-weight: 600;
+                    padding: 1px 6px;
+                    border-radius: 4px;
+                }
+
+                .text-col {
                     display: flex;
                     flex-direction: column;
                     gap: 2px;
-                    font-size: 0.88rem;
                 }
 
-                .faces-sub {
+                .sub-text {
                     font-size: 0.78rem;
-                    color: #6366f1;
-                    font-weight: 600;
+                    color: var(--text-secondary);
                 }
 
-                .integrity-badge-cell {
+                .integrity-col {
                     display: flex;
                     flex-direction: column;
                     gap: 4px;
                 }
 
-                .score-badge {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 4px;
-                    padding: 3px 8px;
+                .score-pill {
+                    display: inline-block;
+                    padding: 2px 8px;
                     border-radius: 6px;
                     font-size: 0.78rem;
                     font-weight: 700;
                     width: fit-content;
                 }
+                .score-pill.high { background: #f0fdf4; color: #16a34a; }
+                .score-pill.warn { background: #fef2f2; color: #dc2626; }
 
-                .score-badge.high { background: #dcfce7; color: #166534; }
-                .score-badge.warn { background: #fee2e2; color: #991b1b; }
-
-                .duplicate-alert-tag {
-                    font-size: 0.75rem;
-                    color: #b45309;
-                    font-weight: 700;
+                .flag-pill {
+                    font-size: 0.72rem;
+                    font-weight: 600;
+                    color: #d97706;
                 }
 
-                .status-cell {
+                .status-col {
                     display: flex;
                     flex-direction: column;
-                    gap: 4px;
+                    gap: 3px;
                 }
 
-                .status-pill {
+                .status-tag {
                     display: inline-block;
-                    padding: 4px 10px;
-                    border-radius: 20px;
-                    font-size: 0.78rem;
+                    padding: 3px 8px;
+                    border-radius: 6px;
+                    font-size: 0.72rem;
                     font-weight: 700;
                     width: fit-content;
                 }
+                .status-tag.approved { background: #f0fdf4; color: #16a34a; }
+                .status-tag.pending { background: #fffbeb; color: #b45309; }
+                .status-tag.rejected { background: #fef2f2; color: #dc2626; }
+                .status-tag.draft { background: #f1f5f9; color: #475569; }
 
-                .status-pill.approved { background: #dcfce7; color: #166534; }
-                .status-pill.pending { background: #fef9c3; color: #854d0e; }
-                .status-pill.rejected { background: #fee2e2; color: #991b1b; }
-                .status-pill.draft { background: #f1f5f9; color: #475569; }
-
-                .override-indicator {
-                    font-size: 0.7rem;
-                    font-weight: 800;
-                    color: #9333ea;
-                    background: #fdf4ff;
-                    padding: 2px 6px;
+                .overridden-tag {
+                    font-size: 0.68rem;
+                    font-weight: 700;
+                    color: #7c3aed;
+                    background: #f5f3ff;
+                    padding: 1px 4px;
                     border-radius: 4px;
                     width: fit-content;
                 }
 
-                .action-buttons-cell {
+                .actions-cell {
                     display: flex;
                     gap: 6px;
                     justify-content: flex-end;
                 }
 
-                .action-btn {
+                .btn-action {
                     padding: 6px 10px;
-                    border-radius: 8px;
+                    border-radius: 6px;
                     border: 1px solid var(--border-color);
                     background: var(--bg-primary);
                     color: var(--text-primary);
                     cursor: pointer;
+                    font-size: 0.8rem;
+                    font-weight: 600;
                     display: inline-flex;
                     align-items: center;
                     gap: 4px;
-                    font-size: 0.82rem;
-                    font-weight: 600;
-                    transition: all 0.2s;
+                    transition: all 0.15s ease;
                 }
 
-                .action-btn:hover {
+                .btn-action:hover {
                     background: var(--bg-secondary);
-                    transform: translateY(-1px);
                 }
 
-                .action-btn.inspector { background: #0d9488; color: #ffffff; border-color: #0d9488; }
-                .action-btn.cert { background: #0284c7; color: #ffffff; border-color: #0284c7; }
-                .action-btn.override { background: #7c3aed; color: #ffffff; border-color: #7c3aed; }
+                .btn-inspect { background: #0f766e; color: #ffffff; border-color: #0f766e; }
+                .btn-inspect:hover { background: #115e59; }
 
-                /* ═════ GDPR PRIVACY AI INSPECTOR MODAL ═════ */
-                .modal-overlay.full-bleed {
+                .btn-cert { background: #2563eb; color: #ffffff; border-color: #2563eb; }
+                .btn-cert:hover { background: #1d4ed8; }
+
+                .btn-override { background: #7c3aed; color: #ffffff; border-color: #7c3aed; }
+                .btn-override:hover { background: #6d28d9; }
+
+                /* ═════ INSPECTOR MODAL ═════ */
+                .modal-backdrop-layer {
                     position: fixed;
                     inset: 0;
-                    background: rgba(0, 0, 0, 0.65);
-                    backdrop-filter: blur(6px);
+                    background: rgba(0, 0, 0, 0.7);
+                    backdrop-filter: blur(4px);
                     z-index: 10000;
                     display: flex;
                     align-items: center;
@@ -1063,20 +1105,20 @@ const AdminBatches = () => {
                     padding: 20px;
                 }
 
-                .inspector-modal-content {
+                .inspector-window {
                     background: var(--bg-secondary);
                     border: 1px solid var(--border-color);
-                    border-radius: 18px;
-                    width: min(1050px, 95vw);
-                    height: min(820px, 92vh);
+                    border-radius: 14px;
+                    width: min(1060px, 95vw);
+                    height: min(840px, 92vh);
                     display: flex;
                     flex-direction: column;
                     overflow: hidden;
-                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+                    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
                 }
 
-                .inspector-header {
-                    padding: 18px 24px;
+                .inspector-top-bar {
+                    padding: 16px 20px;
                     border-bottom: 1px solid var(--border-color);
                     display: flex;
                     justify-content: space-between;
@@ -1084,149 +1126,178 @@ const AdminBatches = () => {
                     background: var(--bg-primary);
                 }
 
-                .inspector-badge-row {
+                .tag-line {
                     display: flex;
                     align-items: center;
-                    gap: 10px;
+                    gap: 8px;
                     margin-bottom: 4px;
                 }
 
-                .inspector-badge {
+                .privacy-active-tag {
                     display: inline-flex;
                     align-items: center;
-                    gap: 6px;
-                    font-size: 0.75rem;
-                    font-weight: 800;
-                    letter-spacing: 0.06em;
-                    color: #0d9488;
-                }
-
-                .inspector-status-pill {
+                    gap: 4px;
                     font-size: 0.72rem;
                     font-weight: 700;
+                    color: #0f766e;
+                    background: #ccfbf1;
                     padding: 2px 8px;
-                    border-radius: 6px;
+                    border-radius: 20px;
                 }
-                .inspector-status-pill.approved { background: #dcfce7; color: #166534; }
-                .inspector-status-pill.pending { background: #fef9c3; color: #854d0e; }
-                .inspector-status-pill.rejected { background: #fee2e2; color: #991b1b; }
 
-                .inspector-title {
-                    font-size: 1.35rem;
-                    font-weight: 800;
+                .modal-heading-text {
+                    font-size: 1.3rem;
+                    font-weight: 700;
                     margin: 0;
                     color: var(--text-primary);
                 }
 
-                .inspector-subtitle {
-                    margin: 4px 0 0 0;
-                    font-size: 0.85rem;
+                .modal-sub-details {
+                    font-size: 0.82rem;
                     color: var(--text-secondary);
+                    margin: 3px 0 0 0;
                 }
 
-                .inspector-header-controls {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
+                .close-x-btn {
+                    background: none;
+                    border: none;
+                    color: var(--text-secondary);
+                    cursor: pointer;
+                    padding: 4px;
+                    border-radius: 6px;
                 }
 
-                .privacy-pill-badge {
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
-                    background: #dcfce7;
-                    color: #166534;
-                    font-size: 0.75rem;
-                    font-weight: 700;
-                    padding: 5px 10px;
-                    border-radius: 20px;
+                .close-x-btn:hover {
+                    color: var(--text-primary);
+                    background: var(--bg-secondary);
                 }
 
-                .privacy-guarantee-strip {
+                .inspector-info-banner {
                     background: #0f172a;
                     color: #e2e8f0;
-                    font-size: 0.82rem;
-                    padding: 10px 24px;
+                    padding: 10px 20px;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    gap: 16px;
+                    border-bottom: 1px solid #1e293b;
+                    flex-wrap: wrap;
+                }
+
+                .banner-item {
                     display: flex;
                     align-items: center;
                     gap: 10px;
-                    border-bottom: 1px solid #334155;
                 }
 
-                .privacy-lock-icon {
-                    color: #10b981;
-                    font-size: 1.2rem;
+                .banner-icon {
+                    color: #38bdf8;
+                    font-size: 1.3rem;
                     flex-shrink: 0;
                 }
 
-                .inspector-body {
+                .banner-label {
+                    display: block;
+                    font-size: 0.7rem;
+                    color: #94a3b8;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                }
+
+                .banner-value {
+                    font-size: 0.88rem;
+                    color: #f8fafc;
+                }
+
+                .gps-link {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                    font-size: 0.75rem;
+                    color: #38bdf8;
+                    text-decoration: none;
+                    margin-left: 8px;
+                }
+
+                .gps-link:hover {
+                    text-decoration: underline;
+                }
+
+                .banner-privacy-notice {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 0.78rem;
+                    color: #cbd5e1;
+                    max-width: 520px;
+                }
+
+                .inspector-split-layout {
                     flex: 1;
                     display: grid;
-                    grid-template-columns: 1fr 340px;
+                    grid-template-columns: 1fr 320px;
                     overflow: hidden;
                 }
 
-                .inspector-photo-stage {
-                    padding: 20px;
+                .photo-stage-area {
+                    background: #050811;
+                    padding: 16px;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
-                    background: #090d16;
                     overflow-y: auto;
                 }
 
-                .single-photo-view {
-                    width: 100%;
+                .main-photo-frame {
                     flex: 1;
                     display: flex;
-                    flex-direction: column;
                     align-items: center;
                     justify-content: center;
                     background: #000;
-                    border-radius: 12px;
+                    border-radius: 10px;
                     overflow: hidden;
                     border: 1px solid #1e293b;
                     position: relative;
                 }
 
-                .photo-view-badge {
+                .photo-header-pill {
                     position: absolute;
-                    top: 12px;
-                    left: 12px;
+                    top: 10px;
+                    left: 10px;
                     background: rgba(15, 23, 42, 0.85);
                     backdrop-filter: blur(4px);
-                    color: #10b981;
-                    font-size: 0.78rem;
-                    font-weight: 700;
-                    padding: 4px 10px;
-                    border-radius: 6px;
+                    color: #2dd4bf;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    padding: 3px 8px;
+                    border-radius: 4px;
                     border: 1px solid #334155;
                     z-index: 2;
                 }
 
-                .single-photo-view img {
+                .main-photo-frame img {
                     max-width: 100%;
                     max-height: 480px;
                     object-fit: contain;
                 }
 
-                .carousel-nav-bar {
+                .photo-nav-strip {
                     display: flex;
                     align-items: center;
                     justify-content: space-between;
-                    gap: 14px;
-                    margin-top: 14px;
-                    padding-top: 14px;
+                    gap: 12px;
+                    margin-top: 12px;
+                    padding-top: 12px;
                     border-top: 1px solid #1e293b;
                 }
 
-                .nav-btn {
+                .nav-arrow-btn {
                     background: #1e293b;
                     border: none;
-                    color: #fff;
-                    padding: 8px 14px;
-                    border-radius: 8px;
-                    font-size: 0.85rem;
+                    color: #ffffff;
+                    padding: 7px 12px;
+                    border-radius: 6px;
+                    font-size: 0.82rem;
                     font-weight: 600;
                     cursor: pointer;
                     display: flex;
@@ -1234,23 +1305,23 @@ const AdminBatches = () => {
                     gap: 4px;
                 }
 
-                .nav-btn:disabled {
-                    opacity: 0.4;
+                .nav-arrow-btn:disabled {
+                    opacity: 0.35;
                     cursor: not-allowed;
                 }
 
-                .thumbnails-strip {
+                .thumb-reel {
                     display: flex;
-                    gap: 8px;
+                    gap: 6px;
                     overflow-x: auto;
-                    max-width: 450px;
-                    padding: 4px 0;
+                    max-width: 440px;
+                    padding: 2px;
                 }
 
-                .thumb-box {
-                    width: 50px;
-                    height: 50px;
-                    border-radius: 8px;
+                .thumb-card {
+                    width: 46px;
+                    height: 46px;
+                    border-radius: 6px;
                     overflow: hidden;
                     border: 2px solid transparent;
                     cursor: pointer;
@@ -1258,244 +1329,400 @@ const AdminBatches = () => {
                     flex-shrink: 0;
                 }
 
-                .thumb-box.active {
+                .thumb-card.current {
                     border-color: #0d9488;
                 }
 
-                .thumb-box img {
+                .thumb-card img {
                     width: 100%;
                     height: 100%;
                     object-fit: cover;
                 }
 
-                .thumb-idx {
+                .thumb-num {
                     position: absolute;
-                    bottom: 2px;
-                    right: 2px;
-                    background: rgba(0,0,0,0.7);
+                    bottom: 1px;
+                    right: 1px;
+                    background: rgba(0, 0, 0, 0.7);
                     color: #fff;
-                    font-size: 0.65rem;
-                    padding: 1px 4px;
-                    border-radius: 4px;
+                    font-size: 0.6rem;
+                    padding: 1px 3px;
+                    border-radius: 3px;
                 }
 
-                .inspector-telemetry-sidebar {
+                .telemetry-side-panel {
                     background: var(--bg-secondary);
                     border-left: 1px solid var(--border-color);
-                    padding: 20px;
+                    padding: 16px;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
                     overflow-y: auto;
                 }
 
-                .sidebar-heading {
-                    margin: 0 0 16px 0;
-                    font-size: 1rem;
+                .side-title {
+                    font-size: 0.95rem;
                     font-weight: 700;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
+                    margin: 0 0 12px 0;
                     color: var(--text-primary);
                 }
 
-                .telemetry-cards-stack {
+                .telemetry-items-list {
                     display: flex;
                     flex-direction: column;
-                    gap: 12px;
+                    gap: 10px;
                 }
 
-                .telemetry-item {
+                .tel-card {
                     background: var(--bg-primary);
                     border: 1px solid var(--border-color);
-                    border-radius: 10px;
-                    padding: 12px;
+                    border-radius: 8px;
+                    padding: 10px 12px;
                     display: flex;
                     flex-direction: column;
-                    gap: 4px;
+                    gap: 2px;
                 }
 
-                .t-label {
-                    font-size: 0.75rem;
-                    color: var(--text-secondary);
+                .tel-title {
+                    font-size: 0.7rem;
                     font-weight: 600;
+                    color: var(--text-secondary);
                     text-transform: uppercase;
+                    letter-spacing: 0.04em;
                 }
 
-                .t-val {
-                    font-size: 0.92rem;
+                .tel-val {
+                    font-size: 0.88rem;
                     font-weight: 700;
                     color: var(--text-primary);
                 }
 
-                .t-code {
-                    font-size: 0.78rem;
+                .tel-val-sub {
+                    font-size: 0.82rem;
+                    color: var(--text-primary);
+                }
+
+                .tel-code {
+                    font-size: 0.75rem;
                     background: var(--bg-secondary);
-                    padding: 4px 8px;
-                    border-radius: 6px;
+                    padding: 3px 6px;
+                    border-radius: 4px;
                     font-family: monospace;
                     color: #0284c7;
                     word-break: break-all;
                 }
 
-                .inspector-actions-group {
+                .side-actions-box {
                     display: flex;
                     flex-direction: column;
-                    gap: 10px;
-                    margin-top: 20px;
-                    padding-top: 16px;
+                    gap: 8px;
+                    margin-top: 16px;
+                    padding-top: 14px;
                     border-top: 1px solid var(--border-color);
                 }
 
-                /* ═════ COMPLIANCE CERTIFICATE MODAL ═════ */
-                .cert-modal-content {
-                    background: var(--bg-secondary);
-                    border: 1px solid var(--border-color);
-                    border-radius: 18px;
-                    width: min(850px, 95vw);
-                    max-height: 90vh;
-                    overflow-y: auto;
-                    padding: 24px;
-                    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+                .btn-primary-action {
+                    width: 100%;
+                    padding: 9px;
+                    border-radius: 8px;
+                    background: #7c3aed;
+                    color: #ffffff;
+                    border: none;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
                 }
 
-                .cert-header-actions {
+                .btn-primary-action:hover { background: #6d28d9; }
+
+                .btn-secondary-action {
+                    width: 100%;
+                    padding: 9px;
+                    border-radius: 8px;
+                    background: var(--bg-primary);
+                    color: var(--text-primary);
+                    border: 1px solid var(--border-color);
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 6px;
+                }
+
+                .btn-secondary-action:hover { background: var(--bg-secondary); }
+
+                /* ═════ HIGH Z-INDEX MODALS ═════ */
+                .high-z-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0, 0, 0, 0.75);
+                    backdrop-filter: blur(5px);
+                    z-index: 20000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 20px;
+                }
+
+                .popup-dialog {
+                    background: var(--bg-secondary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 12px;
+                    width: min(500px, 95vw);
+                    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+                    overflow: hidden;
+                }
+
+                .popup-header {
+                    padding: 14px 18px;
+                    border-bottom: 1px solid var(--border-color);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    background: var(--bg-primary);
+                }
+
+                .popup-header h3 {
+                    margin: 0;
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                }
+
+                .dialog-body {
+                    padding: 18px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 14px;
+                }
+
+                .dialog-desc {
+                    margin: 0;
+                    font-size: 0.88rem;
+                    color: var(--text-secondary);
+                }
+
+                .dialog-field {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                }
+
+                .dialog-field label {
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    color: var(--text-secondary);
+                }
+
+                .dialog-select, .dialog-textarea {
+                    width: 100%;
+                    padding: 8px 12px;
+                    border-radius: 8px;
+                    border: 1px solid var(--border-color);
+                    background: var(--bg-primary);
+                    color: var(--text-primary);
+                    font-size: 0.88rem;
+                }
+
+                .dialog-footer {
                     display: flex;
                     justify-content: flex-end;
                     gap: 10px;
-                    margin-bottom: 16px;
+                    margin-top: 6px;
                 }
 
-                .official-certificate-sheet {
+                .btn-cancel {
+                    padding: 8px 14px;
+                    border-radius: 8px;
+                    background: var(--bg-primary);
+                    border: 1px solid var(--border-color);
+                    color: var(--text-primary);
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                }
+
+                .btn-confirm-override {
+                    padding: 8px 16px;
+                    border-radius: 8px;
+                    background: #7c3aed;
+                    border: none;
+                    color: #ffffff;
+                    font-size: 0.85rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                }
+
+                .btn-confirm-override:hover { background: #6d28d9; }
+
+                /* ═════ CERTIFICATE MODAL ═════ */
+                .cert-dialog-window {
+                    background: var(--bg-secondary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 14px;
+                    width: min(840px, 95vw);
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    padding: 20px;
+                    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+                }
+
+                .cert-top-actions {
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 10px;
+                    margin-bottom: 14px;
+                }
+
+                .btn-print {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 6px 12px;
+                    border-radius: 6px;
+                    background: var(--bg-primary);
+                    border: 1px solid var(--border-color);
+                    color: var(--text-primary);
+                    font-size: 0.82rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                }
+
+                .printable-certificate-document {
                     background: #ffffff;
                     color: #0f172a;
                     border: 2px solid #0f172a;
-                    border-radius: 12px;
-                    padding: 36px;
+                    border-radius: 10px;
+                    padding: 32px;
                     font-family: 'Times New Roman', serif;
                 }
 
-                .cert-top-branding {
+                .cert-header-section {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
                     border-bottom: 2px solid #0f172a;
-                    padding-bottom: 14px;
+                    padding-bottom: 12px;
                 }
 
-                .cert-logo-text {
-                    font-size: 1.5rem;
+                .brand-logo {
+                    font-size: 1.4rem;
                     font-weight: 900;
-                    letter-spacing: 0.1em;
+                    letter-spacing: 0.08em;
                     color: #0f172a;
                 }
 
-                .cert-seal-badge {
+                .cert-badge {
                     display: flex;
                     align-items: center;
                     gap: 6px;
                     font-weight: 800;
-                    color: #0d9488;
+                    color: #0f766e;
                 }
 
-                .cert-title-block {
+                .cert-title-section {
                     text-align: center;
-                    margin: 24px 0;
+                    margin: 20px 0;
                 }
 
-                .cert-title-block h2 {
-                    font-size: 1.3rem;
+                .cert-title-section h2 {
+                    font-size: 1.25rem;
                     font-weight: 800;
-                    margin: 0 0 6px 0;
+                    margin: 0 0 4px 0;
                 }
 
-                .cert-id-tag {
+                .cert-id {
                     font-family: monospace;
-                    font-size: 0.85rem;
+                    font-size: 0.82rem;
                     color: #64748b;
                 }
 
-                .cert-details-grid {
+                .cert-table-data {
                     display: flex;
                     flex-direction: column;
-                    gap: 10px;
-                    margin-bottom: 24px;
+                    gap: 8px;
+                    margin-bottom: 20px;
                 }
 
-                .cert-row {
+                .cert-data-row {
                     display: flex;
                     justify-content: space-between;
                     border-bottom: 1px dashed #cbd5e1;
-                    padding-bottom: 6px;
-                    font-size: 0.95rem;
+                    padding-bottom: 4px;
+                    font-size: 0.92rem;
                 }
 
-                .cert-row .lbl {
+                .row-key {
                     color: #64748b;
                     font-weight: 600;
                 }
 
-                .cert-ai-metrics-box {
+                .cert-metrics-box {
                     background: #f8fafc;
                     border: 1px solid #e2e8f0;
-                    border-radius: 10px;
-                    padding: 18px;
-                    margin-bottom: 24px;
+                    border-radius: 8px;
+                    padding: 16px;
+                    margin-bottom: 20px;
                 }
 
-                .cert-ai-metrics-box h3 {
-                    font-size: 0.95rem;
-                    margin: 0 0 12px 0;
+                .cert-metrics-box h3 {
+                    font-size: 0.9rem;
+                    margin: 0 0 10px 0;
                     color: #0f172a;
                 }
 
-                .cert-metrics-row {
+                .metrics-triad {
                     display: grid;
                     grid-template-columns: repeat(3, 1fr);
-                    gap: 12px;
+                    gap: 10px;
                     text-align: center;
-                    margin-bottom: 12px;
+                    margin-bottom: 10px;
                 }
 
-                .c-num {
+                .triad-val {
                     display: block;
-                    font-size: 1.4rem;
+                    font-size: 1.35rem;
                     font-weight: 800;
-                    color: #0d9488;
+                    color: #0f766e;
                 }
 
-                .c-lbl {
-                    font-size: 0.78rem;
+                .triad-lbl {
+                    font-size: 0.75rem;
                     color: #64748b;
                 }
 
-                .cert-compliance-statement {
-                    font-size: 0.85rem;
+                .privacy-statement-text {
+                    font-size: 0.82rem;
                     color: #334155;
                     margin: 0;
                 }
 
-                .cert-signature-footer {
+                .cert-signature-row {
                     display: flex;
                     justify-content: space-between;
-                    margin-top: 40px;
-                    padding-top: 20px;
+                    margin-top: 36px;
+                    padding-top: 16px;
                 }
 
-                .cert-sig-block {
+                .sig-block {
                     text-align: center;
                     width: 200px;
                 }
 
-                .sig-line {
+                .sig-underline {
                     border-top: 1px solid #0f172a;
-                    padding-top: 6px;
-                    font-size: 0.8rem;
+                    padding-top: 4px;
+                    font-size: 0.78rem;
                     font-weight: 700;
                 }
 
-                .sig-title {
-                    font-size: 0.7rem;
+                .sig-sub {
+                    font-size: 0.68rem;
                     color: #64748b;
                 }
 
@@ -1503,17 +1730,17 @@ const AdminBatches = () => {
                     display: flex;
                     justify-content: space-between;
                     font-family: monospace;
-                    font-size: 0.75rem;
+                    font-size: 0.72rem;
                     color: #94a3b8;
-                    margin-top: 30px;
+                    margin-top: 24px;
                     border-top: 1px solid #e2e8f0;
-                    padding-top: 10px;
+                    padding-top: 8px;
                 }
 
                 @media print {
                     .no-print { display: none !important; }
                     body { background: #fff !important; }
-                    .cert-modal-content { border: none !important; box-shadow: none !important; width: 100% !important; max-height: none !important; padding: 0 !important; }
+                    .cert-dialog-window { border: none !important; box-shadow: none !important; width: 100% !important; max-height: none !important; padding: 0 !important; }
                 }
             `}</style>
         </div>
