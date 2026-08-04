@@ -20,6 +20,7 @@ const Blog = lazy(() => import('./pages/Blog'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const AdminManagers = lazy(() => import('./pages/admin/AdminManagers'));
 const AdminPromoters = lazy(() => import('./pages/admin/AdminPromoters'));
+const AdminBatches = lazy(() => import('./pages/admin/AdminBatches'));
 
 // Manager pages
 const ManagerDashboard = lazy(() => import('./pages/manager/ManagerDashboard'));
@@ -100,6 +101,7 @@ function App() {
                             <Route index element={<AdminDashboard />} />
                             <Route path="managers" element={<AdminManagers />} />
                             <Route path="promoters" element={<AdminPromoters />} />
+                            <Route path="batches" element={<AdminBatches />} />
                         </Route>
 
                         {/* Manager Routes */}

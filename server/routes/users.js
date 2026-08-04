@@ -518,14 +518,116 @@ router.post('/bulk-action', authorize('admin'), async (req, res) => {
     }
 });
 
-// @route   PUT /api/users/promoter/:id/reassign
-// @desc    Reassign single promoter to a different manager
+// @route   GET /api/users/promoters/intelligence
+// @desc    Global Promoter Intelligence Registry for Super Admin
 // @access  Admin only
-router.put('/promoter/:id/reassign', authorize('admin'), async (req, res) => {
+router.get('/promoters/intelligence', authorize('admin'), async (req, res) => {
     try {
-        const { targetManagerId } = req.body;
+        const promoters = await User.find({ role: 'promoter' })
+            .select('-password')
+            .populate('createdBy', 'name email companyName licenseTier')
+            .sort({ createdAt: -1 });
 
-        const promoter = await User.findById(req.params.id);
+        const promoterIds = promoters.map(p => p._id);
+
+        // Aggregate batch stats per promoter
+        const batchAgg = await Batch.aggregate([
+            { $match: { promoter: { $in: promoterIds } } },
+            {
+                $group: {
+                    _id: '$promoter',
+                    totalBatches: { $sum: 1 },
+                    approvedBatches: {
+                        $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] }
+                    },
+                    rejectedBatches: {
+                        $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] }
+                    },
+                    pendingBatches: {
+                        $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
+                    },
+                    draftBatches: {
+                        $sum: { $cond: [{ $eq: ['$status', 'draft'] }, 1, 0] }
+                    },
+                    totalPhotos: { $sum: '$photoCount' },
+                    totalDuplicates: { $sum: '$aiSummary.duplicatesFound' },
+                    totalFaces: { $sum: '$aiSummary.totalFacesDetected' },
+                    avgVerificationScore: { $avg: '$aiSummary.verificationScore' },
+                    lastLocation: { $last: '$location' },
+                    lastGps: { $last: '$gpsCoordinates' },
+                    lastDevice: { $last: '$deviceInfo' },
+                    lastBatchDate: { $max: '$createdAt' }
+                }
+            }
+        ]);
+
+        const statsMap = {};
+        batchAgg.forEach(b => {
+            statsMap[b._id.toString()] = b;
+        });
+
+        const enrichedPromoters = promoters.map(p => {
+            const stat = statsMap[p._id.toString()] || {
+                totalBatches: 0,
+                approvedBatches: 0,
+                rejectedBatches: 0,
+                pendingBatches: 0,
+                draftBatches: 0,
+                totalPhotos: 0,
+                totalDuplicates: 0,
+                totalFaces: 0,
+                avgVerificationScore: 98,
+                lastLocation: '',
+                lastGps: null,
+                lastDevice: '',
+                lastBatchDate: null
+            };
+
+            const approvalRatio = stat.totalBatches > 0
+                ? Math.round((stat.approvedBatches / stat.totalBatches) * 100)
+                : 100;
+
+            // Compute composite quality score (0-100)
+            const qualityScore = Math.max(70, Math.min(100, Math.round(
+                (stat.avgVerificationScore || 95) * 0.6 +
+                (approvalRatio) * 0.4 -
+                (stat.totalDuplicates * 2)
+            )));
+
+            const isOnline = p.lastActive ? (new Date() - new Date(p.lastActive)) < 15 * 60 * 1000 : false;
+
+            return {
+                ...p.toObject(),
+                stats: {
+                    ...stat,
+                    approvalRatio,
+                    qualityScore
+                },
+                isOnline
+            };
+        });
+
+        res.json({
+            success: true,
+            promoters: enrichedPromoters
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// @route   GET /api/users/promoter/:id/dossier
+// @desc    Detailed Promoter Dossier & Telemetry Audit
+// @access  Admin only
+router.get('/promoter/:id/dossier', authorize('admin'), async (req, res) => {
+    try {
+        const promoter = await User.findById(req.params.id)
+            .select('-password')
+            .populate('createdBy', 'name email companyName phone licenseTier');
+
         if (!promoter || promoter.role !== 'promoter') {
             return res.status(404).json({
                 success: false,
@@ -533,29 +635,94 @@ router.put('/promoter/:id/reassign', authorize('admin'), async (req, res) => {
             });
         }
 
-        const targetManager = await User.findById(targetManagerId);
-        if (!targetManager || targetManager.role !== 'manager') {
-            return res.status(404).json({
-                success: false,
-                message: 'Target manager not found'
-            });
-        }
+        // Fetch recent batches
+        const recentBatches = await Batch.find({ promoter: promoter._id })
+            .populate('client', 'name')
+            .populate('manager', 'name companyName')
+            .sort({ createdAt: -1 })
+            .limit(10);
 
-        const oldManagerId = promoter.createdBy;
-        promoter.createdBy = targetManager._id;
-        await promoter.save();
+        // Aggregate stats
+        const batches = await Batch.find({ promoter: promoter._id });
+        let totalBatches = batches.length;
+        let approved = 0;
+        let rejected = 0;
+        let pending = 0;
+        let totalPhotos = 0;
+        let totalDuplicates = 0;
+        let totalFaces = 0;
+        let scoreSum = 0;
 
-        // Update counts for both managers
-        if (oldManagerId) {
-            const oldCount = await User.countDocuments({ createdBy: oldManagerId, role: 'promoter' });
-            await User.findByIdAndUpdate(oldManagerId, { promotersCreated: oldCount });
-        }
-        const newCount = await User.countDocuments({ createdBy: targetManager._id, role: 'promoter' });
-        await User.findByIdAndUpdate(targetManager._id, { promotersCreated: newCount });
+        batches.forEach(b => {
+            if (b.status === 'approved') approved++;
+            if (b.status === 'rejected') rejected++;
+            if (b.status === 'pending') pending++;
+            totalPhotos += (b.photoCount || 0);
+            totalDuplicates += (b.aiSummary?.duplicatesFound || 0);
+            totalFaces += (b.aiSummary?.totalFacesDetected || 0);
+            scoreSum += (b.aiSummary?.verificationScore || 95);
+        });
+
+        const approvalRatio = totalBatches > 0 ? Math.round((approved / totalBatches) * 100) : 100;
+        const avgScore = totalBatches > 0 ? Math.round(scoreSum / totalBatches) : 98;
+        const qualityScore = Math.max(70, Math.min(100, Math.round(avgScore * 0.6 + approvalRatio * 0.4 - totalDuplicates * 2)));
 
         res.json({
             success: true,
-            message: `Promoter ${promoter.name} reassigned to ${targetManager.name} (${targetManager.companyName})`
+            dossier: {
+                promoter,
+                manager: promoter.createdBy,
+                metrics: {
+                    totalBatches,
+                    approved,
+                    rejected,
+                    pending,
+                    approvalRatio,
+                    totalPhotos,
+                    totalDuplicates,
+                    totalFaces,
+                    qualityScore
+                },
+                recentBatches,
+                isOnline: promoter.lastActive ? (new Date() - new Date(promoter.lastActive)) < 15 * 60 * 1000 : false
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// @route   POST /api/users/promoter/:id/reset-password
+// @desc    Admin Emergency Password Reset for Promoter
+// @access  Admin only
+router.post('/promoter/:id/reset-password', authorize('admin'), async (req, res) => {
+    try {
+        const { newPassword } = req.body;
+
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 6 characters long'
+            });
+        }
+
+        const user = await User.findById(req.params.id);
+        if (!user || user.role !== 'promoter') {
+            return res.status(404).json({
+                success: false,
+                message: 'Promoter not found'
+            });
+        }
+
+        user.password = newPassword;
+        await user.save();
+
+        res.json({
+            success: true,
+            message: `Password for promoter ${user.email} reset successfully`
         });
     } catch (error) {
         res.status(500).json({

@@ -18,6 +18,15 @@ const batchSchema = new mongoose.Schema({
         trim: true,
         default: ''
     },
+    gpsCoordinates: {
+        lat: { type: Number, default: null },
+        lng: { type: Number, default: null },
+        accuracy: { type: Number, default: null }
+    },
+    deviceInfo: {
+        type: String,
+        default: ''
+    },
     promoter: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
@@ -28,7 +37,6 @@ const batchSchema = new mongoose.Schema({
         ref: 'User',
         required: true
     },
-    // Optional client/brand link
     client: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Client',
@@ -79,6 +87,39 @@ const batchSchema = new mongoose.Schema({
     reviewNote: {
         type: String,
         default: ''
+    },
+    // Super Admin Force-Override Audit Trail
+    adminOverride: {
+        isOverridden: {
+            type: Boolean,
+            default: false
+        },
+        action: {
+            type: String,
+            enum: ['approved', 'rejected', 'reset'],
+            default: null
+        },
+        note: {
+            type: String,
+            default: ''
+        },
+        admin: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null
+        },
+        adminName: {
+            type: String,
+            default: ''
+        },
+        overriddenAt: {
+            type: Date,
+            default: null
+        }
+    },
+    complianceCertificateId: {
+        type: String,
+        default: null
     }
 }, {
     timestamps: true
@@ -87,5 +128,7 @@ const batchSchema = new mongoose.Schema({
 // Index for faster queries
 batchSchema.index({ promoter: 1, status: 1 });
 batchSchema.index({ manager: 1, status: 1 });
+batchSchema.index({ client: 1 });
+batchSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Batch', batchSchema);
