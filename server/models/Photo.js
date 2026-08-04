@@ -6,12 +6,13 @@ const photoSchema = new mongoose.Schema({
         ref: 'Batch',
         required: true
     },
-    // Original image stored as Base64 (only visible to promoter during capture)
+    // PRIVACY ENFORCEMENT: Never select originalImage by default (Schema-level block)
     originalImage: {
         type: String,
-        required: true
+        required: false,
+        select: false
     },
-    // Blurred image stored as Base64 (visible to manager)
+    // Blurred image stored as Base64 (GDPR-compliant anonymized asset)
     blurredImage: {
         type: String,
         required: true
