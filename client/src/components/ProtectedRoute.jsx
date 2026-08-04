@@ -1,16 +1,12 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import AppLoader from './AppLoader';
 
 const ProtectedRoute = ({ children, roles = [] }) => {
     const { user, loading } = useAuth();
 
     if (loading) {
-        return (
-            <div className="loading-overlay">
-                <div className="spinner"></div>
-                <p>Loading...</p>
-            </div>
-        );
+        return <AppLoader />;
     }
 
     if (!user) {

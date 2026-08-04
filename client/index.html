@@ -35,7 +35,59 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   </head>
   <body>
-    <div id="root"><div style="padding:40px;font-family:monospace;font-size:18px;background:#fff;color:#333;min-height:100vh">Loading PromoSecure...</div></div>
+    <div id="root">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#000000;color:#ffffff;font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;text-align:center;padding:20px;user-select:none;position:relative;overflow:hidden">
+        <style>
+          @keyframes ps-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+          }
+          @keyframes ps-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.15); opacity: 0.2; }
+          }
+          .ps-shimmer-text {
+            background: linear-gradient(90deg, #ffffff 0%, #60a5fa 50%, #ffffff 100%);
+            background-size: 200% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: ps-shimmer 2.5s linear infinite;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+          }
+          .ps-icon-wrapper {
+            position: relative;
+            width: 72px;
+            height: 72px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #2563eb, #4338ca);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            box-shadow: 0 0 35px rgba(37, 99, 235, 0.55);
+            border: 1px solid rgba(147, 197, 253, 0.35);
+          }
+          .ps-icon-pulse {
+            position: absolute;
+            inset: -4px;
+            border-radius: 22px;
+            border: 2px solid #3b82f6;
+            animation: ps-pulse 2s ease-in-out infinite;
+          }
+        </style>
+        <div style="position:absolute;width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(37,99,235,0.18) 0%,rgba(0,0,0,0) 70%);filter:blur(30px);pointer-events:none"></div>
+        <div class="ps-icon-wrapper">
+          <div class="ps-icon-pulse"></div>
+          <svg width="38" height="38" viewBox="0 0 20 20" fill="currentColor" style="color:#ffffff">
+            <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ps-shimmer-text">Loading PromoSecure...</div>
+        <div style="font-size:0.85rem;color:#9ca3af;margin-top:8px;font-weight:500">Enterprise Privacy-First Verification</div>
+      </div>
+    </div>
     <script>
       // Catch ALL errors BEFORE module scripts run
       window.onerror = function(msg, src, line, col, err) {
