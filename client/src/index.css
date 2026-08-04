@@ -229,6 +229,45 @@ a:hover {
   margin: 0 auto;
 }
 
+/* ============================================
+   Grid & Responsiveness
+   ============================================ */
+.grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .page { padding: 1.5rem; }
+}
+
+@media (max-width: 640px) {
+  .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .page { padding: 1rem; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+  .page-header .btn { width: 100%; justify-content: center; }
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;

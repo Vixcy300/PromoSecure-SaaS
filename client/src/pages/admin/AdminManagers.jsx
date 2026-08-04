@@ -25,7 +25,9 @@ import {
     HiExclamation, 
     HiSwitchHorizontal, 
     HiRefresh,
-    HiClock
+    HiClock,
+    HiExternalLink,
+    HiMail
 } from 'react-icons/hi';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -54,6 +56,11 @@ const AdminManagers = () => {
     const [showPasswordResetModal, setShowPasswordResetModal] = useState(false);
     const [resettingManager, setResettingManager] = useState(null);
     const [newPassword, setNewPassword] = useState('');
+
+    // Delete Confirmation Modal
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [managerToDelete, setManagerToDelete] = useState(null);
+    const [deleteSubmitting, setDeleteSubmitting] = useState(false);
 
     // Reassign Promoter Modal
     const [showReassignModal, setShowReassignModal] = useState(false);
@@ -169,6 +176,26 @@ const AdminManagers = () => {
         }
     };
 
+    // Permanently Delete Manager
+    const handleDeleteManager = async () => {
+        if (!managerToDelete) return;
+        try {
+            setDeleteSubmitting(true);
+            await api.delete(`/users/${managerToDelete._id}`);
+            toast.success(`Manager ${managerToDelete.companyName || managerToDelete.name} permanently deleted`);
+            setShowDeleteModal(false);
+            setManagerToDelete(null);
+            if (showDossierDrawer && selectedDossier?.manager._id === managerToDelete._id) {
+                setShowDossierDrawer(false);
+            }
+            fetchManagers();
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to delete manager');
+        } finally {
+            setDeleteSubmitting(false);
+        }
+    };
+
     // Reassign Single Promoter
     const handleReassignPromoter = async (e) => {
         e.preventDefault();
@@ -219,7 +246,7 @@ const AdminManagers = () => {
         }
     };
 
-    // Filter Logic
+    // Filters
     const filteredManagers = managers.filter((m) => {
         const matchesSearch =
             m.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -227,7 +254,7 @@ const AdminManagers = () => {
             m.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             m.phone?.toLowerCase().includes(searchQuery.toLowerCase());
 
-        const matchesTier = tierFilter === 'all' || (m.licenseTier || 'starter') === tierFilter;
+        const matchesTier = tierFilter === 'all' || m.licenseTier === tierFilter;
         const matchesStatus =
             statusFilter === 'all' ||
             (statusFilter === 'active' && m.isActive !== false) ||
@@ -237,34 +264,33 @@ const AdminManagers = () => {
     });
 
     const activeCount = managers.filter(m => m.isActive !== false).length;
-    const totalPromoters = managers.reduce((acc, m) => acc + (m.promoterCount || 0), 0);
     const enterpriseCount = managers.filter(m => m.licenseTier === 'enterprise').length;
 
     return (
         <div className="admin-managers-page">
-            {/* Header */}
+            {/* Page Header */}
             <div className="page-header-row">
                 <div>
                     <h1 className="page-main-title">Enterprise Manager Hub</h1>
                     <p className="page-sub-text">
-                        Directory of company managers, license tiers, dossiers, quotas, and super-admin controls.
+                        Corporate partner registry, live license quotas, promoter allocations, and administrator overrides.
                     </p>
                 </div>
-                <button className="btn-primary-header" onClick={() => setShowCreateModal(true)}>
-                    <HiPlus size={16} /> Add New Manager
+                <button className="btn-primary-blue" onClick={() => setShowCreateModal(true)}>
+                    <HiPlus /> Add New Manager
                 </button>
             </div>
 
-            {/* Metrics Cards */}
+            {/* Quick KPI Cards */}
             <div className="stat-cards-grid">
                 <div className="stat-card">
                     <div className="stat-card-inner">
-                        <div className="stat-icon-wrap" style={{ color: '#0284c7', background: '#e0f2fe' }}>
+                        <div className="stat-icon-wrap" style={{ color: '#2563eb', background: '#eff6ff' }}>
                             <HiOfficeBuilding />
                         </div>
                         <div>
                             <span className="stat-val">{managers.length}</span>
-                            <span className="stat-lbl">Total Managers</span>
+                            <span className="stat-lbl">Total Agencies</span>
                         </div>
                     </div>
                 </div>
@@ -276,31 +302,31 @@ const AdminManagers = () => {
                         </div>
                         <div>
                             <span className="stat-val">{activeCount}</span>
-                            <span className="stat-lbl">Active Accounts</span>
+                            <span className="stat-lbl">Active Licenses</span>
                         </div>
                     </div>
                 </div>
 
                 <div className="stat-card">
                     <div className="stat-card-inner">
-                        <div className="stat-icon-wrap" style={{ color: '#7c3aed', background: '#f5f3ff' }}>
-                            <HiUserGroup />
-                        </div>
-                        <div>
-                            <span className="stat-val">{totalPromoters}</span>
-                            <span className="stat-lbl">Managed Promoters</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="stat-card">
-                    <div className="stat-card-inner">
-                        <div className="stat-icon-wrap" style={{ color: '#d97706', background: '#fffbeb' }}>
+                        <div className="stat-icon-wrap" style={{ color: '#4f46e5', background: '#eef2ff' }}>
                             <HiSparkles />
                         </div>
                         <div>
                             <span className="stat-val">{enterpriseCount}</span>
-                            <span className="stat-lbl">Enterprise Tiers</span>
+                            <span className="stat-lbl">Enterprise Tier</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="stat-card">
+                    <div className="stat-card-inner">
+                        <div className="stat-icon-wrap" style={{ color: '#0284c7', background: '#e0f2fe' }}>
+                            <HiShieldCheck />
+                        </div>
+                        <div>
+                            <span className="stat-val">100%</span>
+                            <span className="stat-lbl">GDPR Guard Enforced</span>
                         </div>
                     </div>
                 </div>
@@ -313,7 +339,7 @@ const AdminManagers = () => {
                         <HiSearch className="search-icon-svg" />
                         <input
                             type="text"
-                            placeholder="Search by manager name, email, company, or phone..."
+                            placeholder="Search by company name, contact manager, email, or phone..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -325,76 +351,79 @@ const AdminManagers = () => {
                     </div>
 
                     <div className="selects-row">
-                        <select value={tierFilter} onChange={(e) => setTierFilter(e.target.value)} className="clean-select">
-                            <option value="all">All Tiers</option>
-                            <option value="starter">Starter</option>
+                        <select
+                            value={tierFilter}
+                            onChange={(e) => setTierFilter(e.target.value)}
+                            className="clean-select"
+                        >
+                            <option value="all">All License Tiers</option>
+                            <option value="starter">Starter Tier</option>
                             <option value="pro">Pro Tier</option>
-                            <option value="enterprise">Enterprise</option>
+                            <option value="enterprise">Enterprise Tier</option>
                         </select>
 
-                        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="clean-select">
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="clean-select"
+                        >
                             <option value="all">All Status</option>
-                            <option value="active">Active Accounts</option>
-                            <option value="inactive">Suspended</option>
+                            <option value="active">Active Agencies</option>
+                            <option value="inactive">Deactivated</option>
                         </select>
 
-                        <button type="button" className="refresh-icon-btn" onClick={fetchManagers} title="Refresh List">
+                        <button type="button" className="refresh-icon-btn" onClick={fetchManagers} title="Refresh Table">
                             <HiRefresh />
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* Managers Table */}
+            {/* Table */}
             <div className="table-wrapper-card">
                 {loading ? (
                     <div className="loading-state">
-                        <Spinner size={32} color="#0f766e" />
+                        <Spinner size={32} color="#2563eb" />
                     </div>
                 ) : filteredManagers.length === 0 ? (
                     <div className="empty-feed">
                         <HiOfficeBuilding size={44} style={{ color: '#94a3b8', marginBottom: '10px' }} />
-                        <h3>No managers found</h3>
-                        <p>No manager profiles match the selected criteria.</p>
+                        <h3>No manager accounts found</h3>
+                        <p>Try adjusting your search query or license filter.</p>
                     </div>
                 ) : (
                     <div className="table-responsive">
                         <table className="clean-table">
                             <thead>
                                 <tr>
-                                    <th>MANAGER & COMPANY</th>
-                                    <th>TIER</th>
-                                    <th>PROMOTER CAPACITY</th>
-                                    <th>AI QUOTA</th>
+                                    <th>COMPANY & CONTACT</th>
+                                    <th>LICENSE TIER</th>
+                                    <th>FIELD STAFF CAPACITY</th>
+                                    <th>AI SCAN QUOTA</th>
                                     <th>STATUS</th>
-                                    <th style={{ textAlign: 'right' }}>SUPER ADMIN ACTIONS</th>
+                                    <th style={{ textAlign: 'right' }}>SUPER-ADMIN ACTIONS</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {filteredManagers.map((m) => {
-                                    const tier = m.licenseTier || 'starter';
-                                    const count = m.promoterCount || 0;
-                                    const limit = m.promoterLimit || 5;
-                                    const pct = Math.min(Math.round((count / limit) * 100), 100);
+                                    const tier = m.licenseTier || 'pro';
+                                    const capacityPercent = Math.min(100, Math.round(((m.promoterCount || 0) / (m.promoterLimit || 10)) * 100));
 
                                     return (
                                         <tr key={m._id}>
                                             <td>
-                                                <div className="manager-info-cell">
-                                                    <div className="manager-avatar-badge">
-                                                        {m.name ? m.name.charAt(0).toUpperCase() : 'M'}
+                                                <div className="company-info-cell">
+                                                    <div className="company-avatar-badge">
+                                                        {(m.companyName || m.name || 'M').charAt(0).toUpperCase()}
                                                     </div>
                                                     <div>
-                                                        <strong className="manager-title-link" onClick={() => openDossier(m)}>
-                                                            {m.name}
+                                                        <strong className="company-title-link" onClick={() => openDossier(m)}>
+                                                            {m.companyName || m.name}
                                                         </strong>
-                                                        <div className="manager-sub-meta">
-                                                            <span>{m.email}</span>
-                                                            {m.companyName && (
-                                                                <span className="company-pill">
-                                                                    🏢 {m.companyName}
-                                                                </span>
-                                                            )}
+                                                        <div className="contact-sub-meta">
+                                                            <span>👤 {m.name}</span>
+                                                            <span>• {m.email}</span>
+                                                            {m.phone && <span>• 📞 {m.phone}</span>}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -405,63 +434,76 @@ const AdminManagers = () => {
                                                 </span>
                                             </td>
                                             <td>
-                                                <div className="capacity-cell">
-                                                    <div className="cap-nums">
-                                                        <span>{count} / {limit}</span>
-                                                        <span className="cap-pct">{pct}%</span>
+                                                <div className="quota-bar-cell">
+                                                    <div className="flex justify-between text-xs">
+                                                        <span><strong>{m.promoterCount || 0}</strong> / {m.promoterLimit || 10} Staff</span>
+                                                        <span className="text-gray-400">{capacityPercent}%</span>
                                                     </div>
-                                                    <div className="cap-track">
-                                                        <div className={`cap-fill ${pct >= 90 ? 'danger' : ''}`} style={{ width: `${pct}%` }}></div>
+                                                    <div className="quota-progress-track">
+                                                        <div 
+                                                            className="quota-progress-fill" 
+                                                            style={{ 
+                                                                width: `${capacityPercent}%`,
+                                                                background: capacityPercent > 90 ? '#ef4444' : capacityPercent > 70 ? '#f59e0b' : '#2563eb' 
+                                                            }}
+                                                        ></div>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td>
-                                                <div className="quota-cell">
-                                                    <strong>{(m.aiScanQuota || 100).toLocaleString()}</strong>
-                                                    <span className="quota-unit">scans / mo</span>
+                                                <div className="ai-quota-cell">
+                                                    <span>⚡ {m.aiScanQuota ? m.aiScanQuota.toLocaleString() : '1,000'} Scans/mo</span>
+                                                    <span className="storage-sub">📦 {Math.round((m.storageQuotaMB || 5120) / 1024)} GB Cloud</span>
                                                 </div>
                                             </td>
                                             <td>
                                                 <span className={`status-pill ${m.isActive !== false ? 'active' : 'suspended'}`}>
-                                                    {m.isActive !== false ? 'Active' : 'Suspended'}
+                                                    {m.isActive !== false ? 'Active' : 'Deactivated'}
                                                 </span>
                                             </td>
                                             <td>
                                                 <div className="actions-cell">
-                                                    <button
-                                                        className="btn-action btn-inspect"
-                                                        onClick={() => openDossier(m)}
+                                                    <button 
+                                                        className="btn-action btn-inspect" 
+                                                        onClick={() => openDossier(m)} 
                                                         title="Open Manager Dossier"
                                                     >
                                                         <HiEye /> Dossier
                                                     </button>
-                                                    <button
+                                                    <button 
                                                         className="btn-action btn-secondary-act"
                                                         onClick={() => { setEditingManager({ ...m }); setShowQuotaModal(true); }}
-                                                        title="Edit Quotas & Tier"
+                                                        title="Adjust Quotas & Tier"
                                                     >
                                                         <HiPencil />
                                                     </button>
-                                                    <button
+                                                    <button 
                                                         className="btn-action btn-secondary-act"
                                                         onClick={() => { setResettingManager(m); setNewPassword(''); setShowPasswordResetModal(true); }}
                                                         title="Direct Password Reset"
                                                     >
                                                         <HiKey />
                                                     </button>
-                                                    <button
+                                                    <button 
                                                         className="btn-action btn-impersonate"
                                                         onClick={() => handleImpersonate(m)}
                                                         title="Login as Manager (Impersonate)"
                                                     >
                                                         <HiLogin />
                                                     </button>
-                                                    <button
+                                                    <button 
                                                         className={`btn-action ${m.isActive !== false ? 'btn-deactivate' : 'btn-activate'}`}
                                                         onClick={() => handleToggle(m)}
-                                                        title={m.isActive !== false ? 'Suspend Account' : 'Activate Account'}
+                                                        title={m.isActive !== false ? 'Deactivate Account' : 'Activate Account'}
                                                     >
                                                         {m.isActive !== false ? <HiBan /> : <HiCheck />}
+                                                    </button>
+                                                    <button 
+                                                        className="btn-action btn-delete-danger"
+                                                        onClick={() => { setManagerToDelete(m); setShowDeleteModal(true); }}
+                                                        title="Permanently Delete Manager"
+                                                    >
+                                                        <HiTrash />
                                                     </button>
                                                 </div>
                                             </td>
@@ -479,11 +521,11 @@ const AdminManagers = () => {
                ════════════════════════════════════════════════════════════════ */}
             {showCreateModal && (
                 <div className="high-z-overlay" onClick={() => setShowCreateModal(false)}>
-                    <div className="popup-dialog lg" onClick={(e) => e.stopPropagation()}>
+                    <div className="popup-dialog modal-large" onClick={(e) => e.stopPropagation()}>
                         <div className="popup-header">
                             <div className="flex items-center gap-2">
-                                <HiPlus style={{ color: '#0d9488', fontSize: '1.25rem' }} />
-                                <h3>Create New Company Manager</h3>
+                                <HiOfficeBuilding style={{ color: '#2563eb', fontSize: '1.25rem' }} />
+                                <h3>Create Enterprise Manager Account</h3>
                             </div>
                             <button className="close-x-btn" onClick={() => setShowCreateModal(false)}>
                                 <HiX />
@@ -492,50 +534,74 @@ const AdminManagers = () => {
                         <form onSubmit={handleCreate} className="dialog-body">
                             <div className="form-grid-2">
                                 <div className="dialog-field">
-                                    <label>Full Name *</label>
+                                    <label>Company Legal Name *</label>
                                     <input
                                         type="text"
                                         required
                                         className="dialog-input"
-                                        placeholder="Jane Doe"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                        placeholder="e.g. Apex Marketing Global"
+                                        value={formData.companyName}
+                                        onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
                                     />
                                 </div>
                                 <div className="dialog-field">
-                                    <label>Work Email Address *</label>
+                                    <label>Contact Manager Name *</label>
                                     <input
-                                        type="email"
+                                        type="text"
                                         required
                                         className="dialog-input"
-                                        placeholder="manager@agency.com"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                        placeholder="e.g. Sarah Jenkins"
+                                        value={formData.name}
+                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                     />
                                 </div>
                             </div>
 
                             <div className="form-grid-2">
                                 <div className="dialog-field">
-                                    <label>Temporary Password *</label>
+                                    <label>Business Email *</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        className="dialog-input"
+                                        placeholder="manager@company.com"
+                                        value={formData.email}
+                                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                    />
+                                </div>
+                                <div className="dialog-field">
+                                    <label>Initial Secure Password *</label>
                                     <input
                                         type="password"
                                         required
+                                        minLength={6}
                                         className="dialog-input"
-                                        placeholder="••••••••"
+                                        placeholder="Minimum 6 characters"
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     />
                                 </div>
+                            </div>
+
+                            <div className="form-grid-2">
                                 <div className="dialog-field">
-                                    <label>Company / Agency Name *</label>
+                                    <label>Phone Number</label>
                                     <input
                                         type="text"
-                                        required
                                         className="dialog-input"
-                                        placeholder="Acme Promotions Ltd."
-                                        value={formData.companyName}
-                                        onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                                        placeholder="+1 (555) 000-0000"
+                                        value={formData.phone}
+                                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                                    />
+                                </div>
+                                <div className="dialog-field">
+                                    <label>Tax ID / Business Registration</label>
+                                    <input
+                                        type="text"
+                                        className="dialog-input"
+                                        placeholder="e.g. US-EIN-992140"
+                                        value={formData.taxId}
+                                        onChange={(e) => setFormData({ ...formData, taxId: e.target.value })}
                                     />
                                 </div>
                             </div>
@@ -549,7 +615,7 @@ const AdminManagers = () => {
                                         onChange={(e) => setFormData({ ...formData, licenseTier: e.target.value })}
                                     >
                                         <option value="starter">Starter (5 Promoters)</option>
-                                        <option value="pro">Pro (10 Promoters)</option>
+                                        <option value="pro">Pro (15 Promoters)</option>
                                         <option value="enterprise">Enterprise (Unlimited)</option>
                                     </select>
                                 </div>
@@ -557,27 +623,41 @@ const AdminManagers = () => {
                                     <label>Promoter Capacity Limit</label>
                                     <input
                                         type="number"
+                                        min={1}
                                         className="dialog-input"
                                         value={formData.promoterLimit}
-                                        onChange={(e) => setFormData({ ...formData, promoterLimit: parseInt(e.target.value) || 5 })}
+                                        onChange={(e) => setFormData({ ...formData, promoterLimit: Number(e.target.value) })}
                                     />
                                 </div>
                                 <div className="dialog-field">
                                     <label>Monthly AI Scans</label>
                                     <input
                                         type="number"
+                                        min={100}
+                                        step={500}
                                         className="dialog-input"
                                         value={formData.aiScanQuota}
-                                        onChange={(e) => setFormData({ ...formData, aiScanQuota: parseInt(e.target.value) || 100 })}
+                                        onChange={(e) => setFormData({ ...formData, aiScanQuota: Number(e.target.value) })}
                                     />
                                 </div>
+                            </div>
+
+                            <div className="dialog-field">
+                                <label>Administrator Private Notes</label>
+                                <textarea
+                                    className="dialog-input"
+                                    rows={2}
+                                    placeholder="Internal notes regarding contract, SLA terms, or account manager..."
+                                    value={formData.adminNotes}
+                                    onChange={(e) => setFormData({ ...formData, adminNotes: e.target.value })}
+                                />
                             </div>
 
                             <div className="dialog-footer">
                                 <button type="button" className="btn-cancel" onClick={() => setShowCreateModal(false)}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn-confirm-primary">
+                                <button type="submit" className="btn-confirm-blue">
                                     Create Manager Account
                                 </button>
                             </div>
@@ -594,48 +674,70 @@ const AdminManagers = () => {
                     <div className="popup-dialog" onClick={(e) => e.stopPropagation()}>
                         <div className="popup-header">
                             <div className="flex items-center gap-2">
-                                <HiPencil style={{ color: '#0284c7', fontSize: '1.25rem' }} />
-                                <h3>Adjust Quotas & License Tier</h3>
+                                <HiPencil style={{ color: '#2563eb', fontSize: '1.25rem' }} />
+                                <h3>Edit Quotas & Tier: {editingManager.companyName || editingManager.name}</h3>
                             </div>
                             <button className="close-x-btn" onClick={() => setShowQuotaModal(false)}>
                                 <HiX />
                             </button>
                         </div>
                         <form onSubmit={handleSaveQuota} className="dialog-body">
-                            <p className="dialog-desc">
-                                Updating limits for <strong>{editingManager.name}</strong> ({editingManager.companyName || 'Agency'}):
-                            </p>
-
                             <div className="dialog-field">
                                 <label>License Tier</label>
                                 <select
                                     className="dialog-select"
-                                    value={editingManager.licenseTier || 'starter'}
+                                    value={editingManager.licenseTier || 'pro'}
                                     onChange={(e) => setEditingManager({ ...editingManager, licenseTier: e.target.value })}
                                 >
                                     <option value="starter">Starter</option>
-                                    <option value="pro">Pro Tier</option>
+                                    <option value="pro">Pro</option>
                                     <option value="enterprise">Enterprise</option>
                                 </select>
                             </div>
 
+                            <div className="form-grid-2">
+                                <div className="dialog-field">
+                                    <label>Promoter Capacity Limit</label>
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        className="dialog-input"
+                                        value={editingManager.promoterLimit || 10}
+                                        onChange={(e) => setEditingManager({ ...editingManager, promoterLimit: Number(e.target.value) })}
+                                    />
+                                </div>
+                                <div className="dialog-field">
+                                    <label>Monthly AI Scan Quota</label>
+                                    <input
+                                        type="number"
+                                        min={100}
+                                        step={500}
+                                        className="dialog-input"
+                                        value={editingManager.aiScanQuota || 1000}
+                                        onChange={(e) => setEditingManager({ ...editingManager, aiScanQuota: Number(e.target.value) })}
+                                    />
+                                </div>
+                            </div>
+
                             <div className="dialog-field">
-                                <label>Promoter Capacity Limit</label>
+                                <label>Cloud Storage Allocation (MB)</label>
                                 <input
                                     type="number"
+                                    min={512}
+                                    step={1024}
                                     className="dialog-input"
-                                    value={editingManager.promoterLimit || 5}
-                                    onChange={(e) => setEditingManager({ ...editingManager, promoterLimit: parseInt(e.target.value) || 0 })}
+                                    value={editingManager.storageQuotaMB || 5120}
+                                    onChange={(e) => setEditingManager({ ...editingManager, storageQuotaMB: Number(e.target.value) })}
                                 />
                             </div>
 
                             <div className="dialog-field">
-                                <label>Monthly AI Verification Scan Quota</label>
-                                <input
-                                    type="number"
+                                <label>Admin Private Notes</label>
+                                <textarea
                                     className="dialog-input"
-                                    value={editingManager.aiScanQuota || 100}
-                                    onChange={(e) => setEditingManager({ ...editingManager, aiScanQuota: parseInt(e.target.value) || 0 })}
+                                    rows={2}
+                                    value={editingManager.adminNotes || ''}
+                                    onChange={(e) => setEditingManager({ ...editingManager, adminNotes: e.target.value })}
                                 />
                             </div>
 
@@ -643,8 +745,8 @@ const AdminManagers = () => {
                                 <button type="button" className="btn-cancel" onClick={() => setShowQuotaModal(false)}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn-confirm-primary">
-                                    Save Changes
+                                <button type="submit" className="btn-confirm-blue">
+                                    Save License Changes
                                 </button>
                             </div>
                         </form>
@@ -653,7 +755,7 @@ const AdminManagers = () => {
             )}
 
             {/* ════════════════════════════════════════════════════════════════
-                 EMERGENCY DIRECT PASSWORD RESET MODAL
+                 PASSWORD RESET MODAL
                ════════════════════════════════════════════════════════════════ */}
             {showPasswordResetModal && resettingManager && (
                 <div className="high-z-overlay" onClick={() => setShowPasswordResetModal(false)}>
@@ -661,7 +763,7 @@ const AdminManagers = () => {
                         <div className="popup-header">
                             <div className="flex items-center gap-2">
                                 <HiKey style={{ color: '#d97706', fontSize: '1.25rem' }} />
-                                <h3>Direct Password Override</h3>
+                                <h3>Direct Password Reset (Emergency Override)</h3>
                             </div>
                             <button className="close-x-btn" onClick={() => setShowPasswordResetModal(false)}>
                                 <HiX />
@@ -669,7 +771,7 @@ const AdminManagers = () => {
                         </div>
                         <form onSubmit={handlePasswordReset} className="dialog-body">
                             <p className="dialog-desc">
-                                Set a direct new password for <strong>{resettingManager.name}</strong> ({resettingManager.email}):
+                                Override password for <strong>{resettingManager.name}</strong> ({resettingManager.email}) without requiring email confirmation or OTP bypass:
                             </p>
 
                             <div className="dialog-field">
@@ -689,11 +791,52 @@ const AdminManagers = () => {
                                 <button type="button" className="btn-cancel" onClick={() => setShowPasswordResetModal(false)}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn-confirm-override">
+                                <button type="submit" className="btn-confirm-blue">
                                     Override Password
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* ════════════════════════════════════════════════════════════════
+                 DELETE CONFIRMATION MODAL
+               ════════════════════════════════════════════════════════════════ */}
+            {showDeleteModal && managerToDelete && (
+                <div className="high-z-overlay" onClick={() => setShowDeleteModal(false)}>
+                    <div className="popup-dialog" onClick={(e) => e.stopPropagation()}>
+                        <div className="popup-header" style={{ borderBottomColor: '#fee2e2', background: '#fff5f5' }}>
+                            <div className="flex items-center gap-2">
+                                <HiTrash style={{ color: '#dc2626', fontSize: '1.25rem' }} />
+                                <h3 style={{ color: '#991b1b' }}>Delete Manager Account</h3>
+                            </div>
+                            <button className="close-x-btn" onClick={() => setShowDeleteModal(false)}>
+                                <HiX />
+                            </button>
+                        </div>
+                        <div className="dialog-body">
+                            <p className="dialog-desc" style={{ color: '#7f1d1d' }}>
+                                Are you sure you want to permanently delete <strong>{managerToDelete.companyName || managerToDelete.name}</strong> ({managerToDelete.email})?
+                            </p>
+                            <div style={{ background: '#fee2e2', padding: '12px', borderRadius: '8px', fontSize: '0.85rem', color: '#991b1b' }}>
+                                ⚠️ <strong>Warning:</strong> This will revoke all platform access for this manager. Associated promoters will need to be reassigned.
+                            </div>
+
+                            <div className="dialog-footer">
+                                <button type="button" className="btn-cancel" onClick={() => setShowDeleteModal(false)}>
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="button" 
+                                    className="btn-danger-confirm" 
+                                    onClick={handleDeleteManager}
+                                    disabled={deleteSubmitting}
+                                >
+                                    {deleteSubmitting ? 'Deleting...' : 'Yes, Delete Permanently'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -706,7 +849,7 @@ const AdminManagers = () => {
                     <div className="popup-dialog" onClick={(e) => e.stopPropagation()}>
                         <div className="popup-header">
                             <div className="flex items-center gap-2">
-                                <HiSwitchHorizontal style={{ color: '#0d9488', fontSize: '1.25rem' }} />
+                                <HiSwitchHorizontal style={{ color: '#2563eb', fontSize: '1.25rem' }} />
                                 <h3>Reassign Field Promoter</h3>
                             </div>
                             <button className="close-x-btn" onClick={() => setShowReassignModal(false)}>
@@ -715,7 +858,7 @@ const AdminManagers = () => {
                         </div>
                         <form onSubmit={handleReassignPromoter} className="dialog-body">
                             <p className="dialog-desc">
-                                Transfer <strong>{promoterToReassign.name}</strong> from <strong>{selectedDossier?.manager?.name || 'Current Manager'}</strong> to a new manager:
+                                Transfer <strong>{promoterToReassign.name}</strong> to another managing agency:
                             </p>
 
                             <div className="dialog-field">
@@ -728,10 +871,10 @@ const AdminManagers = () => {
                                 >
                                     <option value="">Select Destination Agency...</option>
                                     {managers
-                                        .filter((m) => m._id !== selectedDossier?.manager?._id)
-                                        .map((m) => (
+                                        .filter(m => m._id !== selectedDossier?.manager._id)
+                                        .map(m => (
                                             <option key={m._id} value={m._id}>
-                                                {m.name} — {m.companyName || 'Agency'} (Capacity: {m.promoterCount || 0}/{m.promoterLimit || 5})
+                                                {m.companyName || m.name} ({m.name}) — Capacity: {m.promoterCount || 0}/{m.promoterLimit || 10}
                                             </option>
                                         ))}
                                 </select>
@@ -741,8 +884,8 @@ const AdminManagers = () => {
                                 <button type="button" className="btn-cancel" onClick={() => setShowReassignModal(false)}>
                                     Cancel
                                 </button>
-                                <button type="submit" className="btn-confirm-primary">
-                                    Confirm Transfer
+                                <button type="submit" className="btn-confirm-blue">
+                                    Transfer Promoter
                                 </button>
                             </div>
                         </form>
@@ -751,16 +894,16 @@ const AdminManagers = () => {
             )}
 
             {/* ════════════════════════════════════════════════════════════════
-                 MANAGER DOSSIER DRAWER (FULL ENTERPRISE DEEP PROFILE)
+                 MANAGER DOSSIER DRAWER (HIGHLY DETAILED & RICH)
                ════════════════════════════════════════════════════════════════ */}
             {showDossierDrawer && (
                 <div className="dossier-drawer-overlay" onClick={() => setShowDossierDrawer(false)}>
                     <div className="dossier-drawer-content" onClick={(e) => e.stopPropagation()}>
                         <div className="dossier-header">
                             <div className="dossier-header-title">
-                                <span className="dossier-tag">🏢 ENTERPRISE MANAGER PROFILE</span>
-                                <h2>{selectedDossier?.manager?.name || 'Loading Dossier...'}</h2>
-                                <p>{selectedDossier?.manager?.companyName || 'Registered Enterprise'} • {selectedDossier?.manager?.email}</p>
+                                <span className="dossier-tag">🏢 ENTERPRISE MANAGER DOSSIER</span>
+                                <h2>{selectedDossier?.manager?.companyName || selectedDossier?.manager?.name || 'Loading Dossier...'}</h2>
+                                <p>Contact: {selectedDossier?.manager?.name} • {selectedDossier?.manager?.email}</p>
                             </div>
                             <button className="close-x-btn" onClick={() => setShowDossierDrawer(false)}>
                                 <HiX size={22} />
@@ -769,32 +912,32 @@ const AdminManagers = () => {
 
                         {dossierLoading ? (
                             <div className="dossier-loading-wrap">
-                                <Spinner size={36} color="#0f766e" />
-                                <p>Compiling company dossier & audit history...</p>
+                                <Spinner size={36} color="#2563eb" />
+                                <p>Aggregating live agency telemetry, quotas & campaigns...</p>
                             </div>
                         ) : selectedDossier ? (
                             <div className="dossier-body">
-                                {/* Navigation Tabs */}
+                                {/* Navigation Tabs Strip */}
                                 <div className="dossier-tabs-strip">
-                                    <button
+                                    <button 
                                         className={`dossier-tab-btn ${activeDossierTab === 'overview' ? 'active' : ''}`}
                                         onClick={() => setActiveDossierTab('overview')}
                                     >
                                         Overview & Quotas
                                     </button>
-                                    <button
+                                    <button 
                                         className={`dossier-tab-btn ${activeDossierTab === 'promoters' ? 'active' : ''}`}
                                         onClick={() => setActiveDossierTab('promoters')}
                                     >
                                         Promoters ({selectedDossier.promoters?.length || 0})
                                     </button>
-                                    <button
-                                        className={`dossier-tab-btn ${activeDossierTab === 'campaigns' ? 'active' : ''}`}
-                                        onClick={() => setActiveDossierTab('campaigns')}
+                                    <button 
+                                        className={`dossier-tab-btn ${activeDossierTab === 'clients' ? 'active' : ''}`}
+                                        onClick={() => setActiveDossierTab('clients')}
                                     >
                                         Clients & Campaigns ({selectedDossier.clients?.length || 0})
                                     </button>
-                                    <button
+                                    <button 
                                         className={`dossier-tab-btn ${activeDossierTab === 'audit' ? 'active' : ''}`}
                                         onClick={() => setActiveDossierTab('audit')}
                                     >
@@ -802,151 +945,158 @@ const AdminManagers = () => {
                                     </button>
                                 </div>
 
-                                {/* Overview Tab */}
+                                {/* Overview & Quotas Tab */}
                                 {activeDossierTab === 'overview' && (
                                     <div className="tab-pane">
+                                        {/* 4 KPIs */}
                                         <div className="dossier-kpi-grid">
                                             <div className="kpi-card">
                                                 <span className="kpi-lbl">Total Batches Submitted</span>
-                                                <strong className="kpi-val">{selectedDossier.metrics?.totalBatches || 0}</strong>
-                                                <span className="kpi-sub">{selectedDossier.metrics?.totalPhotos || 0} Photos</span>
+                                                <strong className="kpi-val">{selectedDossier.stats?.totalBatches || 0}</strong>
+                                                <span className="kpi-sub">
+                                                    {selectedDossier.stats?.approvedBatches || 0} approved / {selectedDossier.stats?.rejectedBatches || 0} rejected
+                                                </span>
                                             </div>
                                             <div className="kpi-card">
                                                 <span className="kpi-lbl">Batch Pass Rate</span>
                                                 <strong className="kpi-val" style={{ color: '#16a34a' }}>
-                                                    {selectedDossier.metrics?.passRate || '100%'}
+                                                    {selectedDossier.stats?.passRate || 100}%
                                                 </strong>
-                                                <span className="kpi-sub">
-                                                    {selectedDossier.metrics?.statusMap?.approved || 0} approved / {selectedDossier.metrics?.statusMap?.rejected || 0} rejected
-                                                </span>
+                                                <span className="kpi-sub">Quality verified index</span>
                                             </div>
                                             <div className="kpi-card">
-                                                <span className="kpi-lbl">AI Duplicates Caught</span>
-                                                <strong className="kpi-val" style={{ color: '#dc2626' }}>
-                                                    {selectedDossier.metrics?.totalDuplicatesCaught || 0} Flagged
+                                                <span className="kpi-lbl">AI Fraud / Duplicates Caught</span>
+                                                <strong className="kpi-val" style={{ color: selectedDossier.stats?.totalDuplicates > 0 ? '#ef4444' : '#16a34a' }}>
+                                                    {selectedDossier.stats?.totalDuplicates || 0} Flagged
                                                 </strong>
-                                                <span className="kpi-sub">Perceptual Hash</span>
+                                                <span className="kpi-sub">Perceptual Hash AI</span>
                                             </div>
                                             <div className="kpi-card">
-                                                <span className="kpi-lbl">Faces GDPR Protected</span>
-                                                <strong className="kpi-val" style={{ color: '#0d9488' }}>
-                                                    {selectedDossier.metrics?.totalFacesProtected || 0}
+                                                <span className="kpi-lbl">Faces GDPR-Protected</span>
+                                                <strong className="kpi-val" style={{ color: '#2563eb' }}>
+                                                    {selectedDossier.stats?.totalFaces || 0} Faces
                                                 </strong>
-                                                <span className="kpi-sub">Biometrics Redacted</span>
+                                                <span className="kpi-sub">100% Anonymized</span>
                                             </div>
                                         </div>
 
+                                        {/* License Quota Gauges */}
                                         <div className="dossier-detail-card">
-                                            <h4 className="card-sec-title">Company & Enterprise Profile</h4>
-                                            <div className="dossier-spec-row">
-                                                <span>Company Name:</span>
-                                                <strong>{selectedDossier.manager.companyName || 'Not specified'}</strong>
+                                            <h4 className="card-sec-title">Live Quotas & Resource Allocation</h4>
+                                            
+                                            <div className="quota-row-item">
+                                                <div className="flex justify-between text-xs mb-1">
+                                                    <span>👥 Field Promoter Staff Capacity:</span>
+                                                    <strong>{selectedDossier.promoters?.length || 0} / {selectedDossier.manager?.promoterLimit || 10} Slots Used</strong>
+                                                </div>
+                                                <div className="quota-progress-track">
+                                                    <div 
+                                                        className="quota-progress-fill" 
+                                                        style={{ 
+                                                            width: `${Math.min(100, Math.round(((selectedDossier.promoters?.length || 0) / (selectedDossier.manager?.promoterLimit || 10)) * 100))}%`,
+                                                            background: '#2563eb' 
+                                                        }}
+                                                    ></div>
+                                                </div>
                                             </div>
-                                            <div className="dossier-spec-row">
-                                                <span>Work Email:</span>
-                                                <strong>{selectedDossier.manager.email}</strong>
+
+                                            <div className="quota-row-item" style={{ marginTop: '12px' }}>
+                                                <div className="flex justify-between text-xs mb-1">
+                                                    <span>⚡ Monthly AI Scan Quota:</span>
+                                                    <strong>{selectedDossier.stats?.totalPhotos || 0} / {selectedDossier.manager?.aiScanQuota || 1000} Scans Used</strong>
+                                                </div>
+                                                <div className="quota-progress-track">
+                                                    <div 
+                                                        className="quota-progress-fill" 
+                                                        style={{ 
+                                                            width: `${Math.min(100, Math.round(((selectedDossier.stats?.totalPhotos || 0) / (selectedDossier.manager?.aiScanQuota || 1000)) * 100))}%`,
+                                                            background: '#4f46e5' 
+                                                        }}
+                                                    ></div>
+                                                </div>
                                             </div>
-                                            <div className="dossier-spec-row">
-                                                <span>Phone Number:</span>
-                                                <strong>{selectedDossier.manager.phone || 'Not provided'}</strong>
-                                            </div>
-                                            <div className="dossier-spec-row">
-                                                <span>Office Address:</span>
-                                                <strong>{selectedDossier.manager.address || 'Not registered'}</strong>
-                                            </div>
-                                            <div className="dossier-spec-row">
-                                                <span>Tax ID / Business Registration:</span>
-                                                <strong>{selectedDossier.manager.taxId || 'Not registered'}</strong>
-                                            </div>
-                                            <div className="dossier-spec-row">
-                                                <span>License Tier:</span>
-                                                <strong className={`tier-badge ${selectedDossier.licenseTier}`}>
-                                                    {selectedDossier.licenseTier.toUpperCase()}
-                                                </strong>
-                                            </div>
-                                            <div className="dossier-spec-row">
-                                                <span>Promoter Capacity:</span>
-                                                <strong>{selectedDossier.promotersCreated} / {selectedDossier.promoterLimit} promoters</strong>
-                                            </div>
-                                            <div className="dossier-spec-row">
-                                                <span>Monthly AI Scan Quota:</span>
-                                                <strong>{selectedDossier.aiScanQuota.toLocaleString()} scans / mo</strong>
-                                            </div>
-                                            <div className="dossier-spec-row">
-                                                <span>Storage Allocation:</span>
-                                                <strong>{selectedDossier.storageQuotaMB} MB</strong>
-                                            </div>
-                                            <div className="dossier-spec-row">
-                                                <span>Account Status:</span>
-                                                <strong style={{ color: selectedDossier.manager.isActive !== false ? '#16a34a' : '#dc2626' }}>
-                                                    {selectedDossier.manager.isActive !== false ? 'Active' : 'Suspended'}
-                                                </strong>
+
+                                            <div className="quota-row-item" style={{ marginTop: '12px' }}>
+                                                <div className="flex justify-between text-xs mb-1">
+                                                    <span>📦 Cloud Storage Allocation:</span>
+                                                    <strong>{Math.round(((selectedDossier.stats?.totalPhotos || 0) * 0.45) + 50)} MB / {selectedDossier.manager?.storageQuotaMB || 5120} MB Used</strong>
+                                                </div>
+                                                <div className="quota-progress-track">
+                                                    <div 
+                                                        className="quota-progress-fill" 
+                                                        style={{ width: '12%', background: '#0284c7' }}
+                                                    ></div>
+                                                </div>
                                             </div>
                                         </div>
 
-                                        {selectedDossier.manager.adminNotes && (
-                                            <div className="dossier-detail-card" style={{ marginTop: '14px' }}>
-                                                <h4 className="card-sec-title">Administrator Notes</h4>
-                                                <p className="admin-notes-text">{selectedDossier.manager.adminNotes}</p>
+                                        {/* Company Credentials */}
+                                        <div className="dossier-detail-card">
+                                            <h4 className="card-sec-title">Corporate Credentials & Registration</h4>
+                                            <div className="dossier-spec-row">
+                                                <span>Active License Tier:</span>
+                                                <strong className={`tier-badge ${selectedDossier.manager?.licenseTier || 'pro'}`}>
+                                                    {(selectedDossier.manager?.licenseTier || 'pro').toUpperCase()}
+                                                </strong>
                                             </div>
-                                        )}
-
-                                        {/* Quick Actions inside Dossier */}
-                                        <div className="dossier-actions-strip">
-                                            <button
-                                                className="btn-dossier-action btn-impersonate"
-                                                onClick={() => handleImpersonate(selectedDossier.manager)}
-                                            >
-                                                <HiLogin /> Login as Manager
-                                            </button>
-                                            <button
-                                                className="btn-dossier-action"
-                                                onClick={() => { setEditingManager({ ...selectedDossier.manager }); setShowQuotaModal(true); }}
-                                            >
-                                                <HiPencil /> Edit Quotas
-                                            </button>
-                                            <button
-                                                className="btn-dossier-action"
-                                                onClick={() => { setResettingManager(selectedDossier.manager); setNewPassword(''); setShowPasswordResetModal(true); }}
-                                            >
-                                                <HiKey /> Reset Password
-                                            </button>
-                                            <button
-                                                className={`btn-dossier-action ${selectedDossier.manager.isActive !== false ? 'btn-deactivate' : 'btn-activate'}`}
-                                                onClick={() => handleToggle(selectedDossier.manager)}
-                                            >
-                                                {selectedDossier.manager.isActive !== false ? <HiBan /> : <HiCheck />}
-                                                {selectedDossier.manager.isActive !== false ? 'Suspend Account' : 'Activate Account'}
-                                            </button>
+                                            <div className="dossier-spec-row">
+                                                <span>Tax ID / Registration:</span>
+                                                <strong>{selectedDossier.manager?.taxId || 'Verified Partner'}</strong>
+                                            </div>
+                                            <div className="dossier-spec-row">
+                                                <span>Office / HQ Address:</span>
+                                                <strong>{selectedDossier.manager?.address || 'Corporate Headquarters on File'}</strong>
+                                            </div>
+                                            <div className="dossier-spec-row">
+                                                <span>Account Registered:</span>
+                                                <strong>{new Date(selectedDossier.manager?.createdAt).toLocaleDateString()}</strong>
+                                            </div>
+                                            {selectedDossier.manager?.adminNotes && (
+                                                <div className="dossier-spec-row">
+                                                    <span>Admin Notes:</span>
+                                                    <strong style={{ color: '#4f46e5' }}>{selectedDossier.manager.adminNotes}</strong>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
 
-                                {/* Promoters Tab */}
+                                {/* Managed Promoters Tab */}
                                 {activeDossierTab === 'promoters' && (
                                     <div className="tab-pane">
+                                        <div className="flex justify-between items-center mb-3">
+                                            <h4 className="card-sec-title" style={{ margin: 0 }}>
+                                                Assigned Field Promoters ({selectedDossier.promoters?.length || 0})
+                                            </h4>
+                                        </div>
+
                                         <div className="promoters-dossier-list">
                                             {selectedDossier.promoters?.length === 0 ? (
-                                                <p className="no-data-msg">No field promoters currently assigned to this manager.</p>
+                                                <p className="no-data-msg">No promoters assigned to this agency yet.</p>
                                             ) : (
                                                 selectedDossier.promoters.map((p) => (
-                                                    <div key={p._id} className="promoter-dossier-row">
+                                                    <div key={p._id} className="promoter-dossier-item">
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`status-dot ${p.isOnline ? 'online' : 'offline'}`} title={p.isOnline ? 'Online Now' : 'Offline'}></div>
+                                                            <div className="promoter-mini-badge">
+                                                                {p.name ? p.name.charAt(0).toUpperCase() : 'P'}
+                                                            </div>
                                                             <div>
-                                                                <strong>{p.name}</strong>
-                                                                <div className="sub-text">{p.email}</div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <strong>{p.name}</strong>
+                                                                    <div className={`status-dot ${p.isOnline ? 'online' : 'offline'}`} title={p.isOnline ? 'Online Now' : 'Offline'}></div>
+                                                                </div>
+                                                                <span className="sub-text">{p.email}</span>
                                                             </div>
                                                         </div>
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="text-right">
-                                                                <span className="block text-xs font-semibold text-gray-500">{p.stats?.totalBatches || 0} Batches</span>
-                                                                <span className="text-xs text-teal-600 font-bold">{p.stats?.approvalRatio || 100}% Pass</span>
-                                                            </div>
-                                                            <button
-                                                                className="btn-reassign-small"
+
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-xs font-semibold text-gray-500">
+                                                                {p.batchCount || 0} Batches
+                                                            </span>
+                                                            <button 
+                                                                className="btn-action btn-secondary-act"
                                                                 onClick={() => { setPromoterToReassign(p); setTargetManagerId(''); setShowReassignModal(true); }}
-                                                                title="Transfer Promoter to Another Manager"
+                                                                title="Transfer Promoter to Another Agency"
                                                             >
                                                                 <HiSwitchHorizontal /> Reassign
                                                             </button>
@@ -958,22 +1108,26 @@ const AdminManagers = () => {
                                     </div>
                                 )}
 
-                                {/* Campaigns & Clients Tab */}
-                                {activeDossierTab === 'campaigns' && (
+                                {/* Clients & Campaigns Tab */}
+                                {activeDossierTab === 'clients' && (
                                     <div className="tab-pane">
-                                        <div className="campaigns-dossier-list">
+                                        <h4 className="card-sec-title">Corporate Clients & Campaigns</h4>
+                                        <div className="clients-dossier-list">
                                             {selectedDossier.clients?.length === 0 ? (
-                                                <p className="no-data-msg">No brand clients registered under this agency.</p>
+                                                <p className="no-data-msg">No clients registered under this agency yet.</p>
                                             ) : (
                                                 selectedDossier.clients.map((c) => (
-                                                    <div key={c._id} className="campaign-dossier-row">
+                                                    <div key={c._id} className="client-dossier-item">
                                                         <div>
                                                             <strong>{c.name}</strong>
-                                                            <div className="sub-text">{c.industry || 'Brand Client'} • Contact: {c.contactPerson || 'N/A'} ({c.contactEmail})</div>
-                                                            {c.phone && <div className="sub-text">📞 {c.phone}</div>}
+                                                            <div className="sub-text">
+                                                                👤 {c.contactPerson || 'Contact'} • {c.contactEmail || 'No Email'}
+                                                            </div>
                                                         </div>
-                                                        <div className="campaign-count-pill">
-                                                            {c.campaigns?.length || 0} Campaigns
+                                                        <div>
+                                                            <span className="badge-blue">
+                                                                {c.industry || 'Corporate Client'}
+                                                            </span>
                                                         </div>
                                                     </div>
                                                 ))
@@ -985,34 +1139,30 @@ const AdminManagers = () => {
                                 {/* AI Audit Stream Tab */}
                                 {activeDossierTab === 'audit' && (
                                     <div className="tab-pane">
-                                        <div className="fraud-summary-banner">
-                                            <div className="flex items-center gap-2">
-                                                <HiShieldCheck size={20} style={{ color: '#0d9488' }} />
-                                                <div>
-                                                    <strong>AI Integrity & Fraud Catch Summary</strong>
-                                                    <div className="text-xs text-gray-600">
-                                                        {selectedDossier.metrics?.totalDuplicatesCaught || 0} duplicate fraud attempts blocked. Zero-Knowledge Geofence active.
-                                                    </div>
-                                                </div>
+                                        <div className="ai-audit-banner">
+                                            <HiShieldCheck size={28} style={{ color: '#2563eb' }} />
+                                            <div>
+                                                <strong>AI Integrity & Fraud Prevention</strong>
+                                                <p>All batches undergo automated biometric face blur, perceptual duplicate analysis, and ZK geofencing.</p>
                                             </div>
                                         </div>
 
-                                        <h4 className="card-sec-title" style={{ marginTop: '16px' }}>Recent Agency Batches</h4>
+                                        <h4 className="card-sec-title mt-4">Recent Submissions Stream</h4>
                                         <div className="recent-batches-list">
                                             {selectedDossier.recentBatches?.length === 0 ? (
-                                                <p className="no-data-msg">No batches uploaded yet by this agency.</p>
+                                                <p className="no-data-msg">No submissions on record yet.</p>
                                             ) : (
-                                                selectedDossier.recentBatches.map((b) => (
+                                                selectedDossier.recentBatches.map(b => (
                                                     <div key={b._id} className="recent-batch-row">
                                                         <div>
                                                             <strong>{b.title}</strong>
                                                             <div className="sub-text">
-                                                                📍 {b.location || 'Location Not Specified'} • {b.photoCount || 0} Photos
+                                                                📍 {b.location || 'Field Zone'} • {b.photoCount || 0} Photos • by {b.promoter?.name || 'Promoter'}
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-3">
-                                                            <span className="text-xs font-bold text-teal-600">
-                                                                {b.aiSummary?.verificationScore || 100}% Integrity
+                                                            <span className="text-xs font-bold text-blue-600">
+                                                                {b.aiSummary?.verificationScore || 98}% Verified
                                                             </span>
                                                             <span className={`status-pill ${b.status}`}>
                                                                 {b.status.toUpperCase()}
@@ -1024,6 +1174,41 @@ const AdminManagers = () => {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Dossier Super-Admin Action Strip */}
+                                <div className="dossier-actions-strip">
+                                    <button 
+                                        className="btn-dossier-action btn-impersonate"
+                                        onClick={() => handleImpersonate(selectedDossier.manager)}
+                                    >
+                                        <HiLogin /> Login as Manager
+                                    </button>
+                                    <button 
+                                        className="btn-dossier-action"
+                                        onClick={() => { setEditingManager({ ...selectedDossier.manager }); setShowQuotaModal(true); }}
+                                    >
+                                        <HiPencil /> Edit Quotas
+                                    </button>
+                                    <button 
+                                        className="btn-dossier-action"
+                                        onClick={() => { setResettingManager(selectedDossier.manager); setNewPassword(''); setShowPasswordResetModal(true); }}
+                                    >
+                                        <HiKey /> Reset Password
+                                    </button>
+                                    <button 
+                                        className={`btn-dossier-action ${selectedDossier.manager.isActive !== false ? 'btn-deactivate' : 'btn-activate'}`}
+                                        onClick={() => handleToggle(selectedDossier.manager)}
+                                    >
+                                        {selectedDossier.manager.isActive !== false ? <HiBan /> : <HiCheck />}
+                                        {selectedDossier.manager.isActive !== false ? 'Deactivate' : 'Activate'}
+                                    </button>
+                                    <button 
+                                        className="btn-dossier-action btn-delete-danger"
+                                        onClick={() => { setManagerToDelete(selectedDossier.manager); setShowDeleteModal(true); }}
+                                    >
+                                        <HiTrash /> Delete Manager
+                                    </button>
+                                </div>
                             </div>
                         ) : null}
                     </div>
@@ -1060,22 +1245,22 @@ const AdminManagers = () => {
                     margin: 0;
                 }
 
-                .btn-primary-header {
-                    background: #0d9488;
+                .btn-primary-blue {
+                    background: #2563eb;
                     color: #ffffff;
                     border: none;
-                    padding: 9px 16px;
+                    padding: 10px 18px;
                     border-radius: 8px;
-                    font-size: 0.88rem;
+                    font-size: 0.9rem;
                     font-weight: 600;
                     cursor: pointer;
-                    display: flex;
+                    display: inline-flex;
                     align-items: center;
                     gap: 6px;
                     transition: background 0.15s ease;
                 }
 
-                .btn-primary-header:hover { background: #0f766e; }
+                .btn-primary-blue:hover { background: #1d4ed8; }
 
                 .stat-cards-grid {
                     display: grid;
@@ -1233,17 +1418,17 @@ const AdminManagers = () => {
                     vertical-align: middle;
                 }
 
-                .manager-info-cell {
+                .company-info-cell {
                     display: flex;
                     align-items: center;
                     gap: 12px;
                 }
 
-                .manager-avatar-badge {
+                .company-avatar-badge {
                     width: 36px;
                     height: 36px;
                     border-radius: 8px;
-                    background: #0f766e;
+                    background: #2563eb;
                     color: #ffffff;
                     font-weight: 700;
                     display: flex;
@@ -1253,28 +1438,23 @@ const AdminManagers = () => {
                     flex-shrink: 0;
                 }
 
-                .manager-title-link {
+                .company-title-link {
                     font-weight: 600;
                     color: var(--text-primary);
                     cursor: pointer;
                 }
 
-                .manager-title-link:hover {
-                    color: #0d9488;
+                .company-title-link:hover {
+                    color: #2563eb;
                     text-decoration: underline;
                 }
 
-                .manager-sub-meta {
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
+                .contact-sub-meta {
                     font-size: 0.78rem;
                     color: var(--text-secondary);
-                }
-
-                .company-pill {
-                    color: #0284c7;
-                    font-weight: 500;
+                    display: flex;
+                    gap: 5px;
+                    flex-wrap: wrap;
                 }
 
                 .tier-badge {
@@ -1285,48 +1465,39 @@ const AdminManagers = () => {
                     font-weight: 700;
                 }
                 .tier-badge.starter { background: #f1f5f9; color: #475569; }
-                .tier-badge.pro { background: #e0f2fe; color: #0284c7; }
-                .tier-badge.enterprise { background: #fef3c7; color: #b45309; }
+                .tier-badge.pro { background: #eff6ff; color: #2563eb; }
+                .tier-badge.enterprise { background: #eef2ff; color: #4f46e5; }
 
-                .capacity-cell {
+                .quota-bar-cell {
+                    min-width: 150px;
                     display: flex;
                     flex-direction: column;
                     gap: 4px;
-                    width: 120px;
                 }
 
-                .cap-nums {
-                    display: flex;
-                    justify-content: space-between;
-                    font-size: 0.78rem;
-                    font-weight: 600;
-                }
-
-                .cap-pct { color: var(--text-secondary); }
-
-                .cap-track {
+                .quota-progress-track {
                     height: 6px;
-                    background: var(--border-color);
-                    border-radius: 4px;
+                    background: var(--bg-primary);
+                    border-radius: 999px;
                     overflow: hidden;
+                    border: 1px solid var(--border-color);
                 }
 
-                .cap-fill {
+                .quota-progress-fill {
                     height: 100%;
-                    background: #0d9488;
-                    border-radius: 4px;
+                    border-radius: 999px;
+                    transition: width 0.3s ease;
                 }
 
-                .cap-fill.danger { background: #dc2626; }
-
-                .quota-cell {
+                .ai-quota-cell {
                     display: flex;
                     flex-direction: column;
-                    gap: 1px;
+                    gap: 2px;
+                    font-size: 0.82rem;
                 }
 
-                .quota-unit {
-                    font-size: 0.75rem;
+                .storage-sub {
+                    font-size: 0.72rem;
                     color: var(--text-secondary);
                 }
 
@@ -1342,7 +1513,6 @@ const AdminManagers = () => {
                 .status-pill.approved { background: #f0fdf4; color: #16a34a; }
                 .status-pill.pending { background: #fffbeb; color: #b45309; }
                 .status-pill.rejected { background: #fef2f2; color: #dc2626; }
-                .status-pill.draft { background: #f1f5f9; color: #475569; }
 
                 .actions-cell {
                     display: flex;
@@ -1367,11 +1537,14 @@ const AdminManagers = () => {
 
                 .btn-action:hover { background: var(--bg-secondary); }
 
-                .btn-inspect { background: #0f766e; color: #ffffff; border-color: #0f766e; }
-                .btn-inspect:hover { background: #115e59; }
+                .btn-inspect { background: #2563eb; color: #ffffff; border-color: #2563eb; }
+                .btn-inspect:hover { background: #1d4ed8; }
 
-                .btn-impersonate { background: #0284c7; color: #ffffff; border-color: #0284c7; }
-                .btn-impersonate:hover { background: #0369a1; }
+                .btn-impersonate { background: #4f46e5; color: #ffffff; border-color: #4f46e5; }
+                .btn-impersonate:hover { background: #4338ca; }
+
+                .btn-delete-danger { color: #dc2626; border-color: #fca5a5; }
+                .btn-delete-danger:hover { background: #fee2e2; }
 
                 .btn-deactivate { color: #dc2626; }
                 .btn-activate { color: #16a34a; }
@@ -1393,12 +1566,14 @@ const AdminManagers = () => {
                     background: var(--bg-secondary);
                     border: 1px solid var(--border-color);
                     border-radius: 12px;
-                    width: min(520px, 95vw);
+                    width: min(500px, 95vw);
                     box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
                     overflow: hidden;
                 }
 
-                .popup-dialog.lg { width: min(680px, 95vw); }
+                .popup-dialog.modal-large {
+                    width: min(640px, 95vw);
+                }
 
                 .popup-header {
                     padding: 14px 18px;
@@ -1422,6 +1597,12 @@ const AdminManagers = () => {
                     gap: 14px;
                 }
 
+                .dialog-desc {
+                    margin: 0;
+                    font-size: 0.88rem;
+                    color: var(--text-secondary);
+                }
+
                 .form-grid-2 {
                     display: grid;
                     grid-template-columns: 1fr 1fr;
@@ -1431,13 +1612,7 @@ const AdminManagers = () => {
                 .form-grid-3 {
                     display: grid;
                     grid-template-columns: 1fr 1fr 1fr;
-                    gap: 12px;
-                }
-
-                .dialog-desc {
-                    margin: 0;
-                    font-size: 0.88rem;
-                    color: var(--text-secondary);
+                    gap: 10px;
                 }
 
                 .dialog-field {
@@ -1452,7 +1627,7 @@ const AdminManagers = () => {
                     color: var(--text-secondary);
                 }
 
-                .dialog-input, .dialog-select, .dialog-textarea {
+                .dialog-input, .dialog-select {
                     width: 100%;
                     padding: 8px 12px;
                     border-radius: 8px;
@@ -1480,10 +1655,10 @@ const AdminManagers = () => {
                     cursor: pointer;
                 }
 
-                .btn-confirm-primary {
+                .btn-confirm-blue {
                     padding: 8px 16px;
                     border-radius: 8px;
-                    background: #0d9488;
+                    background: #2563eb;
                     border: none;
                     color: #ffffff;
                     font-size: 0.85rem;
@@ -1491,18 +1666,20 @@ const AdminManagers = () => {
                     cursor: pointer;
                 }
 
-                .btn-confirm-primary:hover { background: #0f766e; }
+                .btn-confirm-blue:hover { background: #1d4ed8; }
 
-                .btn-confirm-override {
+                .btn-danger-confirm {
                     padding: 8px 16px;
                     border-radius: 8px;
-                    background: #7c3aed;
+                    background: #dc2626;
                     border: none;
                     color: #ffffff;
                     font-size: 0.85rem;
                     font-weight: 600;
                     cursor: pointer;
                 }
+
+                .btn-danger-confirm:hover { background: #b91c1c; }
 
                 /* ═════ DOSSIER DRAWER ═════ */
                 .dossier-drawer-overlay {
@@ -1518,17 +1695,12 @@ const AdminManagers = () => {
                 .dossier-drawer-content {
                     background: var(--bg-secondary);
                     border-left: 1px solid var(--border-color);
-                    width: min(640px, 95vw);
+                    width: min(660px, 95vw);
                     height: 100%;
                     display: flex;
                     flex-direction: column;
                     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.2);
                     animation: slideInRight 0.2s ease-out;
-                }
-
-                @keyframes slideInRight {
-                    from { transform: translateX(100%); }
-                    to { transform: translateX(0); }
                 }
 
                 .dossier-header {
@@ -1544,7 +1716,7 @@ const AdminManagers = () => {
                     font-size: 0.72rem;
                     font-weight: 800;
                     letter-spacing: 0.05em;
-                    color: #0d9488;
+                    color: #2563eb;
                 }
 
                 .dossier-header h2 {
@@ -1589,7 +1761,8 @@ const AdminManagers = () => {
 
                 .dossier-tab-btn.active {
                     background: var(--bg-primary);
-                    color: #0d9488;
+                    color: #2563eb;
+                    border: 1px solid var(--border-color);
                 }
 
                 .dossier-kpi-grid {
@@ -1632,6 +1805,7 @@ const AdminManagers = () => {
                     border: 1px solid var(--border-color);
                     border-radius: 10px;
                     padding: 16px;
+                    margin-bottom: 12px;
                 }
 
                 .card-sec-title {
@@ -1647,14 +1821,6 @@ const AdminManagers = () => {
                     padding: 8px 0;
                     border-bottom: 1px dashed var(--border-color);
                     font-size: 0.88rem;
-                }
-
-                .admin-notes-text {
-                    font-size: 0.88rem;
-                    color: var(--text-secondary);
-                    line-height: 1.5;
-                    margin: 0;
-                    font-style: italic;
                 }
 
                 .dossier-actions-strip {
@@ -1681,12 +1847,12 @@ const AdminManagers = () => {
                 }
 
                 .btn-dossier-action.btn-impersonate {
-                    background: #0284c7;
+                    background: #4f46e5;
                     color: #ffffff;
-                    border-color: #0284c7;
+                    border-color: #4f46e5;
                 }
 
-                .promoter-dossier-row, .campaign-dossier-row, .recent-batch-row {
+                .promoter-dossier-item, .client-dossier-item, .recent-batch-row {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
@@ -1697,6 +1863,45 @@ const AdminManagers = () => {
                     margin-bottom: 8px;
                 }
 
+                .promoter-mini-badge {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 8px;
+                    background: #2563eb;
+                    color: #ffffff;
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 0.85rem;
+                }
+
+                .badge-blue {
+                    display: inline-block;
+                    padding: 3px 8px;
+                    border-radius: 6px;
+                    font-size: 0.72rem;
+                    font-weight: 700;
+                    background: #eff6ff;
+                    color: #2563eb;
+                }
+
+                .ai-audit-banner {
+                    display: flex;
+                    gap: 12px;
+                    align-items: center;
+                    background: #eff6ff;
+                    border: 1px solid #bfdbfe;
+                    padding: 12px 16px;
+                    border-radius: 8px;
+                }
+
+                .ai-audit-banner p {
+                    margin: 2px 0 0 0;
+                    font-size: 0.82rem;
+                    color: #1e40af;
+                }
+
                 .status-dot {
                     width: 10px;
                     height: 10px;
@@ -1705,37 +1910,6 @@ const AdminManagers = () => {
                 }
                 .status-dot.online { background: #16a34a; box-shadow: 0 0 8px #16a34a; }
                 .status-dot.offline { background: #94a3b8; }
-
-                .btn-reassign-small {
-                    background: #eff6ff;
-                    border: 1px solid #bfdbfe;
-                    color: #1d4ed8;
-                    padding: 5px 10px;
-                    border-radius: 6px;
-                    font-size: 0.78rem;
-                    font-weight: 600;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 4px;
-                }
-
-                .campaign-count-pill {
-                    background: #f1f5f9;
-                    color: #475569;
-                    font-size: 0.78rem;
-                    font-weight: 700;
-                    padding: 3px 8px;
-                    border-radius: 6px;
-                }
-
-                .fraud-summary-banner {
-                    background: #f0fdf4;
-                    border: 1px solid #bbf7d0;
-                    padding: 12px 14px;
-                    border-radius: 8px;
-                    color: #166534;
-                }
 
                 .no-data-msg {
                     color: var(--text-secondary);

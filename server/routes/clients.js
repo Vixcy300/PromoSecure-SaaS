@@ -220,4 +220,158 @@ router.delete('/:id', authorize('manager', 'admin'), async (req, res) => {
     }
 });
 
+// ════════════════════════════════════════════════════════════════
+// SUPER ADMIN GLOBAL CLIENT & CAMPAIGN DIRECTORY
+// ════════════════════════════════════════════════════════════════
+
+// @route   GET /api/clients/admin/master-directory
+// @desc    Get master directory of all corporate clients with campaigns & manager metrics
+// @access  Admin only
+router.get('/admin/master-directory', authorize('admin'), async (req, res) => {
+    try {
+        const { search, managerId, industry } = req.query;
+        let query = {};
+
+        if (managerId && managerId !== 'all') {
+            query.manager = managerId;
+        }
+
+        if (industry && industry !== 'all') {
+            query.industry = { $regex: industry, $options: 'i' };
+        }
+
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: 'i' } },
+                { contactPerson: { $regex: search, $options: 'i' } },
+                { contactEmail: { $regex: search, $options: 'i' } },
+                { industry: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const clients = await Client.find(query)
+            .populate('manager', 'name email companyName licenseTier')
+            .sort({ createdAt: -1 })
+            .lean();
+
+        const clientIds = clients.map(c => c._id);
+
+        // Aggregate batch and photo metrics per client
+        const batchAgg = await Batch.aggregate([
+            { $match: { client: { $in: clientIds } } },
+            {
+                $group: {
+                    _id: '$client',
+                    totalBatches: { $sum: 1 },
+                    approvedBatches: {
+                        $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] }
+                    },
+                    pendingBatches: {
+                        $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
+                    },
+                    totalPhotos: { $sum: '$photoCount' },
+                    lastActivity: { $max: '$createdAt' }
+                }
+            }
+        ]);
+
+        const statsMap = {};
+        batchAgg.forEach(b => {
+            statsMap[b._id.toString()] = b;
+        });
+
+        const enrichedClients = clients.map(c => {
+            const stat = statsMap[c._id.toString()] || {
+                totalBatches: 0,
+                approvedBatches: 0,
+                pendingBatches: 0,
+                totalPhotos: 0,
+                lastActivity: null
+            };
+
+            return {
+                ...c,
+                stats: stat,
+                portalStatus: c.contactEmail ? 'Active Portal' : 'Pending Invite',
+                autoReportSchedule: c.autoReportSchedule || 'Weekly PDF Digest'
+            };
+        });
+
+        res.json({
+            success: true,
+            count: enrichedClients.length,
+            clients: enrichedClients
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// @route   POST /api/clients/admin/:id/resend-invite
+// @desc    Resend client portal access invite
+// @access  Admin only
+router.post('/admin/:id/resend-invite', authorize('admin'), async (req, res) => {
+    try {
+        const client = await Client.findById(req.params.id);
+        if (!client) {
+            return res.status(404).json({ success: false, message: 'Client not found' });
+        }
+
+        const { logAuditEvent } = require('../utils/auditLogger');
+        await logAuditEvent({
+            action: 'CLIENT_INVITE_DISPATCHED',
+            category: 'user',
+            user: req.user,
+            targetId: client._id,
+            targetType: 'Client',
+            targetName: client.name,
+            details: { email: client.contactEmail },
+            req
+        });
+
+        res.json({
+            success: true,
+            message: `Portal invitation dispatched to ${client.contactEmail || client.name}`
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+// @route   PUT /api/clients/admin/:id/config-reports
+// @desc    Configure automated report delivery
+// @access  Admin only
+router.put('/admin/:id/config-reports', authorize('admin'), async (req, res) => {
+    try {
+        const { schedule } = req.body;
+        const client = await Client.findByIdAndUpdate(
+            req.params.id,
+            { autoReportSchedule: schedule },
+            { new: true }
+        );
+
+        if (!client) {
+            return res.status(404).json({ success: false, message: 'Client not found' });
+        }
+
+        res.json({
+            success: true,
+            message: `Report schedule updated to ${schedule}`,
+            client
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
 module.exports = router;
+

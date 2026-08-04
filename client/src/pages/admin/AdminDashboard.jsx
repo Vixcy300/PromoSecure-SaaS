@@ -232,11 +232,23 @@ const AdminDashboard = () => {
       </div>
 
       <style>{`
+        .grid { display: grid; gap: 1.5rem; }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
         .grid-4 { grid-template-columns: repeat(4, 1fr); }
-        @media (max-width: 1024px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
-        @media (max-width: 640px) { .grid-4 { grid-template-columns: 1fr; } }
+        @media (max-width: 1024px) { 
+          .grid-4 { grid-template-columns: repeat(2, 1fr); } 
+          .grid-2 { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 640px) { 
+          .grid-4 { grid-template-columns: 1fr; } 
+          .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+          .page-header .btn { width: 100%; justify-content: center; }
+          .data-action-card { flex-direction: column; align-items: flex-start; gap: 1rem; }
+          .data-action-card .btn { width: 100%; justify-content: center; }
+          .chart-container { height: 200px; }
+        }
         .stat-card { display: flex; align-items: center; gap: 1rem; }
-        .stat-icon { width: 56px; height: 56px; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; }
+        .stat-icon { width: 56px; height: 56px; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem; flex-shrink: 0; }
         .stat-content { display: flex; flex-direction: column; }
         .stat-value { font-size: 1.75rem; font-weight: 700; }
         .stat-label { font-size: 0.85rem; color: var(--text-muted); }
@@ -245,11 +257,12 @@ const AdminDashboard = () => {
         .leaderboard { display: flex; flex-direction: column; gap: 0.75rem; }
         .leaderboard-item { display: flex; align-items: center; gap: 1rem; padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--radius-md); }
         .leaderboard-rank { font-size: 1.25rem; min-width: 2rem; text-align: center; }
-        .leaderboard-info { flex: 1; display: flex; flex-direction: column; }
-        .leaderboard-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; }
+        .leaderboard-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+        .leaderboard-info strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .leaderboard-stats { display: flex; flex-direction: column; align-items: flex-end; gap: 0.25rem; flex-shrink: 0; }
         .health-items { display: flex; flex-direction: column; gap: 0.75rem; }
         .health-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-tertiary); border-radius: var(--radius-md); }
-        .health-item.success svg { color: var(--success); font-size: 1.25rem; }
+        .health-item.success svg { color: var(--success); font-size: 1.25rem; flex-shrink: 0; }
         .health-item div { display: flex; flex-direction: column; }
         .health-item span:first-child { font-weight: 600; font-size: 0.9rem; }
         .health-status { font-size: 0.8rem; color: var(--text-muted); }

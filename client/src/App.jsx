@@ -21,6 +21,9 @@ const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const AdminManagers = lazy(() => import('./pages/admin/AdminManagers'));
 const AdminPromoters = lazy(() => import('./pages/admin/AdminPromoters'));
 const AdminBatches = lazy(() => import('./pages/admin/AdminBatches'));
+const AdminMap = lazy(() => import('./pages/admin/AdminMap'));
+const AdminClients = lazy(() => import('./pages/admin/AdminClients'));
+const AdminAuditSystem = lazy(() => import('./pages/admin/AdminAuditSystem'));
 
 // Manager pages
 const ManagerDashboard = lazy(() => import('./pages/manager/ManagerDashboard'));
@@ -48,7 +51,7 @@ const PageLoader = () => (
         minHeight: '60vh',
         width: '100%',
     }}>
-        <Spinner size={36} color="#0d9488" />
+        <Spinner size={36} color="#2563eb" />
     </div>
 );
 
@@ -102,6 +105,9 @@ function App() {
                             <Route path="managers" element={<AdminManagers />} />
                             <Route path="promoters" element={<AdminPromoters />} />
                             <Route path="batches" element={<AdminBatches />} />
+                            <Route path="map" element={<AdminMap />} />
+                            <Route path="audit" element={<AdminAuditSystem />} />
+                            <Route path="system" element={<AdminAuditSystem />} />
                         </Route>
 
                         {/* Manager Routes */}

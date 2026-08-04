@@ -18,8 +18,10 @@ import {
   HiChartBar,
   HiChat,
   HiSun,
-  HiMoon
+  HiMoon,
+  HiSpeakerphone
 } from 'react-icons/hi';
+import api from '../services/api';
 
 const Layout = () => {
   const { user, logout, isImpersonating, stopImpersonation } = useAuth();
@@ -27,6 +29,21 @@ const Layout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+  const [activeAnnouncements, setActiveAnnouncements] = useState([]);
+
+  useEffect(() => {
+    const fetchBanners = async () => {
+      try {
+        const res = await api.get('/users/announcements/active');
+        setActiveAnnouncements(res.data.announcements || []);
+      } catch (e) {
+        console.error('Failed to fetch platform broadcasts');
+      }
+    };
+    if (user) {
+      fetchBanners();
+    }
+  }, [user]);
 
   // Theme Toggle Effect
   useEffect(() => {
@@ -52,6 +69,8 @@ const Layout = () => {
           { to: '/admin/managers', icon: HiOfficeBuilding, label: 'Managers' },
           { to: '/admin/promoters', icon: HiUsers, label: 'Promoters' },
           { to: '/admin/batches', icon: HiCollection, label: 'Batches & AI Audit' },
+          { to: '/admin/map', icon: HiMap, label: 'Operations Map' },
+          { to: '/admin/audit', icon: HiShieldCheck, label: 'Security & Logs' },
         ];
       case 'manager':
         return [
@@ -217,10 +236,27 @@ const Layout = () => {
               </span>
             </div>
             <button className="exit-impersonation-btn" onClick={stopImpersonation}>
-              Exit & Return to Super Admin
+              Exit &amp; Return to Super Admin
             </button>
           </div>
         )}
+
+        {/* Global Platform Broadcasts */}
+        {activeAnnouncements.map(ann => (
+          <div key={ann._id} className={`global-sys-banner ${ann.priority}`}>
+            <div className="banner-icon-side">
+              <HiSpeakerphone size={20} />
+            </div>
+            <div className="banner-content">
+              <strong>{ann.title}</strong>
+              <p>{ann.message}</p>
+            </div>
+            <button className="banner-close" onClick={() => setActiveAnnouncements(prev => prev.filter(a => a._id !== ann._id))}>
+              <HiX />
+            </button>
+          </div>
+        ))}
+
         <Outlet />
       </main>
 
@@ -249,6 +285,93 @@ const Layout = () => {
           display: flex;
           align-items: center;
           gap: 10px;
+        }
+
+        .global-sys-banner {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+          padding: 16px 20px;
+          border-radius: 16px;
+          margin-bottom: 24px;
+          position: relative;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+          animation: bannerSlideDown 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+          transform-origin: top;
+        }
+
+        @keyframes bannerSlideDown {
+          0% { opacity: 0; transform: translateY(-20px) scale(0.95); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes pulseGlow {
+          0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+          70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+        }
+
+        .global-sys-banner.critical {
+          background: rgba(254, 242, 242, 0.85);
+          border: 1px solid rgba(254, 202, 202, 0.5);
+          color: #991b1b;
+          animation: bannerSlideDown 0.5s ease-out forwards, pulseGlow 2s infinite;
+        }
+        .global-sys-banner.critical .banner-icon-side { color: #dc2626; }
+        .global-sys-banner.critical .banner-close { color: #dc2626; background: rgba(220, 38, 38, 0.1); }
+
+        .global-sys-banner.high, .global-sys-banner.warning {
+          background: rgba(255, 251, 235, 0.85);
+          border: 1px solid rgba(253, 230, 138, 0.5);
+          color: #92400e;
+        }
+        .global-sys-banner.high .banner-icon-side { color: #d97706; }
+        .global-sys-banner.high .banner-close { color: #d97706; background: rgba(217, 119, 6, 0.1); }
+
+        .global-sys-banner.info, .global-sys-banner.medium, .global-sys-banner.low {
+          background: rgba(239, 246, 255, 0.85);
+          border: 1px solid rgba(191, 219, 254, 0.5);
+          color: #1e40af;
+        }
+        .global-sys-banner.info .banner-icon-side { color: #2563eb; }
+        .global-sys-banner.info .banner-close { color: #2563eb; background: rgba(37, 99, 235, 0.1); }
+
+        .banner-icon-side {
+          padding-top: 2px;
+          font-size: 1.2rem;
+        }
+
+        .banner-content {
+          flex: 1;
+        }
+        .banner-content strong {
+          display: block;
+          font-size: 1rem;
+          margin-bottom: 4px;
+          letter-spacing: -0.01em;
+        }
+        .banner-content p {
+          margin: 0;
+          font-size: 0.9rem;
+          opacity: 0.9;
+          line-height: 1.5;
+        }
+
+        .banner-close {
+          border: none;
+          cursor: pointer;
+          padding: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          transition: all 0.2s ease;
+        }
+        .banner-close:hover {
+          transform: scale(1.1);
+          filter: brightness(0.9);
         }
 
         .pulse-warning {
