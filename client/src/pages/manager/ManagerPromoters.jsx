@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui/spinner';
 import { useAuth } from '../../context/AuthContext';
 import { HiPlus, HiUsers, HiX, HiBan, HiCheck, HiTrash } from 'react-icons/hi';
 import api from '../../services/api';
@@ -101,7 +102,7 @@ const ManagerPromoters = () => {
 
             {loading ? (
                 <div className="flex justify-center mt-3">
-                    <div className="spinner"></div>
+                    <Spinner size={24} />
                 </div>
             ) : promoters.length === 0 ? (
                 <div className="card empty-state">

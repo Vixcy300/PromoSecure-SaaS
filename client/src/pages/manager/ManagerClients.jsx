@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui/spinner';
 import { HiBriefcase, HiPlus, HiPencil, HiTrash, HiX } from 'react-icons/hi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -103,7 +104,7 @@ const ManagerClients = () => {
     if (loading) {
         return (
             <div className="page flex items-center justify-center">
-                <div className="spinner"></div>
+                <Spinner size={24} />
             </div>
         );
     }

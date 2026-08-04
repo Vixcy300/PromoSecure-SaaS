@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui/spinner';
 import { useNavigate } from 'react-router-dom';
 import { HiBriefcase, HiCamera, HiCheckCircle } from 'react-icons/hi';
 import api from '../../services/api';
@@ -74,7 +75,7 @@ const ClientDashboard = () => {
                 <h2 className="mb-2">Your Campaigns</h2>
                 {loading ? (
                     <div className="flex justify-center py-4">
-                        <div className="spinner"></div>
+                        <Spinner size={24} />
                     </div>
                 ) : batches.length === 0 ? (
                     <div className="empty-state">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui/spinner';
 import { HiChartBar, HiTrendingUp, HiTrendingDown, HiUsers, HiCamera, HiCalendar, HiLightningBolt, HiClock, HiFire } from 'react-icons/hi';
 import {
     Chart as ChartJS,
@@ -258,7 +259,7 @@ const ManagerAnalytics = () => {
     if (loading) {
         return (
             <div className="page flex items-center justify-center">
-                <div className="spinner"></div>
+                <Spinner size={24} />
             </div>
         );
     }

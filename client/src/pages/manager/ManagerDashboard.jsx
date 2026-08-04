@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui/spinner';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { HiUsers, HiCollection, HiPhotograph, HiClock, HiCheckCircle, HiXCircle } from 'react-icons/hi';
@@ -40,7 +41,7 @@ const ManagerDashboard = () => {
     if (loading) {
         return (
             <div className="page flex items-center justify-center">
-                <div className="spinner"></div>
+                <Spinner size={24} />
             </div>
         );
     }

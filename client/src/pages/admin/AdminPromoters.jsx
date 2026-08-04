@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui/spinner';
 import { HiUserGroup, HiTrash, HiBan, HiCheck } from 'react-icons/hi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -57,7 +58,7 @@ const AdminPromoters = () => {
 
             {loading ? (
                 <div className="flex justify-center mt-3">
-                    <div className="spinner"></div>
+                    <Spinner size={24} />
                 </div>
             ) : promoters.length === 0 ? (
                 <div className="card empty-state">

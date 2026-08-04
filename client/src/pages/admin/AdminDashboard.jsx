@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui/spinner';
 import { HiUsers, HiOfficeBuilding, HiCollection, HiPhotograph, HiTrendingUp, HiCheckCircle, HiClock, HiXCircle, HiTrash, HiDownload } from 'react-icons/hi';
 import {
   Chart as ChartJS,
@@ -133,7 +134,7 @@ const AdminDashboard = () => {
   ] : [];
 
   if (loading) {
-    return <div className="page flex items-center justify-center"><div className="spinner"></div></div>;
+    return <div className="page flex items-center justify-center"><Spinner size={24} /></div>;
   }
 
   return (

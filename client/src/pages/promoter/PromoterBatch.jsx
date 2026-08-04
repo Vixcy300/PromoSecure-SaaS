@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui/spinner';
 import { useParams, useNavigate } from 'react-router-dom';
 import { HiArrowLeft, HiCamera, HiTrash, HiPaperAirplane, HiPhotograph, HiCloudUpload, HiWifi } from 'react-icons/hi';
 import api from '../../services/api';
@@ -145,7 +146,7 @@ const PromoterBatch = () => {
     if (loading) {
         return (
             <div className="page flex items-center justify-center">
-                <div className="spinner"></div>
+                <Spinner size={24} />
             </div>
         );
     }
@@ -188,7 +189,7 @@ const PromoterBatch = () => {
                             title={isOffline ? "Cannot submit while offline" : ""}
                         >
                             {submitting ? (
-                                <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }}></div>
+                                <Spinner size={18} />
                             ) : (
                                 <>
                                     <HiPaperAirplane /> Submit Batch

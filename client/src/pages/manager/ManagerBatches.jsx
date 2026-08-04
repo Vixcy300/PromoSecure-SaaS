@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui/spinner';
 import { useParams, useNavigate } from 'react-router-dom';
 import { HiCollection, HiCheckCircle, HiXCircle, HiArrowLeft, HiEye, HiTrash, HiDownload, HiMail, HiX } from 'react-icons/hi';
 import api from '../../services/api';
@@ -360,7 +361,7 @@ const ManagerBatches = () => {
 
             {loading ? (
                 <div className="flex justify-center mt-3">
-                    <div className="spinner"></div>
+                    <Spinner size={24} />
                 </div>
             ) : filteredBatches.length === 0 ? (
                 <div className="card empty-state">

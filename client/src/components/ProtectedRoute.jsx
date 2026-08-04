@@ -1,12 +1,16 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import AppLoader from './AppLoader';
+import { Spinner } from './ui/spinner';
 
 const ProtectedRoute = ({ children, roles = [] }) => {
     const { user, loading } = useAuth();
 
     if (loading) {
-        return <AppLoader />;
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#ffffff' }}>
+                <Spinner size={24} />
+            </div>
+        );
     }
 
     if (!user) {

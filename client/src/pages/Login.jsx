@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Spinner } from '../components/ui/spinner';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { HiMail, HiLockClosed, HiUser, HiShieldCheck, HiArrowRight, HiCamera, HiEye, HiCheck, HiHome } from 'react-icons/hi';
@@ -339,7 +340,7 @@ const Login = () => {
               ) : (
                 <button type="submit" className="btn btn-primary btn-lg w-full" disabled={loading}>
                   {loading ? (
-                    <div className="spinner" style={{ width: 20, height: 20, borderWidth: 2 }}></div>
+                    <Spinner size={18} />
                   ) : (
                     <>
                       {isAdminRegister ? 'Create Platform' : 'Sign In'}

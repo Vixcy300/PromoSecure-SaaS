@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Spinner } from '../../components/ui/spinner';
 import { HiMap, HiLocationMarker, HiCamera, HiUser, HiPhotograph, HiFilter, HiX, HiChevronLeft, HiExternalLink, HiEye } from 'react-icons/hi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -88,7 +89,7 @@ const ManagerMapView = () => {
     if (loading) {
         return (
             <div className="page flex items-center justify-center">
-                <div className="spinner"></div>
+                <Spinner size={24} />
             </div>
         );
     }

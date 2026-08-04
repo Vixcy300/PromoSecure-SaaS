@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Spinner } from '../../components/ui/spinner';
 import { useNavigate } from 'react-router-dom';
 import { HiPlus, HiCamera, HiPaperAirplane, HiTrash, HiX, HiBriefcase, HiCloudUpload, HiWifi } from 'react-icons/hi';
 import api from '../../services/api';
@@ -166,7 +167,7 @@ const PromoterDashboard = () => {
 
             {loading ? (
                 <div className="flex justify-center mt-3">
-                    <div className="spinner"></div>
+                    <Spinner size={24} />
                 </div>
             ) : allBatches.length === 0 ? (
                 <div className="card empty-state">
