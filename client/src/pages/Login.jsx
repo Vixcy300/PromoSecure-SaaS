@@ -2,32 +2,24 @@ import { useState, useEffect } from 'react';
 import { Spinner } from '../components/ui/spinner';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { HiMail, HiLockClosed, HiUser, HiShieldCheck, HiArrowRight, HiCamera, HiEye, HiCheck, HiHome } from 'react-icons/hi';
+import { HiMail, HiLockClosed, HiShieldCheck, HiArrowRight, HiCamera, HiEye, HiCheck, HiHome } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
 const Login = () => {
   const navigate = useNavigate();
   const { login, user } = useAuth();
-  const [isAdminRegister, setIsAdminRegister] = useState(false);
-  const [adminExists, setAdminExists] = useState(true);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    name: '',
-    confirmPassword: '',
-    otp: '',
-    setupKey: ''
+    otp: ''
   });
-  const [loginMethod, setLoginMethod] = useState('otp'); // 'otp' or 'password'
+  const [loginMethod, setLoginMethod] = useState('password'); // 'password' as default
   const [otpSent, setOtpSent] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
-  const [adminCheckDone, setAdminCheckDone] = useState(false);
 
   useEffect(() => {
-    // Non-blocking admin check - form shows immediately
-    checkAdminExists();
     if (user) {
       redirectToDashboard(user.role);
     }
@@ -42,18 +34,8 @@ const Login = () => {
     return () => clearInterval(interval);
   }, [user, resendTimer]);
 
-  const checkAdminExists = async () => {
-    try {
-      const res = await api.get('/auth/check-admin');
-      setAdminExists(res.data.exists);
-    } catch {
-      setAdminExists(false);
-    }
-    setAdminCheckDone(true);
-  };
-
   const redirectToDashboard = (role) => {
-    const routes = { admin: '/admin', manager: '/manager', promoter: '/promoter' };
+    const routes = { admin: '/admin', manager: '/manager', promoter: '/promoter', client: '/client' };
     navigate(routes[role] || '/login');
   };
 
@@ -82,43 +64,28 @@ const Login = () => {
     setLoading(true);
 
     try {
-      if (isAdminRegister) {
-        if (formData.password !== formData.confirmPassword) {
-          toast.error('Passwords do not match');
-          setLoading(false);
-          return;
-        }
-        const res = await api.post('/auth/register', {
+      if (loginMethod === 'otp') {
+        const res = await api.post('/auth/login-otp', {
           email: formData.email,
-          password: formData.password,
-          name: formData.name,
-          setupKey: formData.setupKey
+          otp: formData.otp,
         });
         login(res.data.token, res.data.user);
-        toast.success('Admin account created successfully!');
+        toast.success(`Welcome back, ${res.data.user.name}!`);
         redirectToDashboard(res.data.user.role);
       } else {
-        // Login Logic
-        if (loginMethod === 'otp') {
-          const res = await api.post('/auth/login-otp', {
-            email: formData.email,
-            otp: formData.otp,
-          });
-          login(res.data.token, res.data.user);
-        } else {
-          const res = await api.post('/auth/login', {
-            email: formData.email,
-            password: formData.password,
-          });
-          login(res.data.token, res.data.user);
-        }
-        toast.success(`Welcome back!`);
-        // User role redirection is handled by useEffect or explicit navigation if needed
+        const res = await api.post('/auth/login', {
+          email: formData.email,
+          password: formData.password,
+        });
+        login(res.data.token, res.data.user);
+        toast.success(`Welcome back, ${res.data.user.name}!`);
+        redirectToDashboard(res.data.user.role);
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || 'Authentication failed');
+      toast.error(error.response?.data?.message || 'Authentication failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const features = [
@@ -136,7 +103,7 @@ const Login = () => {
           <div className="hero-content">
             <div className="hero-badge">
               <span className="badge-dot"></span>
-              <span>Production Ready SaaS</span>
+              <span>Enterprise SaaS Platform</span>
             </div>
 
             <h1 className="hero-title">
@@ -172,8 +139,8 @@ const Login = () => {
                 <span className="stat-label">Face Blur</span>
               </div>
               <div className="stat">
-                <span className="stat-value">Free</span>
-                <span className="stat-label">To Start</span>
+                <span className="stat-value">GDPR</span>
+                <span className="stat-label">Compliant</span>
               </div>
             </div>
           </div>
@@ -189,52 +156,13 @@ const Login = () => {
             </Link>
             <div className="form-header">
               <div className="form-logo">🔒</div>
-              <h2>{isAdminRegister ? 'Create Admin Account' : 'Welcome Back'}</h2>
+              <h2>Welcome Back</h2>
               <p className="text-muted">
-                {isAdminRegister
-                  ? 'Set up your PromoSecure platform'
-                  : 'Sign in to continue to your dashboard'}
+                Sign in with your enterprise credentials to access your dashboard
               </p>
             </div>
 
             <form onSubmit={handleSubmit} className="login-form">
-              {isAdminRegister && (
-                <div className="input-group">
-                  <label>
-                    <HiUser className="label-icon" />
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="John Doe"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-              )}
-
-              {isAdminRegister && (
-                <div className="input-group">
-                  <label>
-                    <HiShieldCheck className="label-icon" />
-                    Initial Setup Key
-                  </label>
-                  <input
-                    type="password"
-                    className="input"
-                    placeholder="Enter setup key from server environment"
-                    value={formData.setupKey}
-                    onChange={(e) => setFormData({ ...formData, setupKey: e.target.value })}
-                    required
-                  />
-                  <p className="text-xs text-muted" style={{ marginTop: '0.25rem' }}>
-                    Only authorized administrators with the server setup key can create the first admin account.
-                  </p>
-                </div>
-              )}
-
               <div className="input-group">
                 <label>
                   <HiMail className="label-icon" />
@@ -243,14 +171,14 @@ const Login = () => {
                 <input
                   type="email"
                   className="input"
-                  placeholder="you@company.com"
+                  placeholder="name@company.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
                 />
               </div>
 
-              {!isAdminRegister && loginMethod === 'password' && (
+              {loginMethod === 'password' && (
                 <div className="input-group">
                   <label>
                     <HiLockClosed className="label-icon" />
@@ -263,53 +191,16 @@ const Login = () => {
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                     required
-                    minLength={8}
                   />
                 </div>
               )}
 
-              {/* Admin Register Password Fields */}
-              {isAdminRegister && (
-                <>
-                  <div className="input-group">
-                    <label>
-                      <HiLockClosed className="label-icon" />
-                      Password
-                    </label>
-                    <input
-                      type="password"
-                      className="input"
-                      placeholder="••••••••"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required={isAdminRegister}
-                      minLength={8}
-                    />
-                  </div>
-                  <div className="input-group">
-                    <label>
-                      <HiLockClosed className="label-icon" />
-                      Confirm Password
-                    </label>
-                    <input
-                      type="password"
-                      className="input"
-                      placeholder="••••••••"
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      required={isAdminRegister}
-                      minLength={8}
-                    />
-                  </div>
-                </>
-              )}
-
               {/* OTP Input */}
-              {!isAdminRegister && loginMethod === 'otp' && otpSent && (
+              {loginMethod === 'otp' && otpSent && (
                 <div className="input-group">
                   <label>
                     <HiShieldCheck className="label-icon" />
-                    Enter OTP
+                    Enter 6-Digit OTP
                   </label>
                   <input
                     type="text"
@@ -333,7 +224,7 @@ const Login = () => {
                 </div>
               )}
 
-              {!isAdminRegister && loginMethod === 'otp' && !otpSent ? (
+              {loginMethod === 'otp' && !otpSent ? (
                 <button type="button" onClick={handleSendOTP} className="btn btn-primary btn-lg w-full" disabled={loading}>
                   {loading ? 'Sending...' : 'Get OTP Code'}
                 </button>
@@ -343,45 +234,30 @@ const Login = () => {
                     <Spinner size={18} />
                   ) : (
                     <>
-                      {isAdminRegister ? 'Create Platform' : 'Sign In'}
+                      Sign In
                       <HiArrowRight />
                     </>
                   )}
                 </button>
               )}
 
-              {!isAdminRegister && (
-                <div className="form-switch" style={{ borderTop: 'none', marginTop: '0.5rem', paddingTop: 0 }}>
-                  <button
-                    type="button"
-                    className="btn btn-ghost w-full text-sm"
-                    onClick={() => {
-                      setLoginMethod(loginMethod === 'otp' ? 'password' : 'otp');
-                      setOtpSent(false);
-                    }}
-                  >
-                    {loginMethod === 'otp' ? 'Login with Password' : 'Login with OTP'}
-                  </button>
-                </div>
-              )}
-            </form>
-
-            {!adminExists && (
-              <div className="form-switch">
+              <div className="form-switch" style={{ borderTop: 'none', marginTop: '0.75rem', paddingTop: 0 }}>
                 <button
-                  className="btn btn-ghost w-full"
-                  onClick={() => setIsAdminRegister(!isAdminRegister)}
+                  type="button"
+                  className="btn btn-ghost w-full text-sm"
+                  onClick={() => {
+                    setLoginMethod(loginMethod === 'otp' ? 'password' : 'otp');
+                    setOtpSent(false);
+                  }}
                 >
-                  {isAdminRegister
-                    ? 'Already have an account? Sign In'
-                    : 'First time? Create Admin Account'}
+                  {loginMethod === 'otp' ? 'Sign in with Password instead' : 'Sign in with Email OTP instead'}
                 </button>
               </div>
-            )}
+            </form>
 
             <div className="form-footer">
               <p className="text-xs text-muted text-center">
-                By continuing, you agree to our <Link to="/terms" style={{ color: 'var(--brand-primary)' }}>Terms of Service</Link> and <Link to="/privacy" style={{ color: 'var(--brand-primary)' }}>Privacy Policy</Link>.
+                Protected by PromoSecure Enterprise Security. <Link to="/terms" style={{ color: 'var(--brand-primary)' }}>Terms</Link> and <Link to="/privacy" style={{ color: 'var(--brand-primary)' }}>Privacy</Link>.
               </p>
             </div>
           </div>
@@ -451,42 +327,38 @@ const Login = () => {
         }
 
         .badge-dot {
-          width: 8px;
-          height: 8px;
-          background: var(--success);
+          width: 6px;
+          height: 6px;
           border-radius: 50%;
-          animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
+          background: var(--brand-primary);
         }
 
         .hero-title {
-          font-size: clamp(2rem, 5vw, 3rem);
+          font-size: 2.5rem;
           font-weight: 800;
-          margin-bottom: 1rem;
           line-height: 1.1;
+          margin-bottom: 1rem;
+          letter-spacing: -0.02em;
         }
 
         .brand-gradient {
-          color: var(--brand-primary);
+          background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
 
         .hero-subtitle {
-          font-size: 1.1rem;
+          font-size: 1.05rem;
           color: var(--text-secondary);
-          line-height: 1.7;
+          line-height: 1.6;
           margin-bottom: 2rem;
-          max-width: 400px;
         }
 
         .hero-features {
           display: flex;
           flex-direction: column;
           gap: 1rem;
-          margin-bottom: 2rem;
+          margin-bottom: 2.5rem;
         }
 
         .hero-feature {
@@ -496,14 +368,14 @@ const Login = () => {
         }
 
         .feature-icon {
-          width: 44px;
-          height: 44px;
-          background: var(--bg-card);
+          width: 40px;
+          height: 40px;
           border-radius: var(--radius-lg);
+          background: var(--primary-50);
+          color: var(--brand-primary);
           display: flex;
           align-items: center;
           justify-content: center;
-          color: var(--brand-primary);
           font-size: 1.25rem;
           flex-shrink: 0;
         }
@@ -515,7 +387,8 @@ const Login = () => {
 
         .feature-title {
           font-weight: 600;
-          font-size: 0.95rem;
+          font-size: 0.9rem;
+          color: var(--text-primary);
         }
 
         .feature-desc {
@@ -524,21 +397,22 @@ const Login = () => {
         }
 
         .hero-stats {
-          display: flex;
-          gap: 2rem;
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 1.5rem;
           padding-top: 2rem;
           border-top: 1px solid var(--border-color);
         }
 
         .stat {
-          text-align: center;
+          display: flex;
+          flex-direction: column;
         }
 
         .stat-value {
-          display: block;
           font-size: 1.5rem;
-          font-weight: 800;
-          color: var(--brand-primary);
+          font-weight: 700;
+          color: var(--text-primary);
         }
 
         .stat-label {
@@ -548,11 +422,11 @@ const Login = () => {
 
         /* Form Panel */
         .login-form-panel {
+          padding: 3rem;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 3rem;
-          background: var(--bg-primary);
+          background: var(--bg-secondary);
         }
 
         .form-container {
@@ -560,17 +434,34 @@ const Login = () => {
           max-width: 400px;
         }
 
+        .home-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.85rem;
+          color: var(--text-muted);
+          text-decoration: none;
+          margin-bottom: 1.5rem;
+          transition: var(--transition);
+        }
+
+        .home-link:hover {
+          color: var(--brand-primary);
+        }
+
         .form-header {
-          text-align: center;
           margin-bottom: 2rem;
         }
 
         .form-logo {
-          font-size: 3rem;
-          margin-bottom: 1rem;
+          font-size: 2.5rem;
+          margin-bottom: 0.75rem;
         }
 
         .form-header h2 {
+          font-size: 1.75rem;
+          font-weight: 700;
+          color: var(--text-primary);
           margin-bottom: 0.5rem;
         }
 
@@ -580,7 +471,16 @@ const Login = () => {
           gap: 1.25rem;
         }
 
+        .input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
         .input-group label {
+          font-size: 0.875rem;
+          font-weight: 500;
+          color: var(--text-secondary);
           display: flex;
           align-items: center;
           gap: 0.5rem;
@@ -590,36 +490,26 @@ const Login = () => {
           color: var(--text-muted);
         }
 
+        .form-options {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 0.875rem;
+        }
+
         .form-switch {
           margin-top: 1.5rem;
           padding-top: 1.5rem;
           border-top: 1px solid var(--border-color);
         }
 
-        .home-link {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: var(--text-muted);
-          font-size: 0.9rem;
-          margin-bottom: 1.5rem;
-          transition: color var(--transition-fast);
-        }
-
-        .home-link:hover {
-          color: var(--brand-primary);
-        }
-
         .form-footer {
           margin-top: 2rem;
         }
 
-        /* Mobile Responsive */
-        @media (max-width: 1024px) {
+        @media (max-width: 900px) {
           .login-container {
             grid-template-columns: 1fr;
-            max-width: 500px;
-            min-height: auto;
           }
 
           .login-hero {
@@ -628,78 +518,6 @@ const Login = () => {
 
           .login-form-panel {
             padding: 2rem;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .login-page {
-            padding: 0;
-            align-items: flex-start;
-          }
-
-          .login-container {
-            border-radius: 0;
-            min-height: 100vh;
-            max-width: 100%;
-            border: none;
-            box-shadow: none;
-          }
-
-          .login-form-panel {
-            padding: 1.5rem;
-            padding-top: max(2rem, env(safe-area-inset-top, 2rem));
-            padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
-          }
-
-          .form-container {
-            max-width: 100%;
-          }
-
-          .form-header h2 {
-            font-size: 1.5rem;
-          }
-
-          .form-logo {
-            font-size: 2.5rem;
-          }
-
-          .login-form {
-            gap: 1rem;
-          }
-
-          .login-form .input {
-            min-height: 48px;
-            font-size: 16px !important;
-            border-radius: var(--radius-lg);
-          }
-
-          .btn-lg {
-            min-height: 48px;
-            font-size: 1rem;
-            border-radius: var(--radius-lg);
-          }
-
-          .input-group label {
-            font-size: 0.85rem;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .login-form-panel {
-            padding: 1rem;
-            padding-top: max(1.5rem, env(safe-area-inset-top, 1.5rem));
-          }
-
-          .form-header {
-            margin-bottom: 1.5rem;
-          }
-
-          .form-footer {
-            margin-top: 1.5rem;
-          }
-
-          .form-footer p {
-            font-size: 0.75rem;
           }
         }
       `}</style>

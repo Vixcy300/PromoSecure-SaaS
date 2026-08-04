@@ -464,6 +464,18 @@ router.delete('/:id', async (req, res) => {
         await Photo.deleteMany({ batch: batch._id });
         await batch.deleteOne();
 
+        res.json({
+            success: true,
+            message: 'Batch deleted'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
 // ════════════════════════════════════════════════════════════════
 // SUPER ADMIN MASTER BATCH CONTROL & AI AUDIT STREAM
 // ════════════════════════════════════════════════════════════════
