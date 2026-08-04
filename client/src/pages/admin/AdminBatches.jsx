@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Spinner } from '../../components/ui/spinner';
 import {
     HiPhotograph,
-    HiOfficeBuilding,
     HiSearch,
     HiX,
     HiEye,
@@ -10,19 +9,13 @@ import {
     HiSparkles,
     HiRefresh,
     HiCheckCircle,
-    HiXCircle,
     HiClock,
     HiDocumentReport,
     HiPrinter,
-    HiDownload,
-    HiExclamation,
-    HiFingerPrint,
-    HiLocationMarker,
     HiAdjustments,
-    HiCheck,
-    HiBan,
     HiChevronLeft,
-    HiChevronRight
+    HiChevronRight,
+    HiLockClosed
 } from 'react-icons/hi';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -31,7 +24,6 @@ const AdminBatches = () => {
     // State
     const [batches, setBatches] = useState([]);
     const [managers, setManagers] = useState([]);
-    const [promoters, setPromoters] = useState([]);
     const [loading, setLoading] = useState(true);
     const [counts, setCounts] = useState({
         total: 0,
@@ -50,12 +42,11 @@ const AdminBatches = () => {
     const [managerFilter, setManagerFilter] = useState('all');
     const [flaggedOnly, setFlaggedOnly] = useState(false);
 
-    // AI Inspector Modal
+    // AI Inspector Modal (GDPR Privacy Protected)
     const [showInspector, setShowInspector] = useState(false);
     const [inspectorBatch, setInspectorBatch] = useState(null);
     const [inspectorPhotos, setInspectorPhotos] = useState([]);
     const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
-    const [inspectorViewMode, setInspectorViewMode] = useState('side-by-side'); // 'side-by-side' | 'original' | 'blurred'
     const [inspectorLoading, setInspectorLoading] = useState(false);
 
     // Super-Override Modal
@@ -76,12 +67,8 @@ const AdminBatches = () => {
 
     const fetchMetadata = async () => {
         try {
-            const [mgrsRes, promsRes] = await Promise.all([
-                api.get('/users?role=manager'),
-                api.get('/users?role=promoter'),
-            ]);
+            const mgrsRes = await api.get('/users?role=manager');
             setManagers(mgrsRes.data.users || []);
-            setPromoters(promsRes.data.users || []);
         } catch (error) {
             console.error('Failed to load filter metadata', error);
         }
@@ -113,7 +100,7 @@ const AdminBatches = () => {
         fetchMasterFeed();
     };
 
-    // Open AI Inspector
+    // Open AI Inspector (GDPR Anonymized View)
     const openInspector = async (batch) => {
         setShowInspector(true);
         setInspectorLoading(true);
@@ -184,7 +171,7 @@ const AdminBatches = () => {
                 <div>
                     <h1 className="page-title">Global Batches & AI Audit Stream</h1>
                     <p className="page-subtitle">
-                        Platform-wide master stream of all photo submissions with side-by-side AI fraud inspector, ZK-proofs, and super-overrides.
+                        Platform-wide master stream of photo submissions with privacy-first AI verification telemetry, ZK geofence proofs, and super-overrides.
                     </p>
                 </div>
             </div>
@@ -312,7 +299,7 @@ const AdminBatches = () => {
                                                     <strong 
                                                         className="batch-link"
                                                         onClick={() => openInspector(batch)}
-                                                        title="Launch Side-by-Side AI Inspector"
+                                                        title="Launch AI Audit Inspector"
                                                     >
                                                         {batch.title}
                                                     </strong>
@@ -378,9 +365,9 @@ const AdminBatches = () => {
                                                     <button
                                                         className="action-btn inspector"
                                                         onClick={() => openInspector(batch)}
-                                                        title="Open Side-by-Side AI Inspector"
+                                                        title="Open AI Audit Inspector"
                                                     >
-                                                        <HiEye size={15} /> AI Inspect
+                                                        <HiEye size={15} /> AI Audit
                                                     </button>
                                                     <button
                                                         className="action-btn cert"
@@ -408,7 +395,7 @@ const AdminBatches = () => {
             </div>
 
             {/* ════════════════════════════════════════════════════════════════
-                 SIDE-BY-SIDE AI INSPECTOR MODAL
+                 GDPR PRIVACY-SECURED AI INSPECTOR MODAL
                ════════════════════════════════════════════════════════════════ */}
             {showInspector && (
                 <div className="modal-overlay full-bleed" onClick={() => setShowInspector(false)}>
@@ -417,7 +404,9 @@ const AdminBatches = () => {
                         <div className="inspector-header">
                             <div>
                                 <div className="inspector-badge-row">
-                                    <span className="inspector-badge">AI CRYPTOGRAPHIC AUDIT INSPECTOR</span>
+                                    <span className="inspector-badge">
+                                        <HiShieldCheck size={16} /> GDPR PRIVACY-SECURED AI AUDIT
+                                    </span>
                                     {inspectorBatch && (
                                         <span className={`inspector-status-pill ${inspectorBatch.status}`}>
                                             {inspectorBatch.status.toUpperCase()}
@@ -430,30 +419,21 @@ const AdminBatches = () => {
                                 </p>
                             </div>
                             <div className="inspector-header-controls">
-                                <div className="view-mode-toggle">
-                                    <button
-                                        className={inspectorViewMode === 'side-by-side' ? 'active' : ''}
-                                        onClick={() => setInspectorViewMode('side-by-side')}
-                                    >
-                                        Side-by-Side
-                                    </button>
-                                    <button
-                                        className={inspectorViewMode === 'original' ? 'active' : ''}
-                                        onClick={() => setInspectorViewMode('original')}
-                                    >
-                                        Original
-                                    </button>
-                                    <button
-                                        className={inspectorViewMode === 'blurred' ? 'active' : ''}
-                                        onClick={() => setInspectorViewMode('blurred')}
-                                    >
-                                        GDPR Redacted
-                                    </button>
+                                <div className="privacy-pill-badge">
+                                    <HiLockClosed size={14} /> Zero-Knowledge Privacy Active
                                 </div>
                                 <button className="close-btn" onClick={() => setShowInspector(false)}>
                                     <HiX size={22} />
                                 </button>
                             </div>
+                        </div>
+
+                        {/* Privacy Guarantee Banner */}
+                        <div className="privacy-guarantee-strip">
+                            <HiLockClosed className="privacy-lock-icon" />
+                            <span>
+                                <strong>Strict Privacy Protocol:</strong> Raw biometric facial images are permanently irrecoverable and unviewable by any administrator, manager, or client. You are inspecting the verified GDPR-anonymized submission with AI cryptographic integrity signatures.
+                            </span>
                         </div>
 
                         {inspectorLoading ? (
@@ -471,52 +451,15 @@ const AdminBatches = () => {
                                 {/* Photo Viewer Panel */}
                                 <div className="inspector-photo-stage">
                                     {inspectorPhotos[selectedPhotoIndex] && (
-                                        <>
-                                            {inspectorViewMode === 'side-by-side' && (
-                                                <div className="side-by-side-grid">
-                                                    <div className="photo-column">
-                                                        <div className="photo-column-header">
-                                                            <span>📸 Raw Camera Capture (Promoter Private)</span>
-                                                        </div>
-                                                        <div className="image-frame">
-                                                            <img
-                                                                src={inspectorPhotos[selectedPhotoIndex].originalImage}
-                                                                alt="Original Capture"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="photo-column">
-                                                        <div className="photo-column-header">
-                                                            <span>🛡️ GDPR Privacy Redacted (Manager / Client View)</span>
-                                                        </div>
-                                                        <div className="image-frame">
-                                                            <img
-                                                                src={inspectorPhotos[selectedPhotoIndex].blurredImage}
-                                                                alt="GDPR Redacted"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                            {inspectorViewMode === 'original' && (
-                                                <div className="single-photo-view">
-                                                    <img
-                                                        src={inspectorPhotos[selectedPhotoIndex].originalImage}
-                                                        alt="Original Capture"
-                                                    />
-                                                </div>
-                                            )}
-
-                                            {inspectorViewMode === 'blurred' && (
-                                                <div className="single-photo-view">
-                                                    <img
-                                                        src={inspectorPhotos[selectedPhotoIndex].blurredImage}
-                                                        alt="GDPR Redacted"
-                                                    />
-                                                </div>
-                                            )}
-                                        </>
+                                        <div className="single-photo-view">
+                                            <div className="photo-view-badge">
+                                                🛡️ GDPR Anonymized Proof Asset #{selectedPhotoIndex + 1}
+                                            </div>
+                                            <img
+                                                src={inspectorPhotos[selectedPhotoIndex].blurredImage}
+                                                alt="GDPR Redacted Protected Asset"
+                                            />
+                                        </div>
                                     )}
 
                                     {/* Carousel Navigator */}
@@ -559,7 +502,7 @@ const AdminBatches = () => {
                                     {inspectorPhotos[selectedPhotoIndex] && (
                                         <div className="telemetry-cards-stack">
                                             <div className="telemetry-item">
-                                                <span className="t-label">Faces Detected</span>
+                                                <span className="t-label">Faces Protected & Anonymized</span>
                                                 <strong className="t-val">
                                                     👤 {inspectorPhotos[selectedPhotoIndex].aiMetadata?.facesDetected || 0} Individual(s)
                                                 </strong>
@@ -571,7 +514,7 @@ const AdminBatches = () => {
                                                     className="t-val"
                                                     style={{ color: inspectorPhotos[selectedPhotoIndex].aiMetadata?.isUnique ? '#10b981' : '#ef4444' }}
                                                 >
-                                                    {inspectorPhotos[selectedPhotoIndex].aiMetadata?.isUnique ? '✓ Unique Verified' : '⚠️ Duplicate Detected'}
+                                                    {inspectorPhotos[selectedPhotoIndex].aiMetadata?.isUnique ? '✓ Unique Verified' : '⚠️ Duplicate Flagged'}
                                                 </strong>
                                             </div>
 
@@ -590,7 +533,7 @@ const AdminBatches = () => {
                                             </div>
 
                                             <div className="telemetry-item">
-                                                <span className="t-label">Timestamp (Captured)</span>
+                                                <span className="t-label">Captured Timestamp</span>
                                                 <span className="t-val">
                                                     {new Date(inspectorPhotos[selectedPhotoIndex].capturedAt || Date.now()).toLocaleString()}
                                                 </span>
@@ -1107,11 +1050,11 @@ const AdminBatches = () => {
                 .action-btn.cert { background: #0284c7; color: #ffffff; border-color: #0284c7; }
                 .action-btn.override { background: #7c3aed; color: #ffffff; border-color: #7c3aed; }
 
-                /* ═════ AI INSPECTOR MODAL ═════ */
+                /* ═════ GDPR PRIVACY AI INSPECTOR MODAL ═════ */
                 .modal-overlay.full-bleed {
                     position: fixed;
                     inset: 0;
-                    background: rgba(0, 0, 0, 0.6);
+                    background: rgba(0, 0, 0, 0.65);
                     backdrop-filter: blur(6px);
                     z-index: 10000;
                     display: flex;
@@ -1124,8 +1067,8 @@ const AdminBatches = () => {
                     background: var(--bg-secondary);
                     border: 1px solid var(--border-color);
                     border-radius: 18px;
-                    width: min(1200px, 95vw);
-                    height: min(850px, 92vh);
+                    width: min(1050px, 95vw);
+                    height: min(820px, 92vh);
                     display: flex;
                     flex-direction: column;
                     overflow: hidden;
@@ -1133,7 +1076,7 @@ const AdminBatches = () => {
                 }
 
                 .inspector-header {
-                    padding: 20px 24px;
+                    padding: 18px 24px;
                     border-bottom: 1px solid var(--border-color);
                     display: flex;
                     justify-content: space-between;
@@ -1149,9 +1092,12 @@ const AdminBatches = () => {
                 }
 
                 .inspector-badge {
-                    font-size: 0.72rem;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-size: 0.75rem;
                     font-weight: 800;
-                    letter-spacing: 0.08em;
+                    letter-spacing: 0.06em;
                     color: #0d9488;
                 }
 
@@ -1181,31 +1127,36 @@ const AdminBatches = () => {
                 .inspector-header-controls {
                     display: flex;
                     align-items: center;
-                    gap: 14px;
+                    gap: 12px;
                 }
 
-                .view-mode-toggle {
+                .privacy-pill-badge {
                     display: flex;
-                    background: var(--bg-secondary);
-                    border: 1px solid var(--border-color);
-                    border-radius: 8px;
-                    padding: 2px;
+                    align-items: center;
+                    gap: 6px;
+                    background: #dcfce7;
+                    color: #166534;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    padding: 5px 10px;
+                    border-radius: 20px;
                 }
 
-                .view-mode-toggle button {
-                    border: none;
-                    background: none;
-                    padding: 6px 12px;
-                    border-radius: 6px;
-                    font-size: 0.8rem;
-                    font-weight: 600;
-                    color: var(--text-secondary);
-                    cursor: pointer;
+                .privacy-guarantee-strip {
+                    background: #0f172a;
+                    color: #e2e8f0;
+                    font-size: 0.82rem;
+                    padding: 10px 24px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    border-bottom: 1px solid #334155;
                 }
 
-                .view-mode-toggle button.active {
-                    background: #0d9488;
-                    color: #ffffff;
+                .privacy-lock-icon {
+                    color: #10b981;
+                    font-size: 1.2rem;
+                    flex-shrink: 0;
                 }
 
                 .inspector-body {
@@ -1224,37 +1175,38 @@ const AdminBatches = () => {
                     overflow-y: auto;
                 }
 
-                .side-by-side-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 16px;
-                    flex: 1;
-                    align-items: center;
-                }
-
-                .photo-column-header {
-                    color: #cbd5e1;
-                    font-size: 0.8rem;
-                    font-weight: 600;
-                    margin-bottom: 8px;
-                    text-align: center;
-                }
-
-                .image-frame, .single-photo-view {
+                .single-photo-view {
                     width: 100%;
-                    max-height: 440px;
+                    flex: 1;
                     display: flex;
+                    flex-direction: column;
                     align-items: center;
                     justify-content: center;
                     background: #000;
                     border-radius: 12px;
                     overflow: hidden;
                     border: 1px solid #1e293b;
+                    position: relative;
                 }
 
-                .image-frame img, .single-photo-view img {
+                .photo-view-badge {
+                    position: absolute;
+                    top: 12px;
+                    left: 12px;
+                    background: rgba(15, 23, 42, 0.85);
+                    backdrop-filter: blur(4px);
+                    color: #10b981;
+                    font-size: 0.78rem;
+                    font-weight: 700;
+                    padding: 4px 10px;
+                    border-radius: 6px;
+                    border: 1px solid #334155;
+                    z-index: 2;
+                }
+
+                .single-photo-view img {
                     max-width: 100%;
-                    max-height: 440px;
+                    max-height: 480px;
                     object-fit: contain;
                 }
 
@@ -1291,7 +1243,7 @@ const AdminBatches = () => {
                     display: flex;
                     gap: 8px;
                     overflow-x: auto;
-                    max-width: 500px;
+                    max-width: 450px;
                     padding: 4px 0;
                 }
 

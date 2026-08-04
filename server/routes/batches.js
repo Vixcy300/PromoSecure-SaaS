@@ -587,7 +587,10 @@ router.get('/admin/:id/audit-detail', authorize('admin'), async (req, res) => {
             });
         }
 
-        const photos = await Photo.find({ batch: batch._id }).sort({ capturedAt: 1 });
+        // PRIVACY ENFORCEMENT: Never expose original unblurred photos to Admin or Managers
+        const photos = await Photo.find({ batch: batch._id })
+            .select('blurredImage aiMetadata zoneProof capturedAt location')
+            .sort({ capturedAt: 1 });
 
         res.json({
             success: true,
